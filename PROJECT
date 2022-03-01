@@ -1,0 +1,16 @@
+domain: oadp.openshift.io
+layout:
+- go.kubebuilder.io/v3
+projectName: volume-snapshot-mover
+repo: github.com/konveyor/volume-snapshot-mover
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: oadp.openshift.io
+  group: pvc
+  kind: VolumeSnapshotMover
+  path: github.com/konveyor/volume-snapshot-mover/api/v1alpha1
+  version: v1alpha1
+version: "3"
