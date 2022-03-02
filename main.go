@@ -78,11 +78,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.VolumeSnapshotMoverReconciler{
+	if err = (&controllers.VolumeSnapshotBackupReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotMover")
+		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotBackup")
+		os.Exit(1)
+	}
+	if err = (&controllers.VolumeSnapshotRestoreReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotRestore")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

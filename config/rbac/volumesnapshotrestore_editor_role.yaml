@@ -1,0 +1,24 @@
+# permissions for end users to edit volumesnapshotrestores.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: volumesnapshotrestore-editor-role
+rules:
+- apiGroups:
+  - pvc.oadp.openshift.io
+  resources:
+  - volumesnapshotrestores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - pvc.oadp.openshift.io
+  resources:
+  - volumesnapshotrestores/status
+  verbs:
+  - get

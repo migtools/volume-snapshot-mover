@@ -13,4 +13,22 @@ resources:
   kind: VolumeSnapshotMover
   path: github.com/konveyor/volume-snapshot-mover/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: oadp.openshift.io
+  group: pvc
+  kind: VolumeSnapshotBackup
+  path: github.com/konveyor/volume-snapshot-mover/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: oadp.openshift.io
+  group: pvc
+  kind: VolumeSnapshotRestore
+  path: github.com/konveyor/volume-snapshot-mover/api/v1alpha1
+  version: v1alpha1
 version: "3"

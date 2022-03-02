@@ -19,7 +19,10 @@ package controllers
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -27,46 +30,40 @@ import (
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 )
 
-// VolumeSnapshotMoverReconciler reconciles a VolumeSnapshotMover object
-type VolumeSnapshotMoverReconciler struct {
+// VolumeSnapshotRestoreReconciler reconciles a VolumeSnapshotRestore object
+type VolumeSnapshotRestoreReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme         *runtime.Scheme
+	Log            logr.Logger
+	Context        context.Context
+	NamespacedName types.NamespacedName
+	EventRecorder  record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotmovers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotmovers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotmovers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotrestores,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotrestores/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotrestores/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the VolumeSnapshotMover object against the actual cluster state, and then
+// the VolumeSnapshotRestore object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *VolumeSnapshotMoverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// Get VSM CR from cluster
-
-	// Run snapshot mover logic
-	// 1. Create snapshot
-	// 2. Move snapshot to OADP namespace
-	// 3. Run data mover (volsync)
-
-	// Once data mover completes, update VSM status
-	// vsm.Status.Complete = true
-
-	// Update status
+	// TODO(user): your logic here
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *VolumeSnapshotMoverReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *VolumeSnapshotRestoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&pvcv1alpha1.VolumeSnapshotMover{}).
+		For(&pvcv1alpha1.VolumeSnapshotRestore{}).
 		Complete(r)
 }

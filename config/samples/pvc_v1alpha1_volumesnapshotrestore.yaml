@@ -1,0 +1,6 @@
+apiVersion: pvc.oadp.openshift.io/v1alpha1
+kind: VolumeSnapshotRestore
+metadata:
+  name: volumesnapshotrestore-sample
+spec:
+  # TODO(user): Add fields here
