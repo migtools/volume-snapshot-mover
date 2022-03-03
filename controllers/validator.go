@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -24,6 +23,5 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotBackup(log logr.L
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		return false, errors.New("volumeSnapShotContent not found")
 	}
-	r.Log.Info(fmt.Sprintf("+++++ vscInCluster : %s", vscInCluster.UID))
 	return true, nil
 }
