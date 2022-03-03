@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
-	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1beta1"
+	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -18,7 +18,6 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotBackup(log logr.L
 	if vsb.Spec.VolumeSnapshotContent.Name == "" {
 		return false, errors.New("volumeSnapShotBackup CR snapshot name cannot be nil")
 	}
-
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		return false, errors.New("volumeSnapShotContent not found")
