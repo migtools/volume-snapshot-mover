@@ -22,6 +22,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"k8s.io/api/apps/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,7 +78,10 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
+	if err := v1beta1.AddToScheme(mgr.GetScheme()); err != nil {
+		setupLog.Error(err, "unable to add v1beta1.VolumeSnapshotContent APIs to scheme")
+		os.Exit(1)
+	}
 	if err = (&controllers.VolumeSnapshotBackupReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
