@@ -21,14 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VolumeSnapshotRestoreSpec defines the desired state of VolumeSnapshotRestore
-type VolumeSnapshotRestoreSpec struct {
+// DataMoverRestoreSpec defines the desired state of DataMoverRestore
+type DataMoverRestoreSpec struct {
 	ResticSecretRef     corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
 	DestinationClaimRef corev1.ObjectReference      `json:"destinationClaimRef,omitempty"`
 }
 
-// VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore
-type VolumeSnapshotRestoreStatus struct {
+// DataMoverRestoreStatus defines the observed state of DataMoverRestore
+type DataMoverRestoreStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	Completed  bool               `json:"completed"`
 	// TODO: Add data mover refs and velero refs
@@ -37,24 +37,24 @@ type VolumeSnapshotRestoreStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// VolumeSnapshotRestore is the Schema for the volumesnapshotrestores API
-type VolumeSnapshotRestore struct {
+// DataMoverRestore is the Schema for the datamoverrestores API
+type DataMoverRestore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VolumeSnapshotRestoreSpec   `json:"spec,omitempty"`
-	Status VolumeSnapshotRestoreStatus `json:"status,omitempty"`
+	Spec   DataMoverRestoreSpec   `json:"spec,omitempty"`
+	Status DataMoverRestoreStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// VolumeSnapshotRestoreList contains a list of VolumeSnapshotRestore
-type VolumeSnapshotRestoreList struct {
+// DataMoverRestoreList contains a list of DataMoverRestore
+type DataMoverRestoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VolumeSnapshotRestore `json:"items"`
+	Items           []DataMoverRestore `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&VolumeSnapshotRestore{}, &VolumeSnapshotRestoreList{})
+	SchemeBuilder.Register(&DataMoverRestore{}, &DataMoverRestoreList{})
 }

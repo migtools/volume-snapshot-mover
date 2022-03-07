@@ -30,8 +30,8 @@ import (
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 )
 
-// VolumeSnapshotBackupReconciler reconciles a VolumeSnapshotBackup object
-type VolumeSnapshotBackupReconciler struct {
+// DataMoverBackupReconciler reconciles a DataMoverBackup object
+type DataMoverBackupReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	Log            logr.Logger
@@ -40,30 +40,30 @@ type VolumeSnapshotBackupReconciler struct {
 	EventRecorder  record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotbackups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotbackups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=volumesnapshotbackups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the VolumeSnapshotBackup object against the actual cluster state, and then
+// the DataMoverBackup object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Set reconciler vars
 	r.Log = log.FromContext(ctx).WithValues("vsb", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
 	r.NamespacedName = req.NamespacedName
 
-	// Get VSB CR from cluster
-	vsb := pvcv1alpha1.VolumeSnapshotBackup{}
+	// Get DMB CR from cluster
+	vsb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(ctx, req.NamespacedName, &vsb); err != nil {
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return result, nil
 	}
 
@@ -82,7 +82,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	// Reconciliation logic
 
 	_, err := ReconcileBatch(r.Log,
-		r.ValidateVolumeSnapshotBackup,
+		r.ValidateDataMoverBackup,
 		r.MirrorVolumeSnapshot,
 		r.BindPVC,
 		// TODO: Does data mover specific bits belong in a separate controller?
@@ -102,8 +102,8 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *VolumeSnapshotBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *DataMoverBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&pvcv1alpha1.VolumeSnapshotBackup{}).
+		For(&pvcv1alpha1.DataMoverBackup{}).
 		Complete(r)
 }
