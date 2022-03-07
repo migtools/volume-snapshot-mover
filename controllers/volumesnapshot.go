@@ -12,9 +12,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool, error) {
+func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool, error) {
 	// Get VSB from cluster
-	vsb := pvcv1alpha1.VolumeSnapshotBackup{}
+	vsb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &vsb); err != nil {
 		return false, err
 	}
@@ -50,7 +50,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.VolumeSnapshotContent, vsb *pvcv1alpha1.VolumeSnapshotBackup) error {
+func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.VolumeSnapshotContent, vsb *pvcv1alpha1.DataMoverBackup) error {
 	// Get VSC that is defined in spec
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {

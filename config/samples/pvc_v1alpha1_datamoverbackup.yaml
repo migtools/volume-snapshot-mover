@@ -1,6 +1,6 @@
 apiVersion: pvc.oadp.openshift.io/v1alpha1
-kind: VolumeSnapshotRestore
+kind: DataMoverBackup
 metadata:
-  name: volumesnapshotrestore-sample
+  name: datamoverbackup-sample
 spec:
   # TODO(user): Add fields here

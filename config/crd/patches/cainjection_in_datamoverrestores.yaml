@@ -4,4 +4,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
-  name: volumesnapshotbackups.pvc.oadp.openshift.io
+  name: datamoverrestores.pvc.oadp.openshift.io

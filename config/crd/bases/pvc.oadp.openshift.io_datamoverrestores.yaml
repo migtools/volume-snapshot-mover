@@ -5,21 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: volumesnapshotbackups.pvc.oadp.openshift.io
+  name: datamoverrestores.pvc.oadp.openshift.io
 spec:
   group: pvc.oadp.openshift.io
   names:
-    kind: VolumeSnapshotBackup
-    listKind: VolumeSnapshotBackupList
-    plural: volumesnapshotbackups
-    singular: volumesnapshotbackup
+    kind: DataMoverRestore
+    listKind: DataMoverRestoreList
+    plural: datamoverrestores
+    singular: datamoverrestore
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VolumeSnapshotBackup is the Schema for the volumesnapshotbackups
-          API
+        description: DataMoverRestore is the Schema for the datamoverrestores API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,9 +33,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: VolumeSnapshotBackupSpec defines the desired state of VolumeSnapshotBackup
+            description: DataMoverRestoreSpec defines the desired state of DataMoverRestore
             properties:
-              volumeSnapshotContent:
+              destinationClaimRef:
                 description: 'ObjectReference contains enough information to let you
                   inspect or modify the referred object. --- New uses of this type
                   are discouraged because of difficulty describing its usage when
@@ -94,16 +93,22 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+              resticSecretRef:
+                description: LocalObjectReference contains enough information to let
+                  you locate the referenced object inside the same namespace.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
             type: object
           status:
-            description: VolumeSnapshotBackupStatus defines the observed state of
-              VolumeSnapshotBackup
+            description: DataMoverRestoreStatus defines the observed state of DataMoverRestore
             properties:
               completed:
                 type: boolean
               conditions:
-                description: Include references to the volsync CRs and their state
-                  as they are running
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -171,6 +176,8 @@ spec:
                   - type
                   type: object
                 type: array
+            required:
+            - completed
             type: object
         type: object
     served: true

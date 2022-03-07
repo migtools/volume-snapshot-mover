@@ -9,14 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotBackup(log logr.Logger) (bool, error) {
-	vsb := pvcv1alpha1.VolumeSnapshotBackup{}
+func (r *DataMoverBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bool, error) {
+	vsb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &vsb); err != nil {
 		return false, err
 	}
 	// Check if VolumeSnapshotContent is nil
 	if vsb.Spec.VolumeSnapshotContent.Name == "" {
-		return false, errors.New("volumeSnapShotBackup CR snapshot name cannot be nil")
+		return false, errors.New("dataMoverBackup CR snapshot name cannot be nil")
 	}
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
