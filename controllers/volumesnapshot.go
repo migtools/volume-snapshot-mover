@@ -20,12 +20,12 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
 		return false, err
 	}
-	r.Log.Info(fmt.Sprintf("DMB from mirrorvolumesnapshot: %v", dmb))
+
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		return false, errors.New("volumeSnapShotContent not found")
 	}
-	r.Log.Info(fmt.Sprintf("vscInCluster from mirrorvolumesnapshot: %v", vscInCluster))
+
 	// define VSC to be created as clone of spec VSC
 	vsc := &snapv1.VolumeSnapshotContent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -35,11 +35,11 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 
 	// Create VSC in cluster
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, vsc, func() error {
-		err := controllerutil.SetControllerReference(&dmb, vsc, r.Scheme)
+		//TODO: Add a finalizer to overcome the issue with setting owner references 
+		/*err := controllerutil.SetOwnerReference(&dmb, vsc, r.Scheme)
 		if err != nil {
-			r.Log.Info(fmt.Sprintf("Error in create vsc: %v", err))
 			return err
-		}
+		} */
 		return r.buildVolumeSnapshotContent(vsc, &dmb)
 	})
 
@@ -64,7 +64,7 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		return err
 	}
-	r.Log.Info(fmt.Sprintf("vscInCluster from buildVolumeSnapshotContent: %v", vscInCluster))
+
 	// Make a new spec that points to same snapshot handle
 	newSpec := snapv1.VolumeSnapshotContentSpec{
 		// TODO: Update namespace to protected ns
@@ -76,6 +76,7 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 			Namespace:  "openshift-adp",
 			Name:       fmt.Sprintf("%s-volumesnapshot", vscInCluster.Name),
 		},
+		VolumeSnapshotClassName: vscInCluster.Spec.VolumeSnapshotClassName,
 		Source: snapv1.VolumeSnapshotContentSource{
 			SnapshotHandle: vscInCluster.Status.SnapshotHandle,
 		},
