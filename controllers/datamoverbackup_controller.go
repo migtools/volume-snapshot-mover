@@ -66,7 +66,6 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return result, nil
 	}
-
 	if vsb.Status.Completed {
 		// stop reconciling on this resource
 		return ctrl.Result{
