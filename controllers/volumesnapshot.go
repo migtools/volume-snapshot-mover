@@ -35,7 +35,7 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 
 	// Create VSC in cluster
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, vsc, func() error {
-		//TODO: Add a finalizer to overcome the issue with setting owner references 
+		//TODO: Add a finalizer to overcome the issue with setting owner references
 		/*err := controllerutil.SetOwnerReference(&dmb, vsc, r.Scheme)
 		if err != nil {
 			return err
@@ -48,6 +48,7 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 	}
 
 	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
+
 		r.EventRecorder.Event(vsc,
 			corev1.EventTypeNormal,
 			"VolumeSnapshotContentReconciled",
