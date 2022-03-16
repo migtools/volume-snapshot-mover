@@ -56,6 +56,34 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 		)
 	}
 
+	vs := &snapv1.VolumeSnapshot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vsc.Spec.VolumeSnapshotRef.Name,
+			Namespace: vsc.Spec.VolumeSnapshotRef.Namespace,
+		},
+	}
+
+	// Create VolumeSnapshot in the protected namespace
+	op, err = controllerutil.CreateOrUpdate(r.Context, r.Client, vs, func() error {
+
+		err := controllerutil.SetOwnerReference(&dmb, vs, r.Scheme)
+		if err != nil {
+			return err
+		}
+		return r.buildVolumeSnapshot(vs, vsc)
+	})
+	if err != nil {
+		return false, err
+	}
+	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
+
+		r.EventRecorder.Event(vs,
+			corev1.EventTypeNormal,
+			"VolumeSnapshotReconciled",
+			fmt.Sprintf("performed %s on volumesnapshot %s", op, vs.Name),
+		)
+	}
+
 	return true, nil
 }
 
@@ -83,8 +111,18 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 		},
 	}
 
-	// Make a cloned VSC with new spec
-	// TODO: This spec is missing volume snapshot reference
 	vsc.Spec = newSpec
+	return nil
+}
+
+func (r *DataMoverBackupReconciler) buildVolumeSnapshot(vs *snapv1.VolumeSnapshot, vsc *snapv1.VolumeSnapshotContent) error {
+	// Get VS that is defined in spec
+	vsSpec := snapv1.VolumeSnapshotSpec{
+		Source: snapv1.VolumeSnapshotSource{
+			VolumeSnapshotContentName: &vsc.Name,
+		},
+	}
+
+	vs.Spec = vsSpec
 	return nil
 }
