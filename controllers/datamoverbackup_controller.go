@@ -82,9 +82,11 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	_, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverBackup,
-		r.MirrorVolumeSnapshot,
-		r.BindPVC,
+		//r.MirrorVolumeSnapshot,
+		//r.BindPVC,
 		// TODO: Does data mover specific bits belong in a separate controller?
+		r.CreateResticSecret,
+		r.CreateReplicationSource,
 		r.SetupDataMoverConfig,
 		r.RunDataMoverBackup,
 		r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource

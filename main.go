@@ -23,6 +23,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	"github.com/konveyor/volume-snapshot-mover/controllers"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -79,6 +80,10 @@ func main() {
 	}
 	if err := snapv1.AddToScheme(mgr.GetScheme()); err != nil {
 		setupLog.Error(err, "unable to add v1.VolumeSnapshotContent APIs to scheme")
+		os.Exit(1)
+	}
+	if err := volsyncv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		setupLog.Error(err, "unable to add v1alpha1.Volsync APIs to scheme")
 		os.Exit(1)
 	}
 	if err = (&controllers.DataMoverBackupReconciler{
