@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -14,23 +13,31 @@ import (
 )
 
 func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bool, error) {
-	// Get datamoverbackup from cluster
-	// TODO: handle multiple DMBs
+
+	// get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
-		return false, errors.New("dataMoverBackup not found")
+		return false, err
+	}
+
+	// get pvc created by controller
+	pvcName := fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name)
+	pvc := corev1.PersistentVolumeClaim{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: dmb.Namespace, Name: pvcName}, &pvc); err != nil {
+		return false, err
 	}
 
 	// define replicationSource to be created
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-repsource",
+			Name:      fmt.Sprintf("%s-backup", pvc.Name),
 			Namespace: dmb.Namespace,
 		},
 	}
+
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
-		return r.buildReplicationSource(repSource, &dmb)
+		return r.buildReplicationSource(repSource, &dmb, &pvc)
 	})
 	if err != nil {
 		return false, err
@@ -46,17 +53,10 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 	return true, nil
 }
 
-func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, dmb *pvcv1alpha1.DataMoverBackup) error {
+func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, dmb *pvcv1alpha1.DataMoverBackup, pvc *corev1.PersistentVolumeClaim) error {
 
-	// get pvc in OADP namespace
-	pvc := corev1.PersistentVolumeClaim{}
-	// TODO: get pvc name
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: dmb.Namespace, Name: "mssql-pvc"}, &pvc); err != nil {
-		return err
-	}
-
-	// get restic secret in OADP namespace
-	resticSecretName := fmt.Sprintf("%s-resticonfig", pvc.Name)
+	// get restic secret created by controller
+	resticSecretName := fmt.Sprintf("%s-resticsecret", pvc.Name)
 	resticSecret := corev1.Secret{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: dmb.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
 		return err
@@ -67,7 +67,7 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 		SourcePVC: pvc.Name,
 		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
 			// TODO: handle better
-			Manual: "triggertest",
+			Manual: "trigger-test",
 		},
 		Restic: &volsyncv1alpha1.ReplicationSourceResticSpec{
 			Repository: resticSecret.Name,
