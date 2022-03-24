@@ -42,12 +42,6 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 			},
 		}
 
-		// check if pvc exists
-		// create pvc only if it doesnt exists
-		//_ = r.Get(r.Context, r.NamespacedName, pvc)
-
-		//if pvc.Status.Phase == "" {
-
 		op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, pvc, func() error {
 
 			err := controllerutil.SetOwnerReference(&dmb, pvc, r.Scheme)
@@ -57,7 +51,6 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 			return r.buildPVC(pvc, &vs)
 		})
 		if err != nil {
-			r.Log.Info(fmt.Sprintf("error: %v", err))
 			return false, err
 		}
 		if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
@@ -77,20 +70,16 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 			},
 		}
 
-		r.Log.Info(fmt.Sprintf("pod: %v", dp))
-
 		op, err = controllerutil.CreateOrUpdate(r.Context, r.Client, dp, func() error {
 
 			err := controllerutil.SetOwnerReference(&dmb, dp, r.Scheme)
 			if err != nil {
-				r.Log.Info(fmt.Sprintf("error: %v", err))
 				return err
 			}
 			return r.buildPod(pvc, dp)
 		})
 
 		if err != nil {
-			r.Log.Info(fmt.Sprintf("error: %v", err))
 			return false, err
 		}
 		if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
@@ -107,7 +96,7 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 }
 
 func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, vs *snapv1.VolumeSnapshot) error {
-	sc, _ := r.getSourcePVCStorageClassName()
+	p, _ := r.getSourcePVC()
 	pvcspec := corev1.PersistentVolumeClaimSpec{
 		DataSource: &corev1.TypedLocalObjectReference{
 			Name:     vs.Name,
@@ -119,10 +108,10 @@ func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, 
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceStorage: *vs.Status.RestoreSize,
+				corev1.ResourceStorage: *p.Spec.Resources.Requests.Storage(),
 			},
 		},
-		StorageClassName: sc,
+		StorageClassName: p.Spec.StorageClassName,
 	}
 	pvc.Spec = pvcspec
 	return nil
@@ -164,9 +153,9 @@ func (r *DataMoverBackupReconciler) buildPod(pvc *corev1.PersistentVolumeClaim, 
 	return nil
 }
 
-// Get the storageclassname of the source PVC from DMB CR's volumesnapshotcontent
-// TODO: Add a case for PVC source type in DMB CR
-func (r *DataMoverBackupReconciler) getSourcePVCStorageClassName() (*string, error) {
+// Get the source PVC from DMB CR's volumesnapshotcontent
+// TODO: Add logic for PVC datasource type in DMB CR
+func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClaim, error) {
 
 	// Get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
@@ -183,10 +172,10 @@ func (r *DataMoverBackupReconciler) getSourcePVCStorageClassName() (*string, err
 		return nil, errors.New("cannot obtain source volumesnapshot")
 	}
 
-	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsInCluster.ObjectMeta.Namespace}, &pvc); err != nil {
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsInCluster.ObjectMeta.Namespace}, pvc); err != nil {
 		return nil, errors.New("cannot obtain source PVC")
 	}
 
-	return pvc.Spec.StorageClassName, nil
+	return pvc, nil
 }
