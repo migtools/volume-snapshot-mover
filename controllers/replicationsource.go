@@ -20,10 +20,10 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 		return false, err
 	}
 
-	// get pvc created by controller
+	// get cloned pvc
 	pvcName := fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name)
 	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: dmb.Namespace, Name: pvcName}, &pvc); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: pvcName}, &pvc); err != nil {
 		return false, err
 	}
 
@@ -31,12 +31,17 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-backup", pvc.Name),
-			Namespace: dmb.Namespace,
+			Namespace: r.NamespacedName.Namespace,
 		},
 	}
 
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
+
+		err := controllerutil.SetOwnerReference(&dmb, repSource, r.Scheme)
+		if err != nil {
+			return err
+		}
 		return r.buildReplicationSource(repSource, &dmb, &pvc)
 	})
 	if err != nil {
@@ -58,7 +63,7 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-resticsecret", pvc.Name)
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: dmb.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
 		return err
 	}
 
