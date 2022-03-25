@@ -28,7 +28,10 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 
 	// Create a PVC with the above volumesnapshot as the source
 	pvc := corev1.PersistentVolumeClaim{}
-	_ = r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &pvc)
+	if err := r.Get(r.Context,
+		types.NamespacedName{Name: fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &pvc); err != nil {
+		return false, err
+	}
 
 	// Check if the exists or not.
 	// If exists, do nothing
@@ -76,7 +79,7 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 			if err != nil {
 				return err
 			}
-			return r.buildPod(pvc, dp)
+			return r.buildDummyPod(pvc, dp)
 		})
 
 		if err != nil {
@@ -96,7 +99,10 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 }
 
 func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, vs *snapv1.VolumeSnapshot) error {
-	p, _ := r.getSourcePVC()
+	p, err := r.getSourcePVC()
+	if err != nil {
+		return err
+	}
 	pvcspec := corev1.PersistentVolumeClaimSpec{
 		DataSource: &corev1.TypedLocalObjectReference{
 			Name:     vs.Name,
@@ -117,7 +123,7 @@ func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, 
 	return nil
 }
 
-func (r *DataMoverBackupReconciler) buildPod(pvc *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
+func (r *DataMoverBackupReconciler) buildDummyPod(pvc *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
 
 	podspec := corev1.PodSpec{
 		Containers: []corev1.Container{
@@ -168,12 +174,14 @@ func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClai
 	}
 
 	vsInCluster := snapv1.VolumeSnapshot{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: vscInCluster.Spec.VolumeSnapshotRef.Name, Namespace: vscInCluster.Spec.VolumeSnapshotRef.Namespace}, &vsInCluster); err != nil {
+	if err := r.Get(r.Context,
+		types.NamespacedName{Name: vscInCluster.Spec.VolumeSnapshotRef.Name, Namespace: vscInCluster.Spec.VolumeSnapshotRef.Namespace}, &vsInCluster); err != nil {
 		return nil, errors.New("cannot obtain source volumesnapshot")
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsInCluster.ObjectMeta.Namespace}, pvc); err != nil {
+	if err := r.Get(r.Context,
+		types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsInCluster.ObjectMeta.Namespace}, pvc); err != nil {
 		return nil, errors.New("cannot obtain source PVC")
 	}
 
