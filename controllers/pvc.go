@@ -28,11 +28,8 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 
 	// Create a PVC with the above volumesnapshot as the source
 	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context,
-		types.NamespacedName{Name: fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &pvc); err != nil {
-		return false, err
-	}
-
+	_ = r.Get(r.Context,
+		types.NamespacedName{Name: fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &pvc)
 	// Check if the exists or not.
 	// If exists, do nothing
 	// If not, create a PVC and bind it to static pod
