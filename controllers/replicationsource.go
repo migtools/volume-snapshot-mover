@@ -61,7 +61,7 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, dmb *pvcv1alpha1.DataMoverBackup, pvc *corev1.PersistentVolumeClaim) error {
 
 	// get restic secret created by controller
-	resticSecretName := fmt.Sprintf("%s-resticsecret", pvc.Name)
+	resticSecretName := fmt.Sprintf("%s-secret", pvc.Name)
 	resticSecret := corev1.Secret{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
 		return err
