@@ -30,7 +30,7 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 	// define replicationSource to be created
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-backup", pvc.Name),
+			Name:      fmt.Sprintf("%s-rep-src", dmb.Name),
 			Namespace: r.NamespacedName.Namespace,
 		},
 	}
