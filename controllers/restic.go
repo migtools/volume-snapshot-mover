@@ -57,7 +57,7 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	// define Restic secret to be created
 	newResticSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-secret", pvc.Name),
+			Name:      fmt.Sprintf("%s-secret", dmb.Name),
 			Namespace: r.NamespacedName.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
