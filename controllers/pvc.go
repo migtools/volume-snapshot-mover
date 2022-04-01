@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -10,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -51,6 +53,7 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 			return r.buildPVC(pvc, &vs)
 		})
 		if err != nil {
+			r.Log.Info(fmt.Sprintf("err: %v", err))
 			return false, err
 		}
 		if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
@@ -183,4 +186,39 @@ func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClai
 	}
 
 	return pvc, nil
+}
+
+func (r *DataMoverBackupReconciler) WaitForVolumeSnapshotToBeAvailable(log logr.Logger) (bool, error) {
+
+	// get datamoverbackup from cluster
+	dmb := pvcv1alpha1.DataMoverBackup{}
+	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		return false, err
+	}
+
+	// wait for ReplicationSource to complete before deleting resources
+	fmt.Println("waiting for VS to be available")
+	err := r.waitForVSAvailability(&dmb)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *DataMoverBackupReconciler) isVSAvailable(dmb *pvcv1alpha1.DataMoverBackup) wait.ConditionFunc {
+	return func() (bool, error) {
+
+		vs := snapv1.VolumeSnapshot{}
+		if err := r.Get(r.Context,
+			types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &vs); err != nil {
+			return false, errors.New("cloned volumesnapshot not available in the protected namespace")
+		}
+		return true, nil
+	}
+}
+
+// TODO: requeue if fails
+func (r *DataMoverBackupReconciler) waitForVSAvailability(dmb *pvcv1alpha1.DataMoverBackup) error {
+	return wait.PollImmediate(5*time.Second, 2*time.Minute, r.isVSAvailable(dmb))
 }
