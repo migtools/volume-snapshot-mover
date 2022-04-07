@@ -19,13 +19,15 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 	// Get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 	// Check if Volumesnapshot is present in the protected namespace
 	vs := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &vs); err != nil {
-		return false, errors.New("cloned volumesnapshot not available in the protected namespace")
+		r.Log.Error(err, "cloned volumesnapshot not available in the protected namespace")
+		return false, err
 	}
 
 	// Create a PVC with the above volumesnapshot as the source
@@ -193,6 +195,7 @@ func (r *DataMoverBackupReconciler) WaitForVolumeSnapshotToBeAvailable(log logr.
 	// get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 
@@ -212,7 +215,8 @@ func (r *DataMoverBackupReconciler) isVSAvailable(dmb *pvcv1alpha1.DataMoverBack
 		vs := snapv1.VolumeSnapshot{}
 		if err := r.Get(r.Context,
 			types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &vs); err != nil {
-			return false, errors.New("cloned volumesnapshot not available in the protected namespace")
+			r.Log.Error(err, "cloned volumesnapshot not available in the protected namespace")
+			return false, err
 		}
 		return true, nil
 	}

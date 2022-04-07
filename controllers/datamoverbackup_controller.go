@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,7 +30,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 )
+
+const ConditionReconciled = "Reconciled"
+const ReconciledReasonError = "Error"
+const ReconciledReasonComplete = "Complete"
+const ReconcileCompleteMessage = "Reconcile complete"
 
 // DataMoverBackupReconciler reconciles a DataMoverBackup object
 type DataMoverBackupReconciler struct {
@@ -55,29 +63,29 @@ type DataMoverBackupReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Set reconciler vars
-	r.Log = log.FromContext(ctx).WithValues("vsb", req.NamespacedName)
+	r.Log = log.FromContext(ctx).WithValues("dmb", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
 	r.NamespacedName = req.NamespacedName
 
 	// Get DMB CR from cluster
-	vsb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(ctx, req.NamespacedName, &vsb); err != nil {
+	dmb := pvcv1alpha1.DataMoverBackup{}
+	if err := r.Get(ctx, req.NamespacedName, &dmb); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
-		return result, nil
+		return result, err
 	}
-	if vsb.Status.Completed {
+	if dmb.Status.Completed {
 		// stop reconciling on this resource
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
 	}
 
-	/*if vsb.Status.DataMoverBackupStarted {
+	/*if dmb.Status.DataMoverBackupStarted {
 		// wait for it to complete... poll every 5 seconds
 	}*/
 
-	// Run through all reconcilers associated with VSB needs
+	// Run through all reconcilers associated with DMB needs
 	// Reconciliation logic
 
 	_, err := ReconcileBatch(r.Log,
@@ -91,17 +99,37 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.SetupDataMoverConfig,
 		r.RunDataMoverBackup,
 		r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource
-		r.CleanBackupResources,
+		//r.CleanBackupResources,
 	)
 
 	// Update the status with any errors, or set completed condition
 	if err != nil {
+		r.Log.Info(fmt.Sprintf("Error from batch reconcile: %v", err))
 		// Set failed status condition
+		apimeta.SetStatusCondition(&dmb.Status.Conditions,
+			metav1.Condition{
+				Type:    ConditionReconciled,
+				Status:  metav1.ConditionFalse,
+				Reason:  ReconciledReasonError,
+				Message: err.Error(),
+			})
 	} else {
 		// Set complete status condition
+		apimeta.SetStatusCondition(&dmb.Status.Conditions,
+			metav1.Condition{
+				Type:    ConditionReconciled,
+				Status:  metav1.ConditionTrue,
+				Reason:  ReconciledReasonComplete,
+				Message: ReconcileCompleteMessage,
+			})
 	}
 
-	return ctrl.Result{}, nil
+	statusErr := r.Client.Status().Update(ctx, &dmb)
+	if err == nil { // Don't mask previous error
+		err = statusErr
+	}
+
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.

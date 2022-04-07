@@ -12,6 +12,7 @@ import (
 func (r *DataMoverBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bool, error) {
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 	// Check if VolumeSnapshotContent is nil
@@ -20,7 +21,8 @@ func (r *DataMoverBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bo
 	}
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		return false, errors.New("volumeSnapShotContent not found")
+		r.Log.Error(err, "volumesnapshotcontent not found")
+		return false, err
 	}
 	return true, nil
 }
