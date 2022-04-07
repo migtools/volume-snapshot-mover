@@ -25,6 +25,7 @@ func (r *DataMoverBackupReconciler) WaitForDataMoverBackupToComplete(log logr.Lo
 	// get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 

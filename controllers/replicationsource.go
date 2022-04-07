@@ -17,6 +17,7 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 	// get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 
@@ -24,6 +25,7 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 	pvcName := fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name)
 	pvc := corev1.PersistentVolumeClaim{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: pvcName}, &pvc); err != nil {
+		r.Log.Error(err, "unable to fetch PVC")
 		return false, err
 	}
 
@@ -64,6 +66,7 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 	resticSecretName := fmt.Sprintf("%s-secret", dmb.Name)
 	resticSecret := corev1.Secret{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+		r.Log.Error(err, "unable to fetch Restic Secret")
 		return err
 	}
 

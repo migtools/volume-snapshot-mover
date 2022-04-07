@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -18,12 +17,14 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 	// TODO: handle multiple DMBs
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		return false, errors.New("volumeSnapShotContent not found")
+		r.Log.Error(err, "volumesnapshotcontent not found")
+		return false, err
 	}
 
 	// define VSC to be created as clone of spec VSC
@@ -91,6 +92,7 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 	// Get VSC that is defined in spec
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return err
 	}
 
