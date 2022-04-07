@@ -10,6 +10,7 @@ Design Proposal (in-progress): https://github.com/openshift/oadp-operator/pull/5
 follow the steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md)
 - [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) VolSync controller
 - We will be using VolSync's restic option, hence configure a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2).
+The restic secret should be of the name `restic-config`.
 - Install the VolumeSnapshotMover CRDs using the following command:
 ```
 oc create -f config/crd/bases/
