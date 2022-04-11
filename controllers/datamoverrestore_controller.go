@@ -18,6 +18,9 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,11 +57,62 @@ type DataMoverRestoreReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *DataMoverRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	// Set reconciler vars
+	r.Log = log.FromContext(ctx).WithValues("dmr", req.NamespacedName)
+	result := ctrl.Result{}
+	r.Context = ctx
+	r.NamespacedName = req.NamespacedName
 
-	// TODO(user): your logic here
+	// Get DMR CR from cluster
+	dmr := pvcv1alpha1.DataMoverRestore{}
+	if err := r.Get(ctx, req.NamespacedName, &dmr); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
+		return result, err
+	}
+	if dmr.Status.Completed {
+		// stop reconciling on this resource
+		return ctrl.Result{
+			Requeue: false,
+		}, nil
+	}
 
-	return ctrl.Result{}, nil
+	// Run through all reconcilers associated with DMR needs
+	// Reconciliation logic
+
+	_, err := ReconcileBatch(r.Log)//r.ValidateDataMoverRestore,
+	//r.CreateResticSecret,
+	//r.CreateReplicationDestination,
+	//r.MirrorVolumeSnapshot,
+	//r.CleanupRestoreResources,
+
+	// Update the status with any errors, or set completed condition
+	if err != nil {
+		r.Log.Info(fmt.Sprintf("Error from batch reconcile: %v", err))
+		// Set failed status condition
+		apimeta.SetStatusCondition(&dmr.Status.Conditions,
+			metav1.Condition{
+				Type:    ConditionReconciled,
+				Status:  metav1.ConditionFalse,
+				Reason:  ReconciledReasonError,
+				Message: err.Error(),
+			})
+	} else {
+		// Set complete status condition
+		apimeta.SetStatusCondition(&dmr.Status.Conditions,
+			metav1.Condition{
+				Type:    ConditionReconciled,
+				Status:  metav1.ConditionTrue,
+				Reason:  ReconciledReasonComplete,
+				Message: ReconcileCompleteMessage,
+			})
+	}
+
+	statusErr := r.Client.Status().Update(ctx, &dmr)
+	if err == nil { // Don't mask previous error
+		err = statusErr
+	}
+
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
