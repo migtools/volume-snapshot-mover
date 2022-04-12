@@ -79,11 +79,13 @@ func (r *DataMoverRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Run through all reconcilers associated with DMR needs
 	// Reconciliation logic
 
-	_, err := ReconcileBatch(r.Log)//r.ValidateDataMoverRestore,
-	//r.CreateResticSecret,
-	//r.CreateReplicationDestination,
-	//r.MirrorVolumeSnapshot,
-	//r.CleanupRestoreResources,
+	_, err := ReconcileBatch(r.Log,
+		r.ValidateDataMoverRestore,
+		//r.CreateResticSecret,
+		//r.CreateReplicationDestination,
+		//r.MirrorVolumeSnapshot,
+		//r.CleanupRestoreResources,
+	)
 
 	// Update the status with any errors, or set completed condition
 	if err != nil {
