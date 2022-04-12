@@ -26,3 +26,22 @@ func (r *DataMoverBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bo
 	}
 	return true, nil
 }
+
+func (r *DataMoverRestoreReconciler) ValidateDataMoverRestore(log logr.Logger) (bool, error) {
+	dmr := pvcv1alpha1.DataMoverRestore{}
+	if err := r.Get(r.Context, r.NamespacedName, &dmr); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
+		return false, err
+	}
+
+	// Check if restic secret ref is empty
+	if len(dmr.Spec.ResticSecretRef.Name) == 0 {
+		return false, errors.New("dataMoverRestore CR ResticSecretRef name cannot be empty")
+	}
+
+	// Check if DestinationClaimRef name/namespace is empty
+	if len(dmr.Spec.DestinationClaimRef.Name) == 0 || len(dmr.Spec.DestinationClaimRef.Namespace) == 0 {
+		return false, errors.New("dataMoverRestore CR DestinationClaimRef name or namespace cannot be empty")
+	}
+	return true, nil
+}
