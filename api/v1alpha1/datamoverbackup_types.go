@@ -32,7 +32,30 @@ type DataMoverBackupStatus struct {
 	// Include references to the volsync CRs and their state as they are
 	// running
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// Includes source PVC name and size
+	SourcePVCData PVCData `json:"sourcePVCData,omitempty"`
+	// Includes restic repository path
+	ResticRepository string `json:"resticrepository,omitempty"`
+	// Datamovement backup phase status
+	Phase DatamoverBackupPhase `json:"phase,omitempty"`
 }
+
+type PVCData struct {
+	// name of the PersistentVolumeClaim
+	Name string `json:"name, omitempty"`
+	// size of the PersistentVolumeClaim
+	Size int32 `json:"size, omitempty"`
+}
+
+type DatamoverBackupPhase string
+
+const (
+	DatamoverBackupPhaseCompleted DatamoverBackupPhase = "Completed"
+
+	DatamoverBackupPhaseInProgress DatamoverBackupPhase = "InProgress"
+
+	DatamoverBackupPhaseFailed DatamoverBackupPhase = "Failed"
+)
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
