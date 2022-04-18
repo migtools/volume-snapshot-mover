@@ -42,9 +42,9 @@ type DataMoverBackupStatus struct {
 
 type PVCData struct {
 	// name of the PersistentVolumeClaim
-	Name string `json:"name, omitempty"`
+	Name string `json:"name,omitempty"`
 	// size of the PersistentVolumeClaim
-	Size int32 `json:"size, omitempty"`
+	Size string `json:"size,omitempty"`
 }
 
 type DatamoverBackupPhase string
