@@ -102,7 +102,6 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.SetupDataMoverConfig,
 		r.RunDataMoverBackup,
 		//r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource
-		r.SetDMBPVCSourceStatus,
 		//r.CleanBackupResources,
 	)
 

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -9,7 +8,6 @@ import (
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -19,47 +17,6 @@ func (r *DataMoverBackupReconciler) SetupDataMoverConfig(log logr.Logger) (bool,
 }
 
 func (r *DataMoverBackupReconciler) RunDataMoverBackup(log logr.Logger) (bool, error) {
-	return true, nil
-}
-
-func (r *DataMoverBackupReconciler) SetDMBPVCSourceStatus(log logr.Logger) (bool, error) {
-	// Get datamoverbackup from cluster
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
-		return false, err
-	}
-
-	// TODO: separate func
-	// get restic secret created by controller
-	resticSecretName := fmt.Sprintf("%s-secret", dmb.Name)
-	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
-		r.Log.Error(err, "unable to fetch Restic Secret")
-		return false, err
-	}
-
-	p, err := r.getSourcePVC()
-	if err != nil {
-		r.Log.Error(err, "unable to fetch source PVC")
-		return false, err
-	}
-	// set source PVC name in status
-	dmb.Status.SourcePVCData.Name = p.Name
-
-	// set source PVC size in status
-	size := p.Spec.Resources.Requests.Storage()
-	sizeString := size.String()
-	dmb.Status.SourcePVCData.Size = sizeString
-
-	// set created Restic repo
-	dmb.Status.ResticRepository = string(resticSecret.Data[ResticRepository])
-
-	err = r.Status().Update(context.Background(), &dmb)
-	if err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 

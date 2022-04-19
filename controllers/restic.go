@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -74,6 +75,15 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 		}
 		return r.buildResticSecret(newResticSecret, &dmb, &pvc)
 	})
+	if err != nil {
+		return false, err
+	}
+
+	// set created Restic repo to DMB status
+	dmb.Status.ResticRepository = string(newResticSecret.Data[ResticRepository])
+
+	// Update DMB status
+	err = r.Status().Update(context.Background(), &dmb)
 	if err != nil {
 		return false, err
 	}
