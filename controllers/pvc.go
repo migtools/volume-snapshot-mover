@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -105,6 +106,7 @@ func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, 
 	if err != nil {
 		return err
 	}
+
 	pvcspec := corev1.PersistentVolumeClaimSpec{
 		DataSource: &corev1.TypedLocalObjectReference{
 			Name:     vs.Name,
@@ -185,6 +187,20 @@ func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClai
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsInCluster.ObjectMeta.Namespace}, pvc); err != nil {
 		return nil, errors.New("cannot obtain source PVC")
+	}
+
+	// set source PVC name in DMB status
+	dmb.Status.SourcePVCData.Name = pvc.Name
+
+	// set source PVC size in DMB status
+	size := pvc.Spec.Resources.Requests.Storage()
+	sizeString := size.String()
+	dmb.Status.SourcePVCData.Size = sizeString
+
+	// Update DMB status
+	err := r.Status().Update(context.Background(), &dmb)
+	if err != nil {
+		return nil, err
 	}
 
 	return pvc, nil

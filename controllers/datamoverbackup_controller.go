@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
@@ -74,7 +75,9 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return result, err
 	}
+
 	if dmb.Status.Completed {
+
 		// stop reconciling on this resource
 		return ctrl.Result{
 			Requeue: false,
@@ -98,7 +101,7 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.CreateReplicationSource,
 		r.SetupDataMoverConfig,
 		r.RunDataMoverBackup,
-		r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource
+		//r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource
 		//r.CleanBackupResources,
 	)
 
