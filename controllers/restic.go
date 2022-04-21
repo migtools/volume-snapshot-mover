@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -61,6 +62,9 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-secret", dmb.Name),
 			Namespace: r.NamespacedName.Namespace,
+			Labels: map[string]string{
+				DMBLabel: dmb.Name,
+			},
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
@@ -68,12 +72,17 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		err := controllerutil.SetOwnerReference(&dmb, newResticSecret, r.Scheme)
-		if err != nil {
-			return err
-		}
 		return r.buildResticSecret(newResticSecret, &dmb, &pvc)
 	})
+	if err != nil {
+		return false, err
+	}
+
+	// set created Restic repo to DMB status
+	dmb.Status.ResticRepository = string(newResticSecret.Data[ResticRepository])
+
+	// Update DMB status
+	err = r.Status().Update(context.Background(), &dmb)
 	if err != nil {
 		return false, err
 	}

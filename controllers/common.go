@@ -4,6 +4,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
+const (
+	DMBLabel = "pvc.oadp.openshift.io/dmb"
+)
+
 type ReconcileFunc func(logr.Logger) (bool, error)
 
 // reconcileBatch steps through a list of reconcile functions until one returns

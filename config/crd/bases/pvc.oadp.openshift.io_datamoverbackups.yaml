@@ -183,8 +183,7 @@ spec:
                     type: string
                   size:
                     description: size of the PersistentVolumeClaim
-                    format: int32
-                    type: integer
+                    type: string
                 required:
                 - name
                 - size

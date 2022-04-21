@@ -31,16 +31,15 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 	vsc := &snapv1.VolumeSnapshotContent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-clone", vscInCluster.Name),
+			Labels: map[string]string{
+				DMBLabel: dmb.Name,
+			},
 		},
 	}
 
 	// Create VSC in cluster
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, vsc, func() error {
-		//TODO: Add a finalizer to overcome the issue with setting owner references
-		/*err := controllerutil.SetOwnerReference(&dmb, vsc, r.Scheme)
-		if err != nil {
-			return err
-		} */
+
 		return r.buildVolumeSnapshotContent(vsc, &dmb)
 	})
 
@@ -61,16 +60,15 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vsc.Spec.VolumeSnapshotRef.Name,
 			Namespace: vsc.Spec.VolumeSnapshotRef.Namespace,
+			Labels: map[string]string{
+				DMBLabel: dmb.Name,
+			},
 		},
 	}
 
 	// Create VolumeSnapshot in the protected namespace
 	op, err = controllerutil.CreateOrUpdate(r.Context, r.Client, vs, func() error {
 
-		err := controllerutil.SetOwnerReference(&dmb, vs, r.Scheme)
-		if err != nil {
-			return err
-		}
 		return r.buildVolumeSnapshot(vs, vsc)
 	})
 	if err != nil {

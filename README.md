@@ -1,21 +1,38 @@
 <div align="center">
 <h1>Volume Snapshot Mover</h1>
-A datamover for CSI snapshots
+
+<h2>A Data Mover for CSI snapshots</h2>
 </div>
 
-Design Proposal (in-progress): https://github.com/openshift/oadp-operator/pull/597/files
+VolumeSnapshotMover relocates snapshots off of the cluster into an object store so that 
+they can be used during a restore process to recover stateful applications 
+in instances such as cluster deletion or disaster. 
 
-###Basic CSI snapshot workflow steps are as follows:
-- Install OADP Operator, have a stateful application running and create a backup, please
-follow the steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md)
-- [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) VolSync controller
-- We will be using VolSync's restic option, hence configure a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2).
-The restic secret should be of the name `restic-secret`.
-- Install the VolumeSnapshotMover CRDs using the following command:
-```
-oc create -f config/crd/bases/
-```
-- Now, create a DataMoverBackup CR using the snapshotcontent name of the volumesnapshot that you want to move to object storage:
+### Design Proposal (in-progress): https://github.com/openshift/oadp-operator/pull/597/files
+
+### Prerequisites:
+To use the data mover controller, you will first need a volumesnapshot. This can be done
+by using the Velero CSI plugin during backup of the stateful application.
+
+- Install OADP Operator using [these steps](https://github.com/openshift/oadp-operator/blob/master/docs/install_olm.md).
+
+- Have a stateful application running in a separate namespace, and then create a Velero backup using CSI snapshotting.
+  - Follow the steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md).
+
+- [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) VolSync controller.
+
+- We will be using VolSync's Restic option, hence configure a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2) 
+and make sure to name the secret `restic-secret`.
+
+
+### Run the controller:
+
+- Install the VolumeSnapshotMover CRDs `DataMoverBackup` and `DataMoverRestore` using: `oc create -f config/crd/bases/`
+
+#### For backup:
+- Create a `DataMoverBackup` CR using the volumesnapshotcontent name that was created during the Velero backup using CSI.
+This is the snapshot that will be moved to object storage:
+
 ```
 apiVersion: pvc.oadp.openshift.io/v1alpha1
 kind: DataMoverBackup
@@ -25,4 +42,17 @@ spec:
   volumeSnapshotContent:
     name: <INSERT-YOUR-VOLUMESNAPSHOTCONTENT-NAME>
 ```
-- Finally, execute `make run`
+
+#### For restore:
+- Create a `DataMoverRestore` CR 
+
+```
+apiVersion: pvc.oadp.openshift.io/v1alpha1
+kind: DataMoverRestore
+metadata:
+  name: datamoverrestore-sample
+spec:
+  // TODO...fill out
+```
+
+- To run the controller, execute `make run`
