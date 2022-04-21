@@ -62,6 +62,9 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-secret", dmb.Name),
 			Namespace: r.NamespacedName.Namespace,
+			Labels: map[string]string{
+				DMBLabel: dmb.Name,
+			},
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
@@ -69,10 +72,6 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		err := controllerutil.SetOwnerReference(&dmb, newResticSecret, r.Scheme)
-		if err != nil {
-			return err
-		}
 		return r.buildResticSecret(newResticSecret, &dmb, &pvc)
 	})
 	if err != nil {
