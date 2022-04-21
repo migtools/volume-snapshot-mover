@@ -25,8 +25,8 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 	vs := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &vs); err != nil {
-		r.Log.Error(err, "cloned volumesnapshot not available in the protected namespace")
-		return false, err
+		r.Log.Info("cloned volumesnapshot not available in the protected namespace")
+		return false, nil
 	}
 
 	// Create a PVC with the above volumesnapshot as the source
