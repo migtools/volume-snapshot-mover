@@ -24,6 +24,8 @@ import (
 // DataMoverBackupSpec defines the desired state of DataMoverBackup
 type DataMoverBackupSpec struct {
 	VolumeSnapshotContent corev1.ObjectReference `json:"volumeSnapshotContent,omitempty"`
+	// Namespace where the Velero deployment is present
+	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 }
 
 // DataMoverBackupStatus defines the observed state of DataMoverBackup
