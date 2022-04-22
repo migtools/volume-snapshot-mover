@@ -19,23 +19,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var pvc *corev1.PersistentVolumeClaim = &corev1.PersistentVolumeClaim{
-	ObjectMeta: v1.ObjectMeta{
-		Name:      "sample-pvc",
-		Namespace: "foo",
-	},
-	Spec: corev1.PersistentVolumeClaimSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("10Gi"),
-			},
-		},
-	},
-}
+var pvcName string = "sample-pvc"
+var vscName string = "dummy-snapshot-clone"
 
 func getSchemeForFakeClient() (*runtime.Scheme, error) {
 	err := pvcv1alpha1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		return nil, err
+	}
+	err = snapv1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -54,55 +46,6 @@ func newContextForTest(name string) context.Context {
 	return context.TODO()
 }
 
-func TestDataMoverBackupReconciler_BindPVC(t *testing.T) {
-	tests := []struct {
-		name    string
-		dmb     *pvcv1alpha1.DataMoverBackup
-		want    bool
-		wantErr bool
-	}{
-		/* {
-			name: "pvc test1",
-			dmb: &pvcv1alpha1.DataMoverBackup{
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
-					VolumeSnapshotContent: corev1.ObjectReference{
-						Name: "dummy-snapshot",
-					},
-				},
-			},
-			wantErr: false,
-			want:    true,
-		}, */
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjects(tt.dmb)
-			if err != nil {
-				t.Errorf("error creating fake client, likely programmer error")
-			}
-			r := &DataMoverBackupReconciler{
-				Client:  fakeClient,
-				Scheme:  fakeClient.Scheme(),
-				Log:     logr.Discard(),
-				Context: newContextForTest(tt.name),
-				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Namespace,
-					Name:      tt.dmb.Name,
-				},
-				EventRecorder: record.NewFakeRecorder(10),
-			}
-			got, err := r.BindPVC(r.Log)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverBackupReconciler.BindPVC() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("DataMoverBackupReconciler.BindPVC() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -117,6 +60,10 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 		{
 			name: "Given DMB CR, there should be a valid source PVC returned",
 			dmb: &pvcv1alpha1.DataMoverBackup{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmb",
+					Namespace: "foo",
+				},
 				Spec: pvcv1alpha1.DataMoverBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
@@ -142,7 +89,21 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 				},
 				Spec: snapv1.VolumeSnapshotSpec{
 					Source: snapv1.VolumeSnapshotSource{
-						PersistentVolumeClaimName: &pvc.Name,
+						PersistentVolumeClaimName: &pvcName,
+					},
+				},
+			},
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-pvc",
+					Namespace: "foo",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("10Gi"),
+						},
 					},
 				},
 			},
@@ -185,8 +146,12 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 				t.Errorf("DataMoverBackupReconciler.getSourcePVC() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, Wantpvc) {
-				t.Errorf("DataMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
+			if !reflect.DeepEqual(got.Name, Wantpvc.Name) {
+				t.Errorf("Name does not match DataMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
+
+			}
+			if !reflect.DeepEqual(got.Spec, Wantpvc.Spec) {
+				t.Errorf("Spec does not match DataMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
 			}
 		})
 	}
