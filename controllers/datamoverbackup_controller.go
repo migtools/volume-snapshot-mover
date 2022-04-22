@@ -67,13 +67,17 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	r.Log = log.FromContext(ctx).WithValues("dmb", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
-	r.NamespacedName = req.NamespacedName
 
 	// Get DMB CR from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(ctx, req.NamespacedName, &dmb); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return result, err
+	}
+
+	r.NamespacedName = types.NamespacedName{
+		Namespace: dmb.Spec.ProtectedNamespace,
+		Name:      dmb.Name,
 	}
 
 	if dmb.Status.Completed {

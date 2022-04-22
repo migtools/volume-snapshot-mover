@@ -90,19 +90,18 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 	// Get VSC that is defined in spec
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
+		r.Log.Error(err, "unable to fetch volumesnapshotcontent in cluster")
 		return err
 	}
 
 	// Make a new spec that points to same snapshot handle
 	newSpec := snapv1.VolumeSnapshotContentSpec{
-		// TODO: Update namespace to protected ns
 		DeletionPolicy: vscInCluster.Spec.DeletionPolicy,
 		Driver:         vscInCluster.Spec.Driver,
 		VolumeSnapshotRef: corev1.ObjectReference{
 			APIVersion: vscInCluster.Spec.VolumeSnapshotRef.APIVersion,
 			Kind:       vscInCluster.Spec.VolumeSnapshotRef.Kind,
-			Namespace:  "openshift-adp",
+			Namespace:  dmb.Spec.ProtectedNamespace,
 			Name:       fmt.Sprintf("%s-volumesnapshot", vscInCluster.Name),
 		},
 		VolumeSnapshotClassName: vscInCluster.Spec.VolumeSnapshotClassName,
