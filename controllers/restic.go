@@ -44,7 +44,7 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 
 	// get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}

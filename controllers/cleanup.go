@@ -15,7 +15,7 @@ func (r *DataMoverBackupReconciler) CleanBackupResources(log logr.Logger) (bool,
 
 	// get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
 		return false, err
 	}
 

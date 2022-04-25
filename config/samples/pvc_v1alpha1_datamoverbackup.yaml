@@ -3,4 +3,6 @@ kind: DataMoverBackup
 metadata:
   name: datamoverbackup-sample
 spec:
-  # TODO(user): Add fields here
+  volumeSnapshotContent:
+    name: your-snapcontent-id
+  protectedNamespace: your-protected-ns
