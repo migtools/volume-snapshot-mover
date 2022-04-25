@@ -215,7 +215,7 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 			AWSSecretValue = val
 		case key == ResticPassword:
 			ResticPasswordValue = val
-			// DO not need repo from user for DMR
+			// Do not need repo from user for DMR
 		}
 	}
 

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -81,8 +82,8 @@ func (r *DataMoverRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	_, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverRestore,
-		//r.CreateResticSecret,
-		//r.CreateReplicationDestination,
+		r.CreateDMRResticSecret,
+		r.CreateReplicationDestination,
 		//r.MirrorVolumeSnapshot,
 		//r.CleanupRestoreResources,
 	)
