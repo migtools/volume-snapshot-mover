@@ -47,6 +47,7 @@ type DataMoverBackupReconciler struct {
 	Context        context.Context
 	NamespacedName types.NamespacedName
 	EventRecorder  record.EventRecorder
+	req            ctrl.Request
 }
 
 //+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups,verbs=get;list;watch;create;update;patch;delete
@@ -67,6 +68,8 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	r.Log = log.FromContext(ctx).WithValues("dmb", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
+	// needed to preserve the application ns whenever we fetch the latest DMB instance
+	r.req = req
 
 	// Get DMB CR from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
@@ -75,6 +78,7 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return result, err
 	}
 
+	// add protected namespace
 	r.NamespacedName = types.NamespacedName{
 		Namespace: dmb.Spec.ProtectedNamespace,
 		Name:      dmb.Name,

@@ -17,14 +17,14 @@ import (
 func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 	// Get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 	// Check if Volumesnapshot is present in the protected namespace
 	vs := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
-		types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &vs); err != nil {
+		types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: dmb.Spec.ProtectedNamespace}, &vs); err != nil {
 		r.Log.Info("cloned volumesnapshot not available in the protected namespace")
 		return false, nil
 	}
@@ -165,7 +165,7 @@ func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClai
 
 	// Get datamoverbackup from cluster
 	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmb); err != nil {
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
 		return nil, err
 	}
 	vscInCluster := snapv1.VolumeSnapshotContent{}
