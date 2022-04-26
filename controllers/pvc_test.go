@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var pvcName string = "sample-pvc"
@@ -62,12 +63,13 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 			dmb: &pvcv1alpha1.DataMoverBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
-					Namespace: "foo",
+					Namespace: "bar",
 				},
 				Spec: pvcv1alpha1.DataMoverBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
+					ProtectedNamespace: "foo",
 				},
 			},
 			vsc: &snapv1.VolumeSnapshotContent{
@@ -126,6 +128,12 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 					Name:      tt.dmb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
+				req: reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: tt.dmb.Namespace,
+						Name:      tt.dmb.Name,
+					},
+				},
 			}
 			Wantpvc := &corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{

@@ -80,7 +80,7 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", dmb.Name)
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: dmb.Spec.ProtectedNamespace, Name: resticSecretName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return err
 	}

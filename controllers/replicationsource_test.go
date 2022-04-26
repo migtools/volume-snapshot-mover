@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -63,7 +64,7 @@ func getFakeClientFromObjectsRepSrc(objs ...client.Object) (client.WithWatch, er
 	return fake.NewClientBuilder().WithScheme(schemeForFakeClient).WithObjects(objs...).Build(), nil
 }
 
-func TestDataMoverBackupReconciler_CreateReplicationSource(t *testing.T) {
+func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 	tests := []struct {
 		name    string
 		dmb     *pvcv1alpha1.DataMoverBackup
@@ -78,12 +79,13 @@ func TestDataMoverBackupReconciler_CreateReplicationSource(t *testing.T) {
 			dmb: &pvcv1alpha1.DataMoverBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
-					Namespace: "foo",
+					Namespace: "bar",
 				},
 				Spec: pvcv1alpha1.DataMoverBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
+					ProtectedNamespace: "foo",
 				},
 			},
 			pvc: &corev1.PersistentVolumeClaim{
@@ -120,18 +122,19 @@ func TestDataMoverBackupReconciler_CreateReplicationSource(t *testing.T) {
 			dmb: &pvcv1alpha1.DataMoverBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
-					Namespace: "foo",
+					Namespace: "bar",
 				},
 				Spec: pvcv1alpha1.DataMoverBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
+					ProtectedNamespace: namespace,
 				},
 			},
 			pvc: &corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "pvc",
-					Namespace: "bar",
+					Namespace: namespace,
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -174,6 +177,12 @@ func TestDataMoverBackupReconciler_CreateReplicationSource(t *testing.T) {
 					Name:      tt.dmb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
+				req: reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: tt.dmb.Namespace,
+						Name:      tt.dmb.Name,
+					},
+				},
 			}
 			err = r.buildReplicationSource(tt.repsrc, tt.dmb, tt.pvc)
 			if (err != nil) != tt.wantErr {
