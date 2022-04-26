@@ -112,9 +112,15 @@ func (r *DataMoverBackupReconciler) setDMBRepSourceStatus(repSource *volsyncv1al
 		if err != nil {
 			return err
 		}
-		condition := repSource.Status.Conditions[0]
+		conditions := repSource.Status.Conditions
+		reconCondition := metav1.Condition{}
+		for i, _ := range conditions {
+			if conditions[i].Type == "Reconciled" {
+				reconCondition = conditions[i]
+			}
+		}
 
-		if repSourceCompleted {
+		if repSourceCompleted && len(reconCondition.Type) > 0 && reconCondition.Status != metav1.ConditionTrue {
 			// Update DMB status as completed
 			dmb.Status.Phase = pvcv1alpha1.DatamoverBackupPhaseCompleted
 			err := r.Status().Update(context.Background(), dmb)
@@ -123,7 +129,7 @@ func (r *DataMoverBackupReconciler) setDMBRepSourceStatus(repSource *volsyncv1al
 			}
 
 			// ReplicationSource phase is still in progress
-		} else if !repSourceCompleted && condition.Status != metav1.ConditionFalse {
+		} else if !repSourceCompleted && len(reconCondition.Type) > 0 && reconCondition.Status != metav1.ConditionFalse {
 			dmb.Status.Phase = pvcv1alpha1.DatamoverBackupPhaseInProgress
 
 			// Update DMB status as in progress

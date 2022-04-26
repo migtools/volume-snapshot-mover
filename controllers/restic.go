@@ -122,7 +122,7 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 
 	// create new repo path for snapshot
 	decodedRepoName := string(ResticRepoValue)
-	newRepoName := fmt.Sprintf("%s/%s/%s", decodedRepoName, pvc.Namespace, pvc.Name)
+	newRepoName := fmt.Sprintf("%s%s/%s", decodedRepoName, pvc.Namespace, pvc.Name)
 
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
