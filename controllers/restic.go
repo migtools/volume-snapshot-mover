@@ -177,15 +177,6 @@ func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (boo
 		return false, err
 	}
 
-	// set created Restic repo to DMB status
-	dmb.Status.ResticRepository = string(newResticSecret.Data[ResticRepository])
-
-	// Update DMB status
-	err = r.Status().Update(context.Background(), &dmb)
-	if err != nil {
-		return false, err
-	}
-
 	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
 		r.EventRecorder.Event(newResticSecret,
 			corev1.EventTypeNormal,
