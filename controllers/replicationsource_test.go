@@ -173,7 +173,7 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Namespace,
+					Namespace: tt.dmb.Spec.ProtectedNamespace,
 					Name:      tt.dmb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),

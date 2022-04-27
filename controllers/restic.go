@@ -52,7 +52,7 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	// get cloned pvc
 	pvcName := fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name)
 	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: pvcName, Namespace: dmb.Spec.ProtectedNamespace}, &pvc); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Name: pvcName, Namespace: r.NamespacedName.Namespace}, &pvc); err != nil {
 		r.Log.Error(err, "unable to fetch PVC")
 		return false, err
 	}
@@ -61,7 +61,7 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	newResticSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-secret", dmb.Name),
-			Namespace: dmb.Spec.ProtectedNamespace,
+			Namespace: r.NamespacedName.Namespace,
 			Labels: map[string]string{
 				DMBLabel: dmb.Name,
 			},
