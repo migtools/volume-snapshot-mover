@@ -24,7 +24,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Given invalid pvc -> error in restic secter creation",
+			name: "Given invalid pvc -> error in restic secret creation",
 			dmb: &pvcv1alpha1.DataMoverBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
@@ -110,6 +110,94 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			},
 			want:    true,
 			wantErr: false,
+		},
+		{
+			name: "Given invalid dmb -> error in restic secret creation",
+			dmb: &pvcv1alpha1.DataMoverBackup{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmb",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverBackupSpec{
+					VolumeSnapshotContent: corev1.ObjectReference{
+						Name: "sample-snapshot",
+					},
+					ProtectedNamespace: "bar",
+				},
+			},
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-snapshot",
+					Namespace: "foo",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("10Gi"),
+						},
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      resticSecret,
+					Namespace: namespace,
+				},
+				Data: secretData,
+			},
+			rpsecret: &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmb-secret",
+					Namespace: namespace,
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "Given invalid base secret -> error in restic secret creation",
+			dmb: &pvcv1alpha1.DataMoverBackup{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmb",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverBackupSpec{
+					VolumeSnapshotContent: corev1.ObjectReference{
+						Name: "sample-snapshot",
+					},
+					ProtectedNamespace: "foo",
+				},
+			},
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-snapshot-pvc",
+					Namespace: "foo",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("10Gi"),
+						},
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "restic",
+					Namespace: namespace,
+				},
+				Data: make(map[string][]byte),
+			},
+			rpsecret: &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmb-secret",
+					Namespace: namespace,
+				},
+			},
+			want:    false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
