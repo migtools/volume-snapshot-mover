@@ -42,6 +42,7 @@ type DataMoverRestoreReconciler struct {
 	Context        context.Context
 	NamespacedName types.NamespacedName
 	EventRecorder  record.EventRecorder
+	req            ctrl.Request
 }
 
 //+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverrestores,verbs=get;list;watch;create;update;patch;delete
@@ -62,7 +63,8 @@ func (r *DataMoverRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	r.Log = log.FromContext(ctx).WithValues("dmr", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
-	r.NamespacedName = req.NamespacedName
+	// needed to preserve the application ns whenever we fetch the latest DMR instance
+	r.req = req
 
 	// Get DMR CR from cluster
 	dmr := pvcv1alpha1.DataMoverRestore{}

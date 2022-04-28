@@ -17,13 +17,13 @@ func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logge
 
 	// get datamoverrestore from cluster
 	dmr := pvcv1alpha1.DataMoverRestore{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmr); err != nil {
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmr); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
 		return false, err
 	}
 
 	// get datamoverbackup from cluster
-	// TODO: name
+	// TODO: get DMB from backup
 	dmb := pvcv1alpha1.DataMoverBackup{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: "datamoverbackup-sample", Namespace: r.NamespacedName.Namespace}, &dmb); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
@@ -67,6 +67,7 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 		return err
 	}
 
+	// TODO: use DMR for this field once DMB is added to backup
 	stringCapacity := dmb.Status.SourcePVCData.Size
 	capacity := resource.MustParse(stringCapacity)
 
@@ -82,7 +83,7 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 			ReplicationDestinationVolumeOptions: volsyncv1alpha1.ReplicationDestinationVolumeOptions{
 				AccessModes:    []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				CopyMethod:     volsyncv1alpha1.CopyMethodSnapshot,
-				DestinationPVC: &dmb.Status.SourcePVCData.Name,
+				DestinationPVC: &dmr.Spec.DestinationClaimRef.Name,
 				Capacity:       &capacity,
 			},
 		},
