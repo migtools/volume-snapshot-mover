@@ -17,10 +17,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var pvcName string = "sample-pvc"
-var vscName string = "dummy-snapshot-clone"
 
 func getSchemeForFakeClient() (*runtime.Scheme, error) {
 	err := pvcv1alpha1.AddToScheme(scheme.Scheme)
@@ -62,12 +62,13 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 			dmb: &pvcv1alpha1.DataMoverBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
-					Namespace: "foo",
+					Namespace: "bar",
 				},
 				Spec: pvcv1alpha1.DataMoverBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
+					ProtectedNamespace: "foo",
 				},
 			},
 			vsc: &snapv1.VolumeSnapshotContent{
@@ -77,7 +78,7 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 				Spec: snapv1.VolumeSnapshotContentSpec{
 					VolumeSnapshotRef: corev1.ObjectReference{
 						Name:      "sample-vs",
-						Namespace: "foo",
+						Namespace: "bar",
 					},
 				},
 			},
@@ -85,7 +86,7 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 			vs: &snapv1.VolumeSnapshot{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vs",
-					Namespace: "foo",
+					Namespace: "bar",
 				},
 				Spec: snapv1.VolumeSnapshotSpec{
 					Source: snapv1.VolumeSnapshotSource{
@@ -96,7 +97,7 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 			pvc: &corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-pvc",
-					Namespace: "foo",
+					Namespace: "bar",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -122,10 +123,16 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Namespace,
+					Namespace: tt.dmb.Spec.ProtectedNamespace,
 					Name:      tt.dmb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
+				req: reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: tt.dmb.Namespace,
+						Name:      tt.dmb.Name,
+					},
+				},
 			}
 			Wantpvc := &corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
