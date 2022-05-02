@@ -136,3 +136,137 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 		})
 	}
 }
+
+func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
+	tests := []struct {
+		name    string
+		dmr     *pvcv1alpha1.DataMoverRestore
+		wantErr bool
+		want    bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "valid DMR -> no validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{
+						Namespace: "bar",
+						Name:      "sample-pvc",
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "empty secret ->  validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{},
+					DestinationClaimRef: corev1.ObjectReference{
+						Namespace: "bar",
+						Name:      "sample-pvc",
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "No ns mentioned in DestinationClaimRef -> validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{
+						Namespace: "bar",
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "No name mentioned in DestinationClaimRef -> validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{
+						Name: "sample-pvc",
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "empty DestinationClaimRef -> validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient, err := getFakeClientFromObjects(tt.dmr)
+			if err != nil {
+				t.Errorf("error creating fake client, likely programmer error")
+			}
+			r := &DataMoverRestoreReconciler{
+				Client:  fakeClient,
+				Scheme:  fakeClient.Scheme(),
+				Log:     logr.Discard(),
+				Context: newContextForTest(tt.name),
+
+				EventRecorder: record.NewFakeRecorder(10),
+				req: reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: tt.dmr.Spec.DestinationClaimRef.Namespace,
+						Name:      tt.dmr.Name,
+					},
+				},
+			}
+			got, err := r.ValidateDataMoverRestore(r.Log)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DataMoverRestoreReconciler.ValidateDataMoverRestore() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("DataMoverRestoreReconciler.ValidateDataMoverRestore() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
