@@ -29,7 +29,7 @@ func (r *DataMoverBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bo
 
 func (r *DataMoverRestoreReconciler) ValidateDataMoverRestore(log logr.Logger) (bool, error) {
 	dmr := pvcv1alpha1.DataMoverRestore{}
-	if err := r.Get(r.Context, r.NamespacedName, &dmr); err != nil {
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmr); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
 		return false, err
 	}
