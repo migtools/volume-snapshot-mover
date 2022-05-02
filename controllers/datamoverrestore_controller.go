@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -124,5 +125,7 @@ func (r *DataMoverRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *DataMoverRestoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pvcv1alpha1.DataMoverRestore{}).
+		Owns(&v1.PersistentVolumeClaim{}).
+		WithEventFilter(datamoverRestorePredicate(r.Scheme)).
 		Complete(r)
 }

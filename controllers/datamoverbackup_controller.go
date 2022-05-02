@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
@@ -30,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 )
 
@@ -150,5 +153,10 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 func (r *DataMoverBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pvcv1alpha1.DataMoverBackup{}).
+		Owns(&snapv1.VolumeSnapshotContent{}).
+		Owns(&snapv1.VolumeSnapshot{}).
+		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&v1.Pod{}).
+		WithEventFilter(datamoverBackupPredicate(r.Scheme)).
 		Complete(r)
 }
