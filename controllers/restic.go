@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -33,7 +34,7 @@ var (
 	// TODO: GCP and Azure
 
 	ResticPasswordValue []byte
-	ResticRepoValue     []byte
+	ResticRepoValue     string
 )
 
 const (
@@ -116,13 +117,17 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 		case key == ResticPassword:
 			ResticPasswordValue = val
 		case key == ResticRepository:
-			ResticRepoValue = val
+
+			// if trailing '/' in user-created Restic repo, remove it
+			stringVal := string(val)
+			stringVal = strings.TrimRight(stringVal, "/")
+
+			ResticRepoValue = stringVal
 		}
 	}
 
 	// create new repo path for snapshot
-	decodedRepoName := string(ResticRepoValue)
-	newRepoName := fmt.Sprintf("%s%s/%s", decodedRepoName, pvc.Namespace, pvc.Name)
+	newRepoName := fmt.Sprintf("%s/%s/%s", ResticRepoValue, pvc.Namespace, pvc.Name)
 
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
