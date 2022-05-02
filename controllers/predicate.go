@@ -30,7 +30,7 @@ func datamoverBackupPredicate(scheme *runtime.Scheme) predicate.Predicate {
 
 // isObjectOurs returns true if the object is ours.
 // it first checks if the object has our group, version, and kind
-// else it will check for non empty OadpOperatorlabel labels
+// else it will check for non empty VolumeSnapshotMoverController labels
 func isObjectOursBackup(scheme *runtime.Scheme, object client.Object) bool {
 	objGVKs, _, err := scheme.ObjectKinds(object)
 	if err != nil {
