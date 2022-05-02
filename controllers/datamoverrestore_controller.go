@@ -24,6 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
+	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,8 +33,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 )
 
 // DataMoverRestoreReconciler reconciles a DataMoverRestore object
@@ -126,6 +126,7 @@ func (r *DataMoverRestoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pvcv1alpha1.DataMoverRestore{}).
 		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&snapv1.VolumeSnapshotContent{}).
 		WithEventFilter(datamoverRestorePredicate(r.Scheme)).
 		Complete(r)
 }
