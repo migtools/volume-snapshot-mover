@@ -51,20 +51,6 @@ func (r *DataMoverBackupReconciler) CreateReplicationSource(log logr.Logger) (bo
 		return false, err
 	}
 
-	// get replicationsource
-	// to be sure it is created before checking status
-	repSourceName := fmt.Sprintf("%s-rep-src", dmb.Name)
-	replicationSource := volsyncv1alpha1.ReplicationSource{}
-	if err = r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &replicationSource); err != nil {
-		return false, err
-	}
-
-	// Update DMB CR with status from ReplicationSource
-	err = r.setDMBRepSourceStatus(&replicationSource, &dmb)
-	if err != nil {
-		return false, err
-	}
-
 	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
 		r.EventRecorder.Event(repSource,
 			corev1.EventTypeNormal,
@@ -103,14 +89,26 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 	return nil
 }
 
-func (r *DataMoverBackupReconciler) setDMBRepSourceStatus(repSource *volsyncv1alpha1.ReplicationSource, dmb *pvcv1alpha1.DataMoverBackup) error {
+func (r *DataMoverBackupReconciler) setDMBRepSourceStatus(log logr.Logger) (bool, error) {
+
+	dmb := pvcv1alpha1.DataMoverBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
+		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
+		return false, err
+	}
+
+	repSourceName := fmt.Sprintf("%s-rep-src", dmb.Name)
+	repSource := volsyncv1alpha1.ReplicationSource{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
+		return false, err
+	}
 
 	if repSource.Status != nil {
 
 		// check for ReplicationSource phase
-		repSourceCompleted, err := r.isRepSourceCompleted(dmb)
+		repSourceCompleted, err := r.isRepSourceCompleted(&dmb)
 		if err != nil {
-			return err
+			return false, err
 		}
 		conditions := repSource.Status.Conditions
 		reconCondition := metav1.Condition{}
@@ -120,37 +118,42 @@ func (r *DataMoverBackupReconciler) setDMBRepSourceStatus(repSource *volsyncv1al
 			}
 		}
 
-		if repSourceCompleted && len(reconCondition.Type) > 0 && reconCondition.Status != metav1.ConditionTrue {
+		if repSourceCompleted && len(reconCondition.Type) > 0 && reconCondition.Status == metav1.ConditionTrue {
 			// Update DMB status as completed
 			dmb.Status.Phase = pvcv1alpha1.DatamoverBackupPhaseCompleted
-			err := r.Status().Update(context.Background(), dmb)
+			err := r.Status().Update(context.Background(), &dmb)
 			if err != nil {
-				return err
+				return false, err
 			}
+			r.Log.Info("marking datamoverbackup as complete")
+			return true, nil
 
 			// ReplicationSource phase is still in progress
-		} else if !repSourceCompleted && len(reconCondition.Type) > 0 && reconCondition.Status != metav1.ConditionFalse {
+		} else if !repSourceCompleted && len(reconCondition.Type) > 0 && reconCondition.Status == metav1.ConditionFalse {
 			dmb.Status.Phase = pvcv1alpha1.DatamoverBackupPhaseInProgress
 
 			// Update DMB status as in progress
-			err := r.Status().Update(context.Background(), dmb)
+			err := r.Status().Update(context.Background(), &dmb)
 			if err != nil {
-				return err
+				return false, err
 			}
+			r.Log.Info("marking datamoverbackup as in progress, dmb recon as false")
+			return false, nil
 
-			// if not in progress or completed, phase failed
+			//if not in progress or completed, phase failed
 		} else {
 			dmb.Status.Phase = pvcv1alpha1.DatamoverBackupPhaseFailed
 
 			// Update DMB status
-			err := r.Status().Update(context.Background(), dmb)
+			err := r.Status().Update(context.Background(), &dmb)
 			if err != nil {
-				return err
+				return false, err
 			}
+			r.Log.Info("marking datamoverbackup as failed, dmb recon as false")
+			return false, nil
 		}
-		return nil
 	}
-	return errors.New("replication source status not ready")
+	return false, errors.New("replication source status not ready")
 }
 
 func (r *DataMoverBackupReconciler) isRepSourceCompleted(dmb *pvcv1alpha1.DataMoverBackup) (bool, error) {

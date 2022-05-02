@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
@@ -111,6 +110,11 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		//r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource
 		//r.CleanBackupResources,
 	)
+
+	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)
+	if !DMBComplete {
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	// Update the status with any errors, or set completed condition
 	if err != nil {
