@@ -102,6 +102,19 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              resticrepository:
+                description: Includes restic repository path
+                type: string
+              sourcePVCData:
+                description: Includes backed up PVC name and size
+                properties:
+                  name:
+                    description: name of the PersistentVolumeClaim
+                    type: string
+                  size:
+                    description: size of the PersistentVolumeClaim
+                    type: string
+                type: object
             type: object
           status:
             description: DataMoverRestoreStatus defines the observed state of DataMoverRestore
