@@ -116,13 +116,22 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 		case key == ResticPassword:
 			ResticPasswordValue = val
 		case key == ResticRepository:
+
+			// check for trailing '/' in user-created Restic repo
+			// if included, remove it
+			lastCharInRepo := val[len(val)-1:]
+			lastCharString := string(lastCharInRepo)
+
+			if lastCharString == "/" {
+				val = val[:len(val)-1]
+			}
 			ResticRepoValue = val
 		}
 	}
 
 	// create new repo path for snapshot
 	decodedRepoName := string(ResticRepoValue)
-	newRepoName := fmt.Sprintf("%s%s/%s", decodedRepoName, pvc.Namespace, pvc.Name)
+	newRepoName := fmt.Sprintf("%s/%s/%s", decodedRepoName, pvc.Namespace, pvc.Name)
 
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
