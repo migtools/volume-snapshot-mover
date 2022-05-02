@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -210,6 +211,9 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 		}
 	}
 
+	if dmb.Status.ResticRepository == "" {
+		return errors.New("dmb status: restic repo empty")
+	}
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
 		Data: map[string][]byte{
