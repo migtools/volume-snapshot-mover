@@ -25,6 +25,8 @@ import (
 type DataMoverRestoreSpec struct {
 	ResticSecretRef     corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
 	DestinationClaimRef corev1.ObjectReference      `json:"destinationClaimRef,omitempty"`
+	// Includes associated datamoverbackup details
+	DataMoverBackupref DMBRef `json:"dataMoverBackupRef,omitempty"`
 }
 
 // DataMoverRestoreStatus defines the observed state of DataMoverRestore
@@ -32,6 +34,13 @@ type DataMoverRestoreStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	Completed  bool               `json:"completed"`
 	// TODO: Add data mover refs and velero refs
+}
+
+type DMBRef struct {
+	// Includes backed up PVC name and size
+	BackedUpPVCData PVCData `json:"sourcePVCData,omitempty"`
+	// Includes restic repository path
+	ResticRepository string `json:"resticrepository,omitempty"`
 }
 
 //+kubebuilder:object:root=true
