@@ -35,6 +35,23 @@ spec:
           spec:
             description: DataMoverRestoreSpec defines the desired state of DataMoverRestore
             properties:
+              dataMoverBackupRef:
+                description: Includes associated datamoverbackup details
+                properties:
+                  resticrepository:
+                    description: Includes restic repository path
+                    type: string
+                  sourcePVCData:
+                    description: Includes backed up PVC name and size
+                    properties:
+                      name:
+                        description: name of the PersistentVolumeClaim
+                        type: string
+                      size:
+                        description: size of the PersistentVolumeClaim
+                        type: string
+                    type: object
+                type: object
               destinationClaimRef:
                 description: 'ObjectReference contains enough information to let you
                   inspect or modify the referred object. --- New uses of this type
@@ -100,19 +117,6 @@ spec:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                       TODO: Add other useful fields. apiVersion, kind, uid?'
-                    type: string
-                type: object
-              resticrepository:
-                description: Includes restic repository path
-                type: string
-              sourcePVCData:
-                description: Includes backed up PVC name and size
-                properties:
-                  name:
-                    description: name of the PersistentVolumeClaim
-                    type: string
-                  size:
-                    description: size of the PersistentVolumeClaim
                     type: string
                 type: object
             type: object
