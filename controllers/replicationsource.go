@@ -110,11 +110,11 @@ func (r *DataMoverBackupReconciler) setDMBRepSourceStatus(log logr.Logger) (bool
 		if err != nil {
 			return false, err
 		}
-		conditions := repSource.Status.Conditions
+
 		reconCondition := metav1.Condition{}
-		for i, _ := range conditions {
-			if conditions[i].Type == "Reconciled" {
-				reconCondition = conditions[i]
+		for i, _ := range repSource.Status.Conditions {
+			if repSource.Status.Conditions[i].Type == "Reconciled" {
+				reconCondition = repSource.Status.Conditions[i]
 			}
 		}
 
