@@ -165,16 +165,20 @@ func (r *DataMoverBackupReconciler) isRepSourceCompleted(dmb *pvcv1alpha1.DataMo
 		return false, err
 	}
 
-	// used for nil pointer race condition
-	if repSource.Status.LastSyncTime == nil {
-		return false, nil
-	}
+	//// used for nil pointer race condition
+	//if repSource.Status.LastSyncTime == nil {
+	//	return false, nil
+	//}
 
-	// for manual trigger, if spec.trigger.manual == status.lastManualSync, sync has completed
-	sourceStatus := repSource.Status.LastManualSync
-	sourceSpec := repSource.Spec.Trigger.Manual
-	if sourceStatus == sourceSpec {
-		return true, nil
+	if repSource.Status != nil {
+		// for manual trigger, if spec.trigger.manual == status.lastManualSync, sync has completed
+		if len(repSource.Status.LastManualSync) > 0 && len(repSource.Spec.Trigger.Manual) > 0 {
+			sourceStatus := repSource.Status.LastManualSync
+			sourceSpec := repSource.Spec.Trigger.Manual
+			if sourceStatus == sourceSpec {
+				return true, nil
+			}
+		}
 	}
 
 	// ReplicationSource has not yet completed but is not failed
