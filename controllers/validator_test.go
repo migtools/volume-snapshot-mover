@@ -173,6 +173,87 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "empty restic repository -> validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{
+						Namespace: "bar",
+						Name:      "sample-pvc",
+					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "empty pvc name -> validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{
+						Namespace: "bar",
+						Name:      "sample-pvc",
+					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "",
+							Size: "10Gi",
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "empty pvc size -> validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DestinationClaimRef: corev1.ObjectReference{
+						Namespace: "bar",
+						Name:      "sample-pvc",
+					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "",
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
 			name: "empty secret ->  validation errors",
 			dmr: &pvcv1alpha1.DataMoverRestore{
 				ObjectMeta: v1.ObjectMeta{
