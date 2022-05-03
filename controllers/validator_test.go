@@ -160,6 +160,13 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 						Namespace: "bar",
 						Name:      "sample-pvc",
 					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
+					},
 				},
 			},
 			want:    true,
@@ -177,6 +184,13 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					DestinationClaimRef: corev1.ObjectReference{
 						Namespace: "bar",
 						Name:      "sample-pvc",
+					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
 					},
 				},
 			},
@@ -197,6 +211,13 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					DestinationClaimRef: corev1.ObjectReference{
 						Namespace: "bar",
 					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
+					},
 				},
 			},
 			want:    false,
@@ -216,6 +237,13 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					DestinationClaimRef: corev1.ObjectReference{
 						Name: "sample-pvc",
 					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
+					},
 				},
 			},
 			want:    false,
@@ -233,6 +261,13 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 						Name: resticSecret,
 					},
 					DestinationClaimRef: corev1.ObjectReference{},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
+					},
 				},
 			},
 			want:    false,
