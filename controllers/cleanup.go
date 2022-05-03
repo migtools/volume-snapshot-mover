@@ -19,7 +19,11 @@ func (r *DataMoverBackupReconciler) CleanBackupResources(log logr.Logger) (bool,
 		return false, err
 	}
 
-	// TODO: delete cloned VSC
+	// wait for replicationSource to complete before deleting DMB resources
+	if dmb.Status.Phase != pvcv1alpha1.DatamoverBackupPhaseCompleted {
+		r.Log.Info("waiting for datamoverbackup to complete before deleting resources")
+		return false, nil
+	}
 
 	err := r.deleteVSandVSC(&dmb)
 	if err != nil {
@@ -45,7 +49,7 @@ func (r *DataMoverBackupReconciler) CleanBackupResources(log logr.Logger) (bool,
 	if err != nil {
 		return false, err
 	}
-
+	r.Log.Info("deleting datamoverbackup resources")
 	return true, nil
 }
 
@@ -76,8 +80,10 @@ func (r *DataMoverBackupReconciler) deleteVSandVSC(dmb *pvcv1alpha1.DataMoverBac
 		return err
 	}
 
-	// TODO: delete cloned VSC
-
+	// delete cloned VSC
+	if err := r.Delete(r.Context, &vsc); err != nil {
+		return err
+	}
 	return nil
 }
 
