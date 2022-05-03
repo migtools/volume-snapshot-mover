@@ -43,5 +43,19 @@ func (r *DataMoverRestoreReconciler) ValidateDataMoverRestore(log logr.Logger) (
 	if len(dmr.Spec.DestinationClaimRef.Name) == 0 || len(dmr.Spec.DestinationClaimRef.Namespace) == 0 {
 		return false, errors.New("dataMoverRestore CR DestinationClaimRef name or namespace cannot be empty")
 	}
+
+	// Check if DatamoverbackuRef attributes are empty
+	if len(dmr.Spec.DataMoverBackupref.ResticRepository) == 0 {
+		return false, errors.New("dataMoverRestore CR DataMoverBackupref ResticRepository cannot be empty")
+	}
+
+	if len(dmr.Spec.DataMoverBackupref.BackedUpPVCData.Name) == 0 {
+		return false, errors.New("dataMoverRestore CR DataMoverBackupref BackedUpPVCData name cannot be empty")
+	}
+
+	if len(dmr.Spec.DataMoverBackupref.BackedUpPVCData.Size) == 0 {
+		return false, errors.New("dataMoverRestore CR DataMoverBackupref BackedUpPVCData size cannot be empty")
+	}
+
 	return true, nil
 }
