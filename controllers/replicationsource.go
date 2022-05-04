@@ -75,7 +75,7 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 	replicationSourceSpec := volsyncv1alpha1.ReplicationSourceSpec{
 		SourcePVC: pvc.Name,
 		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
-			Manual: fmt.Sprintf("%s-trigger-test", dmb.Name),
+			Manual: fmt.Sprintf("%s-trigger", dmb.Name),
 		},
 		Restic: &volsyncv1alpha1.ReplicationSourceResticSpec{
 			Repository: resticSecret.Name,

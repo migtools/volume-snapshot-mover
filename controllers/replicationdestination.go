@@ -75,7 +75,7 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
 			// TODO: handle better
-			Manual: fmt.Sprintf("%s-trigger-test", dmr.Name),
+			Manual: fmt.Sprintf("%s-trigger", dmr.Name),
 		},
 		Restic: &volsyncv1alpha1.ReplicationDestinationResticSpec{
 			// TODO: create restic secret from secret from DMB CR status
