@@ -86,12 +86,15 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Name:      dmb.Name,
 	}
 
-	if dmb.Status.Completed {
-
-		// stop reconciling on this resource
-		return ctrl.Result{
-			Requeue: false,
-		}, nil
+	if dmb.Status.Conditions != nil {
+		for i := range dmb.Status.Conditions {
+			if dmb.Status.Conditions[i].Type == ConditionReconciled && dmb.Status.Conditions[i].Status == metav1.ConditionTrue {
+				// stop reconciling on this resource
+				return ctrl.Result{
+					Requeue: false,
+				}, nil
+			}
+		}
 	}
 
 	/*if dmb.Status.DataMoverBackupStarted {
