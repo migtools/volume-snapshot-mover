@@ -71,11 +71,11 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 	stringCapacity := dmb.Status.SourcePVCData.Size
 	capacity := resource.MustParse(stringCapacity)
 
-	// build ReplicationSource
+	// build ReplicationDestination
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
 			// TODO: handle better
-			Manual: "trigger-test",
+			Manual: fmt.Sprintf("%s-trigger", dmr.Name),
 		},
 		Restic: &volsyncv1alpha1.ReplicationDestinationResticSpec{
 			// TODO: create restic secret from secret from DMB CR status

@@ -75,8 +75,7 @@ func (r *DataMoverBackupReconciler) buildReplicationSource(replicationSource *vo
 	replicationSourceSpec := volsyncv1alpha1.ReplicationSourceSpec{
 		SourcePVC: pvc.Name,
 		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
-			// TODO: handle better
-			Manual: "trigger-test",
+			Manual: fmt.Sprintf("%s-trigger", dmb.Name),
 		},
 		Restic: &volsyncv1alpha1.ReplicationSourceResticSpec{
 			Repository: resticSecret.Name,
@@ -168,11 +167,6 @@ func (r *DataMoverBackupReconciler) isRepSourceCompleted(dmb *pvcv1alpha1.DataMo
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
 		return false, err
 	}
-
-	//// used for nil pointer race condition
-	//if repSource.Status.LastSyncTime == nil {
-	//	return false, nil
-	//}
 
 	if repSource.Status != nil {
 		// for manual trigger, if spec.trigger.manual == status.lastManualSync, sync has completed
