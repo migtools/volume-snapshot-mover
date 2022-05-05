@@ -203,7 +203,6 @@ func (in *DataMoverRestoreList) DeepCopyObject() runtime.Object {
 func (in *DataMoverRestoreSpec) DeepCopyInto(out *DataMoverRestoreSpec) {
 	*out = *in
 	out.ResticSecretRef = in.ResticSecretRef
-	out.DestinationClaimRef = in.DestinationClaimRef
 	out.DataMoverBackupref = in.DataMoverBackupref
 }
 
