@@ -26,6 +26,8 @@ type DataMoverRestoreSpec struct {
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
 	// Includes associated datamoverbackup details
 	DataMoverBackupref DMBRef `json:"dataMoverBackupRef,omitempty"`
+	// Namespace where the Velero deployment is present
+	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 }
 
 // DataMoverRestoreStatus defines the observed state of DataMoverRestore
