@@ -29,8 +29,31 @@ by using the Velero CSI plugin during backup of the stateful application.
 - Have a stateful application running in a separate namespace. 
 
 - [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) the VolSync controller.
+```
+$ helm repo add backube https://backube.github.io/helm-charts/
+$ helm install -n openshift-adp volsync backube/volsync
+```
 
 - We will be using VolSync's Restic option, hence configure a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2)
+```
+$ cat << EOF > ./restic-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: restic-secret
+type: Opaque
+stringData:
+  # The repository url (if using AWS s3)
+  RESTIC_REPOSITORY: s3:s3.amazonaws.com/<bucket>/data-mover-snapshots
+  # The repository encryption key
+  RESTIC_PASSWORD: my-secure-restic-password
+  AWS_ACCESS_KEY_ID: <bucket_access_key_id>
+  AWS_SECRET_ACCESS_KEY: <bucket_secret_access_key>
+EOF
+```
+```
+$ oc create -n openshift-adp -f ./restic-secret.yaml
+```
 
 - Install the VolumeSnapshotMover CRDs `DataMoverBackup` and `DataMoverRestore` using: `oc create -f config/crd/bases/`
 
