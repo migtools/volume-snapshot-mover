@@ -17,8 +17,13 @@ func (r *DataMoverBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bo
 	}
 	// Check if VolumeSnapshotContent is nil
 	if dmb.Spec.VolumeSnapshotContent.Name == "" {
-		return false, errors.New("dataMoverBackup CR snapshot name cannot be nil")
+		return false, errors.New("DataMoverBackup CR snapshot name cannot be nil")
 	}
+
+	if len(dmb.Spec.ProtectedNamespace) == 0 {
+		return false, errors.New("DataMoverBackup CR protected ns cannot be empty")
+	}
+
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		r.Log.Error(err, "volumesnapshotcontent not found")
@@ -36,20 +41,24 @@ func (r *DataMoverRestoreReconciler) ValidateDataMoverRestore(log logr.Logger) (
 
 	// Check if restic secret ref is empty
 	if len(dmr.Spec.ResticSecretRef.Name) == 0 {
-		return false, errors.New("dataMoverRestore CR ResticSecretRef name cannot be empty")
+		return false, errors.New("DataMoverRestore CR ResticSecretRef name cannot be empty")
 	}
 
 	// Check if DatamoverbackuRef attributes are empty
 	if len(dmr.Spec.DataMoverBackupref.ResticRepository) == 0 {
-		return false, errors.New("dataMoverRestore CR DataMoverBackupref ResticRepository cannot be empty")
+		return false, errors.New("DataMoverRestore CR DataMoverBackupref ResticRepository cannot be empty")
 	}
 
 	if len(dmr.Spec.DataMoverBackupref.BackedUpPVCData.Name) == 0 {
-		return false, errors.New("dataMoverRestore CR DataMoverBackupref BackedUpPVCData name cannot be empty")
+		return false, errors.New("DataMoverRestore CR DataMoverBackupref BackedUpPVCData name cannot be empty")
 	}
 
 	if len(dmr.Spec.DataMoverBackupref.BackedUpPVCData.Size) == 0 {
-		return false, errors.New("dataMoverRestore CR DataMoverBackupref BackedUpPVCData size cannot be empty")
+		return false, errors.New("DataMoverRestore CR DataMoverBackupref BackedUpPVCData size cannot be empty")
+	}
+
+	if len(dmr.Spec.ProtectedNamespace) == 0 {
+		return false, errors.New("DataMoverRestore CR protected ns cannot be empty")
 	}
 
 	return true, nil

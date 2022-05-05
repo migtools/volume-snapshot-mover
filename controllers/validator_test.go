@@ -156,6 +156,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
+					ProtectedNamespace: "foo",
 					DataMoverBackupref: pvcv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: pvcv1alpha1.PVCData{
@@ -169,6 +170,29 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "empty protected ns -> no validation errors",
+			dmr: &pvcv1alpha1.DataMoverRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-dmr",
+					Namespace: "bar",
+				},
+				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: resticSecret,
+					},
+					DataMoverBackupref: pvcv1alpha1.DMBRef{
+						ResticRepository: "s3://sample-path/snapshots",
+						BackedUpPVCData: pvcv1alpha1.PVCData{
+							Name: "sample-pvc",
+							Size: "10Gi",
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
 			name: "empty restic repository -> validation errors",
 			dmr: &pvcv1alpha1.DataMoverRestore{
 				ObjectMeta: v1.ObjectMeta{
@@ -179,6 +203,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
+					ProtectedNamespace: "foo",
 					DataMoverBackupref: pvcv1alpha1.DMBRef{
 						ResticRepository: "",
 						BackedUpPVCData: pvcv1alpha1.PVCData{
@@ -202,6 +227,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
+					ProtectedNamespace: "foo",
 					DataMoverBackupref: pvcv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: pvcv1alpha1.PVCData{
@@ -225,6 +251,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
+					ProtectedNamespace: "foo",
 					DataMoverBackupref: pvcv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: pvcv1alpha1.PVCData{
@@ -245,7 +272,8 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 					Namespace: "bar",
 				},
 				Spec: pvcv1alpha1.DataMoverRestoreSpec{
-					ResticSecretRef: corev1.LocalObjectReference{},
+					ResticSecretRef:    corev1.LocalObjectReference{},
+					ProtectedNamespace: "foo",
 					DataMoverBackupref: pvcv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: pvcv1alpha1.PVCData{
