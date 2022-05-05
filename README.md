@@ -28,8 +28,6 @@ by using the Velero CSI plugin during backup of the stateful application.
 
 - Have a stateful application running in a separate namespace. 
 
-- Create a Velero backup using CSI snapshotting following the steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md).
-
 - [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) the VolSync controller.
 
 - We will be using VolSync's Restic option, hence configure a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2)
@@ -44,21 +42,9 @@ by using the Velero CSI plugin during backup of the stateful application.
 
 - Create a Restic secret named `restic-secret` in the protected namespace, following the above steps.
 
-- Create a `DataMoverBackup` CR in the app namespace. This will create several resources in the protected namespace, such as a PVC, volumeSnapshot, volumeSnapshotContent, and a Volsync `ReplicationSource`.
-  - Use the `volumeSnapshotContent` name that was created during the Velero backup using CSI.
-    This is the snapshot that will be moved to object storage:
-
-```
-apiVersion: pvc.oadp.openshift.io/v1alpha1
-kind: DataMoverBackup
-metadata:
-  name: datamoverbackup-sample
-spec:
-  volumeSnapshotContent:
-    name: <VOLUMESNAPSHOTCONTENT_NAME>
-```
-
 - Run the controller by executing `make run`
+
+- Create a Velero backup using CSI snapshotting following the steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md).
 
 <h4> For restore: <a id="restore"></a></h4>
 
