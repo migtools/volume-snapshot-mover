@@ -271,10 +271,6 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
-					DestinationClaimRef: corev1.ObjectReference{
-						Namespace: "bar",
-						Name:      "sample-pvc",
-					},
 				},
 			},
 			pvc: &corev1.PersistentVolumeClaim{
@@ -329,10 +325,6 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 				Spec: pvcv1alpha1.DataMoverRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
-					},
-					DestinationClaimRef: corev1.ObjectReference{
-						Namespace: "bar",
-						Name:      "sample-pvc",
 					},
 				},
 			},
