@@ -81,10 +81,10 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 			// TODO: create restic secret from secret from DMB CR status
 			Repository: resticSecret.Name,
 			ReplicationDestinationVolumeOptions: volsyncv1alpha1.ReplicationDestinationVolumeOptions{
-				AccessModes:    []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				CopyMethod:     volsyncv1alpha1.CopyMethodSnapshot,
-				DestinationPVC: &dmr.Spec.DestinationClaimRef.Name,
-				Capacity:       &capacity,
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				CopyMethod:  volsyncv1alpha1.CopyMethodSnapshot,
+				// let replicationDestination create PVC
+				Capacity: &capacity,
 			},
 		},
 	}

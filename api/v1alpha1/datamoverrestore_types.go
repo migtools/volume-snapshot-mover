@@ -23,8 +23,7 @@ import (
 
 // DataMoverRestoreSpec defines the desired state of DataMoverRestore
 type DataMoverRestoreSpec struct {
-	ResticSecretRef     corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
-	DestinationClaimRef corev1.ObjectReference      `json:"destinationClaimRef,omitempty"`
+	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
 	// Includes associated datamoverbackup details
 	DataMoverBackupref DMBRef `json:"dataMoverBackupRef,omitempty"`
 }
