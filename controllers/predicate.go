@@ -75,8 +75,8 @@ func isObjectOursRestore(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == pvcv1alpha1.GroupVersion.Group && gvk.Version == pvcv1alpha1.GroupVersion.Version && gvk.Kind == pvcv1alpha1.DMBKind {
+	if gvk.Group == pvcv1alpha1.GroupVersion.Group && gvk.Version == pvcv1alpha1.GroupVersion.Version && gvk.Kind == pvcv1alpha1.DMRKind {
 		return true
 	}
-	return object.GetLabels()[DMBLabel] != ""
+	return object.GetLabels()[DMRLabel] != ""
 }
