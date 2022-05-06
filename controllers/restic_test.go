@@ -266,6 +266,11 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
+					Annotations: map[string]string{
+						DatamoverResticRepository: "s3://bucket-url",
+						DatamoverSourcePVCSize:    "10G",
+						DatamoverSourcePVCName:    "sample-pvc",
+					},
 				},
 				Spec: pvcv1alpha1.DataMoverRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
@@ -308,6 +313,11 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
+					Annotations: map[string]string{
+						DatamoverResticRepository: "s3://bucket-url",
+						DatamoverSourcePVCSize:    "10G",
+						DatamoverSourcePVCName:    "sample-pvc",
+					},
 				},
 				Spec: pvcv1alpha1.DataMoverBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
@@ -382,7 +392,7 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 					},
 				},
 			}
-			if err := r.buildDMRResticSecret(tt.secret, tt.dmb); (err != nil) != tt.wantErr {
+			if err := r.buildDMRResticSecret(tt.secret, tt.dmr); (err != nil) != tt.wantErr {
 				t.Errorf("DataMoverRestoreReconciler.buildDMRResticSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
