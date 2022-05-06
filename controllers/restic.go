@@ -26,6 +26,11 @@ const (
 	// Restic repo vars
 	ResticPassword   = "RESTIC_PASSWORD"
 	ResticRepository = "RESTIC_REPOSITORY"
+
+	// Datamover annotation keys
+	DatamoverResticRepository = "datamover.io/restic-repository"
+	DatamoverSourcePVCName    = "datamover.io/source-pvc-name"
+	DatamoverSourcePVCSize    = "datamover.io/source-pvc-size"
 )
 
 // Restic secret vars to create new secrets
@@ -151,15 +156,6 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 
 // TODO: move these 2 functions to a common.go and check for DMB or DMR being used
 func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (bool, error) {
-
-	// get datamoverbackup from cluster
-	// TODO: get DMB from backup
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: "datamoverbackup-sample", Namespace: r.NamespacedName.Namespace}, &dmb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
-		return false, err
-	}
-
 	// get datamoverrestore from cluster
 	dmr := pvcv1alpha1.DataMoverRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &dmr); err != nil {
@@ -173,7 +169,7 @@ func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (boo
 			Name:      fmt.Sprintf("%s-secret", dmr.Name),
 			Namespace: r.NamespacedName.Namespace,
 			Labels: map[string]string{
-				DMBLabel: dmb.Name,
+				DMRLabel: dmr.Name,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -182,7 +178,7 @@ func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (boo
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return r.buildDMRResticSecret(newResticSecret, &dmb)
+		return r.buildDMRResticSecret(newResticSecret, &dmr)
 	})
 	if err != nil {
 		return false, err
@@ -199,7 +195,7 @@ func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (boo
 }
 
 // TODO: move these 2 functions to a common.go and check for DMB or DMR being used
-func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret, dmb *pvcv1alpha1.DataMoverBackup) error {
+func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret, dmr *pvcv1alpha1.DataMoverRestore) error {
 
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
@@ -217,20 +213,27 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 			AWSSecretValue = val
 		case key == ResticPassword:
 			ResticPasswordValue = val
-			// Do not need repo from user for DMR
 		}
 	}
 
-	if dmb.Status.ResticRepository == "" {
-		return errors.New("dmb status: restic repo empty")
+	// fetch dmr annotations
+	dmrAnnotations := dmr.Annotations
+
+	if len(dmrAnnotations) == 0 {
+		return errors.New("dmr annotations are empty")
 	}
+
+	if len(dmrAnnotations[DatamoverResticRepository]) == 0 {
+		return errors.New("dmr annotation for restic repository key is empty")
+	}
+
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
 		Data: map[string][]byte{
 			AWSAccessKey:     AWSAccessValue,
 			AWSSecretKey:     AWSSecretValue,
 			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(dmb.Status.ResticRepository),
+			ResticRepository: []byte(dmrAnnotations[DatamoverResticRepository]),
 		},
 	}
 
