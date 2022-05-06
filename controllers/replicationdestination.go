@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -22,14 +23,6 @@ func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logge
 		return false, err
 	}
 
-	// get datamoverbackup from cluster
-	// TODO: get DMB from backup
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: "datamoverbackup-sample", Namespace: r.NamespacedName.Namespace}, &dmb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
-		return false, err
-	}
-
 	// define replicationDestination to be created
 	repDestination := &volsyncv1alpha1.ReplicationDestination{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,7 +34,7 @@ func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logge
 	// Create ReplicationDestination in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
-		return r.buildReplicationDestination(repDestination, &dmb, &dmr)
+		return r.buildReplicationDestination(repDestination, &dmr)
 	})
 	if err != nil {
 		return false, err
@@ -57,7 +50,7 @@ func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logge
 	return true, nil
 }
 
-func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, dmb *pvcv1alpha1.DataMoverBackup, dmr *pvcv1alpha1.DataMoverRestore) error {
+func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, dmr *pvcv1alpha1.DataMoverRestore) error {
 
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", dmr.Name)
@@ -67,14 +60,23 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 		return err
 	}
 
-	// TODO: use DMR for this field once DMB is added to backup
-	stringCapacity := dmb.Status.SourcePVCData.Size
+	// fetch dmr annotations
+	dmrAnnotations := dmr.Annotations
+
+	if len(dmrAnnotations) == 0 {
+		return errors.New("dmr annotations are empty")
+	}
+
+	if len(dmrAnnotations[DatamoverSourcePVCSize]) == 0 {
+		return errors.New("dmr annotation for source PVC data size key is empty")
+	}
+
+	stringCapacity := dmrAnnotations[DatamoverSourcePVCSize]
 	capacity := resource.MustParse(stringCapacity)
 
 	// build ReplicationDestination
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
-			// TODO: handle better
 			Manual: fmt.Sprintf("%s-trigger", dmr.Name),
 		},
 		Restic: &volsyncv1alpha1.ReplicationDestinationResticSpec{
