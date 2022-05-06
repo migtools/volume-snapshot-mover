@@ -17,8 +17,9 @@ import (
 // Restic secret data keys
 const (
 	// AWS vars
-	AWSAccessKey = "AWS_ACCESS_KEY_ID"
-	AWSSecretKey = "AWS_SECRET_ACCESS_KEY"
+	AWSAccessKey     = "AWS_ACCESS_KEY_ID"
+	AWSSecretKey     = "AWS_SECRET_ACCESS_KEY"
+	AWSDefaultRegion = "AWS_DEFAULT_REGION"
 
 	// TODO: GCP and Azure
 
@@ -29,8 +30,9 @@ const (
 
 // Restic secret vars to create new secrets
 var (
-	AWSAccessValue []byte
-	AWSSecretValue []byte
+	AWSAccessValue        []byte
+	AWSSecretValue        []byte
+	AWSDefaultRegionValue []byte
 
 	// TODO: GCP and Azure
 
@@ -115,6 +117,8 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 			AWSAccessValue = val
 		case key == AWSSecretKey:
 			AWSSecretValue = val
+		case key == AWSDefaultRegion:
+			AWSDefaultRegionValue = val
 		case key == ResticPassword:
 			ResticPasswordValue = val
 		case key == ResticRepository:
@@ -135,6 +139,7 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 		Data: map[string][]byte{
 			AWSAccessKey:     AWSAccessValue,
 			AWSSecretKey:     AWSSecretValue,
+			AWSDefaultRegion: AWSDefaultRegionValue,
 			ResticPassword:   ResticPasswordValue,
 			ResticRepository: []byte(newRepoName),
 		},
