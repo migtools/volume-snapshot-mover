@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -217,15 +216,15 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 	}
 
 	// fetch dmr annotations
-	dmrAnnotations := dmr.Annotations
+	// dmrAnnotations := dmr.Annotations
 
-	if len(dmrAnnotations) == 0 {
-		return errors.New("dmr annotations are empty")
-	}
+	// if len(dmrAnnotations) == 0 {
+	// 	return errors.New("dmr annotations are empty")
+	// }
 
-	if len(dmrAnnotations[DatamoverResticRepository]) == 0 {
-		return errors.New("dmr annotation for restic repository key is empty")
-	}
+	// if len(dmrAnnotations[DatamoverResticRepository]) == 0 {
+	// 	return errors.New("dmr annotation for restic repository key is empty")
+	// }
 
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
@@ -233,7 +232,7 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 			AWSAccessKey:     AWSAccessValue,
 			AWSSecretKey:     AWSSecretValue,
 			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(dmrAnnotations[DatamoverResticRepository]),
+			ResticRepository: []byte(dmr.Spec.DataMoverBackupref.ResticRepository),
 		},
 	}
 

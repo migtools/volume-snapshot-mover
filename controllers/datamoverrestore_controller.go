@@ -73,6 +73,13 @@ func (r *DataMoverRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
 		return result, err
 	}
+
+	// add protected namespace
+	r.NamespacedName = types.NamespacedName{
+		Namespace: dmr.Spec.ProtectedNamespace,
+		Name:      dmr.Name,
+	}
+
 	if dmr.Status.Completed {
 		// stop reconciling on this resource
 		return ctrl.Result{
