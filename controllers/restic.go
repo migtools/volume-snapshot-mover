@@ -215,17 +215,6 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 		}
 	}
 
-	// fetch dmr annotations
-	// dmrAnnotations := dmr.Annotations
-
-	// if len(dmrAnnotations) == 0 {
-	// 	return errors.New("dmr annotations are empty")
-	// }
-
-	// if len(dmrAnnotations[DatamoverResticRepository]) == 0 {
-	// 	return errors.New("dmr annotation for restic repository key is empty")
-	// }
-
 	// build new Restic secret
 	resticSecretData := &corev1.Secret{
 		Data: map[string][]byte{
