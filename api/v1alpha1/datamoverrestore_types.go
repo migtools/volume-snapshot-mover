@@ -66,5 +66,5 @@ type VolumeSnapshotRestoreList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DataMoverRestore{}, &DataMoverRestoreList{})
+	SchemeBuilder.Register(&VolumeSnapshotRestore{}, &VolumeSnapshotRestoreList{})
 }
