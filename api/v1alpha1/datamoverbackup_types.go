@@ -21,15 +21,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DataMoverBackupSpec defines the desired state of DataMoverBackup
-type DataMoverBackupSpec struct {
+// VolumeSnapshotBackupSpec defines the desired state of VolumeSnapshotBackup
+type VolumeSnapshotBackupSpec struct {
 	VolumeSnapshotContent corev1.ObjectReference `json:"volumeSnapshotContent,omitempty"`
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 }
 
-// DataMoverBackupStatus defines the observed state of DataMoverBackup
-type DataMoverBackupStatus struct {
+// VolumeSnapshotBackupStatus defines the observed state of VolumeSnapshotBackup
+type VolumeSnapshotBackupStatus struct {
 	Completed bool `json:"completed,omitempty"`
 	// Include references to the volsync CRs and their state as they are
 	// running
@@ -38,8 +38,8 @@ type DataMoverBackupStatus struct {
 	SourcePVCData PVCData `json:"sourcePVCData,omitempty"`
 	// Includes restic repository path
 	ResticRepository string `json:"resticrepository,omitempty"`
-	// Datamovement backup phase status
-	Phase DatamoverBackupPhase `json:"phase,omitempty"`
+	// volumesnapshot backup phase status
+	Phase VolumeSnapshotBackupPhase `json:"phase,omitempty"`
 }
 
 type PVCData struct {
@@ -49,37 +49,37 @@ type PVCData struct {
 	Size string `json:"size,omitempty"`
 }
 
-type DatamoverBackupPhase string
+type VolumeSnapshotBackupPhase string
 
 const (
-	DatamoverBackupPhaseCompleted DatamoverBackupPhase = "Completed"
+	DatamoverBackupPhaseCompleted VolumeSnapshotBackupPhase = "Completed"
 
-	DatamoverBackupPhaseInProgress DatamoverBackupPhase = "InProgress"
+	DatamoverBackupPhaseInProgress VolumeSnapshotBackupPhase = "InProgress"
 
-	DatamoverBackupPhaseFailed DatamoverBackupPhase = "Failed"
+	DatamoverBackupPhaseFailed VolumeSnapshotBackupPhase = "Failed"
 )
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// DataMoverBackup is the Schema for the datamoverbackups API
-type DataMoverBackup struct {
+// VolumeSnapshotBackup is the Schema for the volumesnapshotbackups API
+type VolumeSnapshotBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DataMoverBackupSpec   `json:"spec,omitempty"`
-	Status DataMoverBackupStatus `json:"status,omitempty"`
+	Spec   VolumeSnapshotBackupSpec   `json:"spec,omitempty"`
+	Status VolumeSnapshotBackupStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// DataMoverBackupList contains a list of DataMoverBackup
-type DataMoverBackupList struct {
+// VolumeSnapshotBackupList contains a list of VolumeSnapshotBackup
+type VolumeSnapshotBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DataMoverBackup `json:"items"`
+	Items           []VolumeSnapshotBackup `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&DataMoverBackup{}, &DataMoverBackupList{})
+	SchemeBuilder.Register(&VolumeSnapshotBackup{}, &VolumeSnapshotBackupList{})
 }
