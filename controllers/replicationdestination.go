@@ -6,7 +6,7 @@ import (
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,19 +14,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.Logger) (bool, error) {
 
-	// get datamoverrestore from cluster
-	dmr := pvcv1alpha1.DataMoverRestore{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmr); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
+	// get volumesnapshotrestore from cluster
+	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}
 
 	// define replicationDestination to be created
 	repDestination := &volsyncv1alpha1.ReplicationDestination{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-rep-dest", dmr.Name),
+			Name:      fmt.Sprintf("%s-rep-dest", vsr.Name),
 			Namespace: r.NamespacedName.Namespace,
 		},
 	}
@@ -34,7 +34,7 @@ func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logge
 	// Create ReplicationDestination in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
-		return r.buildReplicationDestination(repDestination, &dmr)
+		return r.buildReplicationDestination(repDestination, &vsr)
 	})
 	if err != nil {
 		return false, err
@@ -50,10 +50,10 @@ func (r *DataMoverRestoreReconciler) CreateReplicationDestination(log logr.Logge
 	return true, nil
 }
 
-func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, dmr *pvcv1alpha1.DataMoverRestore) error {
+func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
 
 	// get restic secret created by controller
-	resticSecretName := fmt.Sprintf("%s-secret", dmr.Name)
+	resticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
 	resticSecret := corev1.Secret{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
@@ -61,26 +61,26 @@ func (r *DataMoverRestoreReconciler) buildReplicationDestination(replicationDest
 	}
 
 	// fetch dmr annotations
-	dmrAnnotations := dmr.Annotations
+	vsrAnnotations := vsr.Annotations
 
-	if len(dmrAnnotations) == 0 {
-		return errors.New("dmr annotations are empty")
+	if len(vsrAnnotations) == 0 {
+		return errors.New("vsr annotations are empty")
 	}
 
-	if len(dmrAnnotations[DatamoverSourcePVCSize]) == 0 {
-		return errors.New("dmr annotation for source PVC data size key is empty")
+	if len(vsrAnnotations[DatamoverSourcePVCSize]) == 0 {
+		return errors.New("vsr annotation for source PVC data size key is empty")
 	}
 
-	stringCapacity := dmrAnnotations[DatamoverSourcePVCSize]
+	stringCapacity := vsrAnnotations[DatamoverSourcePVCSize]
 	capacity := resource.MustParse(stringCapacity)
 
 	// build ReplicationDestination
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
-			Manual: fmt.Sprintf("%s-trigger", dmr.Name),
+			Manual: fmt.Sprintf("%s-trigger", vsr.Name),
 		},
 		Restic: &volsyncv1alpha1.ReplicationDestinationResticSpec{
-			// TODO: create restic secret from secret from DMB CR status
+			// TODO: create restic secret from secret from VSB CR status
 			Repository: resticSecret.Name,
 			ReplicationDestinationVolumeOptions: volsyncv1alpha1.ReplicationDestinationVolumeOptions{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
