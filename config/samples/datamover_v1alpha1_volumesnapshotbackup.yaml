@@ -1,0 +1,8 @@
+apiVersion: datamover.oadp.openshift.io/v1alpha1
+kind: VolumeSnapshotBackup
+metadata:
+  name: volumesnapshotbackup-sample
+spec:
+  volumeSnapshotContent:
+    name: your-snapcontent-id
+  protectedNamespace: your-protected-ns
