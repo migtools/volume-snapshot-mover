@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,14 +61,14 @@ type VolumeSnapshotRestoreReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Set reconciler vars
-	r.Log = log.FromContext(ctx).WithValues("dmr", req.NamespacedName)
+	r.Log = log.FromContext(ctx).WithValues("vsr", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
 	// needed to preserve the application ns whenever we fetch the latest DMR instance
 	r.req = req
 
 	// Get VSR CR from cluster
-	vsr := pvcv1alpha1.VolumeSnapshotRestore{}
+	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(ctx, req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return result, err
@@ -124,9 +124,9 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 // SetupWithManager sets up the controller with the Manager.
 func (r *VolumeSnapshotRestoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&pvcv1alpha1.VolumeSnapshotRestore{}).
+		For(&datamoverv1alpha1.VolumeSnapshotRestore{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&snapv1.VolumeSnapshotContent{}).
-		WithEventFilter(datamoverRestorePredicate(r.Scheme)).
+		WithEventFilter(volumeSnapshotRestorePredicate(r.Scheme)).
 		Complete(r)
 }
