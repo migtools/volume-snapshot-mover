@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,17 +12,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool, error) {
-	// Get datamoverbackup from cluster
-	// TODO: handle multiple DMBs
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
+func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool, error) {
+	// Get volumesnapshotbackup from cluster
+	// TODO: handle multiple VSBs
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
 		return false, err
 	}
 
 	vscInCluster := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		r.Log.Error(err, "volumesnapshotcontent not found")
 		return false, err
 	}
@@ -32,7 +32,7 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-clone", vscInCluster.Name),
 			Labels: map[string]string{
-				DMBLabel: dmb.Name,
+				VSBLabel: vsb.Name,
 			},
 		},
 	}
@@ -40,7 +40,7 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 	// Create VSC in cluster
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, vsc, func() error {
 
-		return r.buildVolumeSnapshotContent(vsc, &dmb)
+		return r.buildVolumeSnapshotContent(vsc, &vsb)
 	})
 
 	if err != nil {
@@ -61,7 +61,7 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 			Name:      vsc.Spec.VolumeSnapshotRef.Name,
 			Namespace: vsc.Spec.VolumeSnapshotRef.Namespace,
 			Labels: map[string]string{
-				DMBLabel: dmb.Name,
+				VSBLabel: vsb.Name,
 			},
 		},
 	}
@@ -86,10 +86,10 @@ func (r *DataMoverBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool,
 	return true, nil
 }
 
-func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.VolumeSnapshotContent, dmb *pvcv1alpha1.DataMoverBackup) error {
+func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.VolumeSnapshotContent, vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
 	// Get VSC that is defined in spec
 	vscInCluster := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		r.Log.Error(err, "unable to fetch volumesnapshotcontent in cluster")
 		return err
 	}
@@ -101,7 +101,7 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 		VolumeSnapshotRef: corev1.ObjectReference{
 			APIVersion: vscInCluster.Spec.VolumeSnapshotRef.APIVersion,
 			Kind:       vscInCluster.Spec.VolumeSnapshotRef.Kind,
-			Namespace:  dmb.Spec.ProtectedNamespace,
+			Namespace:  vsb.Spec.ProtectedNamespace,
 			Name:       fmt.Sprintf("%s-volumesnapshot", vscInCluster.Name),
 		},
 		VolumeSnapshotClassName: vscInCluster.Spec.VolumeSnapshotClassName,
@@ -114,7 +114,7 @@ func (r *DataMoverBackupReconciler) buildVolumeSnapshotContent(vsc *snapv1.Volum
 	return nil
 }
 
-func (r *DataMoverBackupReconciler) buildVolumeSnapshot(vs *snapv1.VolumeSnapshot, vsc *snapv1.VolumeSnapshotContent) error {
+func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshot(vs *snapv1.VolumeSnapshot, vsc *snapv1.VolumeSnapshotContent) error {
 	// Get VS that is defined in spec
 	vsSpec := snapv1.VolumeSnapshotSpec{
 		Source: snapv1.VolumeSnapshotSource{
