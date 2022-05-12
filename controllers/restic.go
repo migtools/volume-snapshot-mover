@@ -222,6 +222,7 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 		Data: map[string][]byte{
 			AWSAccessKey:     AWSAccessValue,
 			AWSSecretKey:     AWSSecretValue,
+			AWSDefaultRegion: AWSDefaultRegionValue,
 			ResticPassword:   ResticPasswordValue,
 			ResticRepository: []byte(dmr.Spec.DataMoverBackupref.ResticRepository),
 		},
