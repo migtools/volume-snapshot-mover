@@ -210,6 +210,8 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 			AWSAccessValue = val
 		case key == AWSSecretKey:
 			AWSSecretValue = val
+		case key == AWSDefaultRegion:
+			AWSDefaultRegionValue = val
 		case key == ResticPassword:
 			ResticPasswordValue = val
 		}
