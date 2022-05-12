@@ -1,6 +1,0 @@
-apiVersion: pvc.oadp.openshift.io/v1alpha1
-kind: DataMoverRestore
-metadata:
-  name: datamoverrestore-sample
-spec:
-  # TODO(user): Add fields here

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,17 +49,17 @@ const (
 	resticSecretName = "restic-secret"
 )
 
-func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotBackupReconciler) CreateResticSecret(log logr.Logger) (bool, error) {
 
-	// get datamoverbackup from cluster
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
+	// get volumesnapshotbackup from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
 
 	// get cloned pvc
-	pvcName := fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name)
+	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
 	pvc := corev1.PersistentVolumeClaim{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: pvcName, Namespace: r.NamespacedName.Namespace}, &pvc); err != nil {
 		r.Log.Error(err, "unable to fetch PVC")
@@ -69,10 +69,10 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	// define Restic secret to be created
 	newResticSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-secret", dmb.Name),
+			Name:      fmt.Sprintf("%s-secret", vsb.Name),
 			Namespace: r.NamespacedName.Namespace,
 			Labels: map[string]string{
-				DMBLabel: dmb.Name,
+				VSBLabel: vsb.Name,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -81,17 +81,17 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return r.buildResticSecret(newResticSecret, &dmb, &pvc)
+		return r.buildResticSecret(newResticSecret, &vsb, &pvc)
 	})
 	if err != nil {
 		return false, err
 	}
 
 	// set created Restic repo to DMB status
-	dmb.Status.ResticRepository = string(newResticSecret.Data[ResticRepository])
+	vsb.Status.ResticRepository = string(newResticSecret.Data[ResticRepository])
 
 	// Update DMB status
-	err = r.Status().Update(context.Background(), &dmb)
+	err = r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return false, err
 	}
@@ -106,7 +106,7 @@ func (r *DataMoverBackupReconciler) CreateResticSecret(log logr.Logger) (bool, e
 	return true, nil
 }
 
-func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb *pvcv1alpha1.DataMoverBackup, pvc *corev1.PersistentVolumeClaim) error {
+func (r *VolumeSnapshotBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb *datamoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
 
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
@@ -154,12 +154,12 @@ func (r *DataMoverBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb
 	return nil
 }
 
-// TODO: move these 2 functions to a common.go and check for DMB or DMR being used
-func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (bool, error) {
-	// get datamoverrestore from cluster
-	dmr := pvcv1alpha1.DataMoverRestore{}
+// TODO: move these 2 functions to a common.go and check for VSB or VSR being used
+func (r *VolumeSnapshotRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (bool, error) {
+	// get volumesnapshotrestore from cluster
+	dmr := datamoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &dmr); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverRestore CR")
+		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}
 
@@ -169,7 +169,7 @@ func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (boo
 			Name:      fmt.Sprintf("%s-secret", dmr.Name),
 			Namespace: r.NamespacedName.Namespace,
 			Labels: map[string]string{
-				DMRLabel: dmr.Name,
+				VSRLabel: dmr.Name,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -195,7 +195,7 @@ func (r *DataMoverRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (boo
 }
 
 // TODO: move these 2 functions to a common.go and check for DMB or DMR being used
-func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret, dmr *pvcv1alpha1.DataMoverRestore) error {
+func (r *VolumeSnapshotRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
 
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
@@ -216,15 +216,15 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 		}
 	}
 
-	// fetch dmr annotations
-	dmrAnnotations := dmr.Annotations
+	// fetch vsr annotations
+	vsrAnnotations := vsr.Annotations
 
-	if len(dmrAnnotations) == 0 {
-		return errors.New("dmr annotations are empty")
+	if len(vsrAnnotations) == 0 {
+		return errors.New("vsr annotations are empty")
 	}
 
-	if len(dmrAnnotations[DatamoverResticRepository]) == 0 {
-		return errors.New("dmr annotation for restic repository key is empty")
+	if len(vsrAnnotations[DatamoverResticRepository]) == 0 {
+		return errors.New("vsr annotation for restic repository key is empty")
 	}
 
 	// build new Restic secret
@@ -233,7 +233,7 @@ func (r *DataMoverRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret,
 			AWSAccessKey:     AWSAccessValue,
 			AWSSecretKey:     AWSSecretValue,
 			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(dmrAnnotations[DatamoverResticRepository]),
+			ResticRepository: []byte(vsrAnnotations[DatamoverResticRepository]),
 		},
 	}
 

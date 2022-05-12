@@ -86,7 +86,7 @@ func main() {
 		setupLog.Error(err, "unable to add v1alpha1.Volsync APIs to scheme")
 		os.Exit(1)
 	}
-	if err = (&controllers.DataMoverBackupReconciler{
+	if err = (&controllers.VolumeSnapshotBackupReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		EventRecorder: mgr.GetEventRecorderFor("DataMoverBackup-Controller"),
@@ -95,7 +95,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.DataMoverRestoreReconciler{
+	if err = (&controllers.VolumeSnapshotRestoreReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		EventRecorder: mgr.GetEventRecorderFor("DataMoverRestore-Controller"),

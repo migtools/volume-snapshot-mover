@@ -1,13 +1,13 @@
-# permissions for end users to edit volumesnapshotmovers.
+# permissions for end users to edit volumesnapshotrestores.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: volumesnapshotmover-editor-role
+  name: volumesnapshotrestore-editor-role
 rules:
 - apiGroups:
   - datamover.oadp.openshift.io
   resources:
-  - volumesnapshotmovers
+  - volumesnapshotrestores
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - datamover.oadp.openshift.io
   resources:
-  - volumesnapshotmovers/status
+  - volumesnapshotrestores/status
   verbs:
   - get

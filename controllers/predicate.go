@@ -1,14 +1,14 @@
 package controllers
 
 import (
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-func datamoverBackupPredicate(scheme *runtime.Scheme) predicate.Predicate {
+func volumeSnapshotBackupPredicate(scheme *runtime.Scheme) predicate.Predicate {
 	return predicate.Funcs{
 		// Update returns true if the Update event should be processed
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -40,13 +40,13 @@ func isObjectOursBackup(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == pvcv1alpha1.GroupVersion.Group && gvk.Version == pvcv1alpha1.GroupVersion.Version && gvk.Kind == pvcv1alpha1.DMBKind {
+	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.DMBKind {
 		return true
 	}
-	return object.GetLabels()[DMBLabel] != ""
+	return object.GetLabels()[VSBLabel] != ""
 }
 
-func datamoverRestorePredicate(scheme *runtime.Scheme) predicate.Predicate {
+func volumeSnapshotRestorePredicate(scheme *runtime.Scheme) predicate.Predicate {
 	return predicate.Funcs{
 		// Update returns true if the Update event should be processed
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -75,8 +75,8 @@ func isObjectOursRestore(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == pvcv1alpha1.GroupVersion.Group && gvk.Version == pvcv1alpha1.GroupVersion.Version && gvk.Kind == pvcv1alpha1.DMRKind {
+	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.DMRKind {
 		return true
 	}
-	return object.GetLabels()[DMRLabel] != ""
+	return object.GetLabels()[VSRLabel] != ""
 }

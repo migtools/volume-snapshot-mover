@@ -21,17 +21,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DataMoverRestoreSpec defines the desired state of DataMoverRestore
-type DataMoverRestoreSpec struct {
+// VolumeSnapshotRestoreSpec defines the desired state of VolumeSnapshotRestore
+type VolumeSnapshotRestoreSpec struct {
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
-	// Includes associated datamoverbackup details
+	// Includes associated volumesnapshotbackup details
 	DataMoverBackupref DMBRef `json:"dataMoverBackupRef,omitempty"`
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 }
 
-// DataMoverRestoreStatus defines the observed state of DataMoverRestore
-type DataMoverRestoreStatus struct {
+// VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore
+type VolumeSnapshotRestoreStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	Completed  bool               `json:"completed"`
 	// TODO: Add data mover refs and velero refs
@@ -47,24 +47,24 @@ type DMBRef struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// DataMoverRestore is the Schema for the datamoverrestores API
-type DataMoverRestore struct {
+// VolumeSnapshotRestore is the Schema for the volumesnapshotrestores API
+type VolumeSnapshotRestore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DataMoverRestoreSpec   `json:"spec,omitempty"`
-	Status DataMoverRestoreStatus `json:"status,omitempty"`
+	Spec   VolumeSnapshotRestoreSpec   `json:"spec,omitempty"`
+	Status VolumeSnapshotRestoreStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// DataMoverRestoreList contains a list of DataMoverRestore
-type DataMoverRestoreList struct {
+// VolumeSnapshotRestoreList contains a list of VolumeSnapshotRestore
+type VolumeSnapshotRestoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DataMoverRestore `json:"items"`
+	Items           []VolumeSnapshotRestore `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&DataMoverRestore{}, &DataMoverRestoreList{})
+	SchemeBuilder.Register(&VolumeSnapshotRestore{}, &VolumeSnapshotRestoreList{})
 }

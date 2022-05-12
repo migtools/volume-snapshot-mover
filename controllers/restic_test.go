@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 	tests := []struct {
 		name             string
-		dmb              *pvcv1alpha1.DataMoverBackup
+		dmb              *datamoverv1alpha1.VolumeSnapshotBackup
 		secret, rpsecret *corev1.Secret
 		pvc              *corev1.PersistentVolumeClaim
 		want             bool
@@ -25,12 +25,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "Given invalid pvc -> error in restic secret creation",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -69,12 +69,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given valid dmb,restic secret -> successful creation of pvc specific restic secret",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -113,12 +113,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given invalid dmb -> error in restic secret creation",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -157,12 +157,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given invalid base secret -> error in restic secret creation",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -206,7 +206,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
-			r := &DataMoverBackupReconciler{
+			r := &VolumeSnapshotBackupReconciler{
 				Client:  fakeClient,
 				Scheme:  fakeClient.Scheme(),
 				Log:     logr.Discard(),
@@ -238,8 +238,8 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 	tests := []struct {
 		name             string
-		dmb              *pvcv1alpha1.DataMoverBackup
-		dmr              *pvcv1alpha1.DataMoverRestore
+		dmb              *datamoverv1alpha1.VolumeSnapshotBackup
+		dmr              *datamoverv1alpha1.VolumeSnapshotRestore
 		secret, rpsecret *corev1.Secret
 		pvc              *corev1.PersistentVolumeClaim
 		want             bool
@@ -247,22 +247,22 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{name: "Valid dmb, valid dmr -> create DMR secret successful",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
 					ProtectedNamespace: "foo",
 				},
-				Status: pvcv1alpha1.DataMoverBackupStatus{
+				Status: datamoverv1alpha1.VolumeSnapshotBackupStatus{
 					ResticRepository: "some-repo",
 				},
 			},
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
@@ -272,7 +272,7 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 						DatamoverSourcePVCName:    "sample-pvc",
 					},
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
@@ -309,7 +309,7 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{name: "invalid dmb, valid dmr -> create DMR secret successful",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
@@ -319,20 +319,20 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 						DatamoverSourcePVCName:    "sample-pvc",
 					},
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
 					ProtectedNamespace: "foo",
 				},
-				Status: pvcv1alpha1.DataMoverBackupStatus{},
+				Status: datamoverv1alpha1.VolumeSnapshotBackupStatus{},
 			},
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
@@ -375,7 +375,7 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
-			r := &DataMoverRestoreReconciler{
+			r := &VolumeSnapshotRestoreReconciler{
 				Client:  fakeClient,
 				Scheme:  fakeClient.Scheme(),
 				Log:     logr.Discard(),

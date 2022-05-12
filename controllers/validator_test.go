@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 	tests := []struct {
 		name    string
-		dmb     *pvcv1alpha1.DataMoverBackup
+		dmb     *datamoverv1alpha1.VolumeSnapshotBackup
 		vsc     *snapv1.VolumeSnapshotContent
 		want    bool
 		wantErr bool
@@ -24,12 +24,12 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "Given valid DMB CR -> no validation errors",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -51,12 +51,12 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 		},
 		{
 			name: "Given an invalid DMB CR ->  validation errors",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{},
 					ProtectedNamespace:    "foo",
 				},
@@ -76,12 +76,12 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 		},
 		{
 			name: "Given an invalid VSC ->  validation errors",
-			dmb: &pvcv1alpha1.DataMoverBackup{
+			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmb",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverBackupSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot-vsc",
 					},
@@ -108,7 +108,7 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
-			r := &DataMoverBackupReconciler{
+			r := &VolumeSnapshotBackupReconciler{
 				Client:  fakeClient,
 				Scheme:  fakeClient.Scheme(),
 				Log:     logr.Discard(),
@@ -140,26 +140,26 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 	tests := []struct {
 		name    string
-		dmr     *pvcv1alpha1.DataMoverRestore
+		dmr     *datamoverv1alpha1.VolumeSnapshotRestore
 		wantErr bool
 		want    bool
 	}{
 		// TODO: Add test cases.
 		{
 			name: "valid DMR -> no validation errors",
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: pvcv1alpha1.DMBRef{
+					DataMoverBackupref: datamoverv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: pvcv1alpha1.PVCData{
+						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -171,18 +171,18 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty protected ns -> no validation errors",
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
-					DataMoverBackupref: pvcv1alpha1.DMBRef{
+					DataMoverBackupref: datamoverv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: pvcv1alpha1.PVCData{
+						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -194,19 +194,19 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty restic repository -> validation errors",
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: pvcv1alpha1.DMBRef{
+					DataMoverBackupref: datamoverv1alpha1.DMBRef{
 						ResticRepository: "",
-						BackedUpPVCData: pvcv1alpha1.PVCData{
+						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -218,19 +218,19 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty pvc name -> validation errors",
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: pvcv1alpha1.DMBRef{
+					DataMoverBackupref: datamoverv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: pvcv1alpha1.PVCData{
+						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "",
 							Size: "10Gi",
 						},
@@ -242,19 +242,19 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty pvc size -> validation errors",
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: pvcv1alpha1.DMBRef{
+					DataMoverBackupref: datamoverv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: pvcv1alpha1.PVCData{
+						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "",
 						},
@@ -266,17 +266,17 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty secret ->  validation errors",
-			dmr: &pvcv1alpha1.DataMoverRestore{
+			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-dmr",
 					Namespace: "bar",
 				},
-				Spec: pvcv1alpha1.DataMoverRestoreSpec{
+				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef:    corev1.LocalObjectReference{},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: pvcv1alpha1.DMBRef{
+					DataMoverBackupref: datamoverv1alpha1.DMBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: pvcv1alpha1.PVCData{
+						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -293,7 +293,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
-			r := &DataMoverRestoreReconciler{
+			r := &VolumeSnapshotRestoreReconciler{
 				Client:  fakeClient,
 				Scheme:  fakeClient.Scheme(),
 				Log:     logr.Discard(),

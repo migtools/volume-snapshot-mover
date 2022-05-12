@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,17 +14,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
-	// Get datamoverbackup from cluster
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
+func (r *VolumeSnapshotBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
+	// Get volumesnapshotbackup from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
 	// Check if Volumesnapshot is present in the protected namespace
 	vs := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
-		types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", dmb.Spec.VolumeSnapshotContent.Name), Namespace: dmb.Spec.ProtectedNamespace}, &vs); err != nil {
+		types.NamespacedName{Name: fmt.Sprintf("%s-volumesnapshot", vsb.Spec.VolumeSnapshotContent.Name), Namespace: vsb.Spec.ProtectedNamespace}, &vs); err != nil {
 		r.Log.Info("cloned volumesnapshot not available in the protected namespace")
 		return false, nil
 	}
@@ -32,7 +32,7 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 	// Create a PVC with the above volumesnapshot as the source
 	pvc := corev1.PersistentVolumeClaim{}
 	_ = r.Get(r.Context,
-		types.NamespacedName{Name: fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &pvc)
+		types.NamespacedName{Name: fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name), Namespace: r.NamespacedName.Namespace}, &pvc)
 	// Check if the exists or not.
 	// If exists, do nothing
 	// If not, create a PVC and bind it to static pod
@@ -40,10 +40,10 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 
 		pvc := &corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-pvc", dmb.Spec.VolumeSnapshotContent.Name),
+				Name:      fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name),
 				Namespace: r.NamespacedName.Namespace,
 				Labels: map[string]string{
-					DMBLabel: dmb.Name,
+					VSBLabel: vsb.Name,
 				},
 			},
 		}
@@ -68,10 +68,10 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 		// Bind the above PVC to a dummy pod
 		dp := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-pod", dmb.Name),
+				Name:      fmt.Sprintf("%s-pod", vsb.Name),
 				Namespace: r.NamespacedName.Namespace,
 				Labels: map[string]string{
-					DMBLabel: dmb.Name,
+					VSBLabel: vsb.Name,
 				},
 			},
 		}
@@ -97,7 +97,7 @@ func (r *DataMoverBackupReconciler) BindPVC(log logr.Logger) (bool, error) {
 	return true, nil
 }
 
-func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, vs *snapv1.VolumeSnapshot) error {
+func (r *VolumeSnapshotBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, vs *snapv1.VolumeSnapshot) error {
 	p, err := r.getSourcePVC()
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func (r *DataMoverBackupReconciler) buildPVC(pvc *corev1.PersistentVolumeClaim, 
 	return nil
 }
 
-func (r *DataMoverBackupReconciler) buildDummyPod(pvc *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
+func (r *VolumeSnapshotBackupReconciler) buildDummyPod(pvc *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
 
 	podspec := corev1.PodSpec{
 		Containers: []corev1.Container{
@@ -161,15 +161,15 @@ func (r *DataMoverBackupReconciler) buildDummyPod(pvc *corev1.PersistentVolumeCl
 
 // Get the source PVC from DMB CR's volumesnapshotcontent
 // TODO: Add logic for PVC datasource type in DMB CR
-func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClaim, error) {
+func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClaim, error) {
 
-	// Get datamoverbackup from cluster
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
+	// Get volumesnapshotbackup from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		return nil, err
 	}
 	vscInCluster := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: dmb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		return nil, errors.New("cannot obtain source volumesnapshotcontent")
 	}
 
@@ -186,15 +186,15 @@ func (r *DataMoverBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClai
 	}
 
 	// set source PVC name in DMB status
-	dmb.Status.SourcePVCData.Name = pvc.Name
+	vsb.Status.SourcePVCData.Name = pvc.Name
 
 	// set source PVC size in DMB status
 	size := pvc.Spec.Resources.Requests.Storage()
 	sizeString := size.String()
-	dmb.Status.SourcePVCData.Size = sizeString
+	vsb.Status.SourcePVCData.Size = sizeString
 
 	// Update DMB status
-	err := r.Status().Update(context.Background(), &dmb)
+	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return nil, err
 	}
