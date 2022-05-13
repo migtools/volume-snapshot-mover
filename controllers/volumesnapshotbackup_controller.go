@@ -106,9 +106,10 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 
 	_, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverBackup,
+		r.MirrorVolumeSnapshotContent,
 		r.MirrorVolumeSnapshot,
-		r.BindPVC,
-		// TODO: Does data mover specific bits belong in a separate controller?
+		r.MirrorPVC,
+		r.BindPVCToDummyPod,
 		r.CreateResticSecret,
 		r.CreateReplicationSource,
 		r.CleanBackupResources,
