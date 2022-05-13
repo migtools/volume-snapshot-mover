@@ -73,6 +73,13 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return result, err
 	}
+
+	// add protected namespace
+	r.NamespacedName = types.NamespacedName{
+		Namespace: vsr.Spec.ProtectedNamespace,
+		Name:      vsr.Name,
+	}
+
 	if vsr.Status.Completed {
 		// stop reconciling on this resource
 		return ctrl.Result{
