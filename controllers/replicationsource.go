@@ -25,9 +25,9 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 
 	// get cloned pvc
 	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
-	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: pvcName}, &pvc); err != nil {
-		r.Log.Error(err, "unable to fetch PVC")
+	clonedPVC := corev1.PersistentVolumeClaim{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: pvcName}, &clonedPVC); err != nil {
+		r.Log.Error(err, "unable to fetch cloned PVC")
 		return false, err
 	}
 
@@ -35,17 +35,22 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-rep-src", vsb.Name),
-			Namespace: r.NamespacedName.Namespace,
+			Namespace: vsb.Spec.ProtectedNamespace,
 			Labels: map[string]string{
 				VSBLabel: vsb.Name,
 			},
 		},
 	}
 
+	// move forward to create replication source only when the PVC is bound
+	if &clonedPVC.Status == nil || clonedPVC.Status.Phase != corev1.ClaimBound {
+		return false, errors.New("cloned PVC is not in bound state")
+	}
+
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
 
-		return r.buildReplicationSource(repSource, &vsb, &pvc)
+		return r.buildReplicationSource(repSource, &vsb, &clonedPVC)
 	})
 	if err != nil {
 		return false, err
@@ -66,7 +71,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: resticSecretName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return err
 	}
@@ -98,7 +103,7 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
 		return false, err
 	}
 
@@ -164,7 +169,7 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *datamoverv1al
 	// get replicationsource
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
 		return false, err
 	}
 
