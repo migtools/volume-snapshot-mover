@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -60,18 +59,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		return err
 	}
 
-	// fetch dmr annotations
-	vsrAnnotations := vsr.Annotations
-
-	if len(vsrAnnotations) == 0 {
-		return errors.New("vsr annotations are empty")
-	}
-
-	if len(vsrAnnotations[DatamoverSourcePVCSize]) == 0 {
-		return errors.New("vsr annotation for source PVC data size key is empty")
-	}
-
-	stringCapacity := vsrAnnotations[DatamoverSourcePVCSize]
+	stringCapacity := vsr.Spec.DataMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
 
 	// build ReplicationDestination

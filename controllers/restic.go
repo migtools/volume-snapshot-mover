@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -211,20 +210,11 @@ func (r *VolumeSnapshotRestoreReconciler) buildDMRResticSecret(secret *corev1.Se
 			AWSAccessValue = val
 		case key == AWSSecretKey:
 			AWSSecretValue = val
+		case key == AWSDefaultRegion:
+			AWSDefaultRegionValue = val
 		case key == ResticPassword:
 			ResticPasswordValue = val
 		}
-	}
-
-	// fetch vsr annotations
-	vsrAnnotations := vsr.Annotations
-
-	if len(vsrAnnotations) == 0 {
-		return errors.New("vsr annotations are empty")
-	}
-
-	if len(vsrAnnotations[DatamoverResticRepository]) == 0 {
-		return errors.New("vsr annotation for restic repository key is empty")
 	}
 
 	// build new Restic secret
@@ -232,8 +222,9 @@ func (r *VolumeSnapshotRestoreReconciler) buildDMRResticSecret(secret *corev1.Se
 		Data: map[string][]byte{
 			AWSAccessKey:     AWSAccessValue,
 			AWSSecretKey:     AWSSecretValue,
+			AWSDefaultRegion: AWSDefaultRegionValue,
 			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(vsrAnnotations[DatamoverResticRepository]),
+			ResticRepository: []byte(vsr.Spec.DataMoverBackupref.ResticRepository),
 		},
 	}
 
