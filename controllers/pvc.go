@@ -75,28 +75,41 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 }
 
 func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot) error {
-	p, err := r.getSourcePVC()
+	sourcePVC, err := r.getSourcePVC()
 	if err != nil {
 		return err
 	}
 
-	newSpec := corev1.PersistentVolumeClaimSpec{
-		DataSource: &corev1.TypedLocalObjectReference{
-			Name:     vsClone.Name,
-			Kind:     vsClone.Kind,
-			APIGroup: &vsClone.APIVersion,
-		},
-		AccessModes: []corev1.PersistentVolumeAccessMode{
-			"ReadWriteOnce",
-		},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceStorage: *p.Spec.Resources.Requests.Storage(),
-			},
-		},
-		StorageClassName: p.Spec.StorageClassName,
+	//newSpec := corev1.PersistentVolumeClaimSpec{
+	//	DataSource: &corev1.TypedLocalObjectReference{
+	//		Name:     vsClone.Name,
+	//		Kind:     vsClone.Kind,
+	//		APIGroup: &vsClone.APIVersion,
+	//	},
+	//	AccessModes: []corev1.PersistentVolumeAccessMode{
+	//		"ReadWriteOnce",
+	//	},
+	//	Resources: corev1.ResourceRequirements{
+	//		Requests: corev1.ResourceList{
+	//			corev1.ResourceStorage: *sourcePVC.Spec.Resources.Requests.Storage(),
+	//		},
+	//	},
+	//	StorageClassName: sourcePVC.Spec.StorageClassName,
+	//}
+	//pvcClone.Spec = newSpec
+
+	pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
+		Name:     vsClone.Name,
+		Kind:     vsClone.Kind,
+		APIGroup: &vsClone.APIVersion,
 	}
-	pvcClone.Spec = newSpec
+
+	pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
+
+	pvcClone.Spec.Resources = sourcePVC.Spec.Resources
+
+	pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
+
 	return nil
 }
 

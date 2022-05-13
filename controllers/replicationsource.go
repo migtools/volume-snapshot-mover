@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -104,7 +105,16 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
+		r.Log.Error(err, "error here setDMBRepSourceStatus")
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("is not found error")
+			return false, nil
+		}
 		return false, err
+	}
+
+	if repSource.Status == nil {
+		return false, errors.New("replication source is yet to have a status")
 	}
 
 	if repSource.Status != nil {
@@ -170,6 +180,7 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *datamoverv1al
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
+		r.Log.Info("error here isRepSourceCompleted")
 		return false, err
 	}
 
