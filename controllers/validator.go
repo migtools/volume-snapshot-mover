@@ -10,6 +10,7 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bool, error) {
+	r.Log.Info("In function ValidateDataMoverBackup")
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")

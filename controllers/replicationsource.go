@@ -16,7 +16,7 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger) (bool, error) {
-
+	r.Log.Info("In function CreateReplicationSource")
 	// get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -44,9 +44,9 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	}
 
 	// move forward to create replication source only when the PVC is bound
-	if &clonedPVC.Status == nil || clonedPVC.Status.Phase != corev1.ClaimBound {
-		return false, errors.New("cloned PVC is not in bound state")
-	}
+	//if clonedPVC.Status.Phase != corev1.ClaimBound {
+	//	return false, errors.New("cloned PVC is not in bound state")
+	//}
 
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
@@ -105,9 +105,8 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
-		r.Log.Error(err, "error here setDMBRepSourceStatus")
+		r.Log.Info("error here setDMBRepSourceStatus")
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("is not found error")
 			return false, nil
 		}
 		return false, err

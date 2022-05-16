@@ -15,6 +15,7 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error) {
+	r.Log.Info("In function MirrorPVC")
 	// Get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -114,6 +115,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 }
 
 func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (bool, error) {
+	r.Log.Info("In function BindPVCToDummyPod")
 	// Get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -237,4 +239,30 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 	}
 
 	return pvc, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, error) {
+	r.Log.Info("In function IsPVCBound")
+	// get volumesnapshotbackup from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		return false, err
+	}
+
+	// get cloned pvc
+	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
+	clonedPVC := corev1.PersistentVolumeClaim{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: pvcName}, &clonedPVC); err != nil {
+		r.Log.Error(err, "unable to fetch cloned PVC")
+		return false, err
+	}
+
+	// move forward to create replication source only when the PVC is bound
+	if clonedPVC.Status.Phase != corev1.ClaimBound {
+		return false, errors.New("cloned PVC is not in bound state")
+	}
+
+	return true, nil
+
 }

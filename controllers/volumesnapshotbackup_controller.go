@@ -19,8 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -112,13 +110,14 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.MirrorPVC,
 		r.BindPVCToDummyPod,
 		r.CreateResticSecret,
+		r.IsPVCBound,
 		r.CreateReplicationSource,
 		r.CleanBackupResources,
 	)
 
 	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)
 	if !DMBComplete {
-		return ctrl.Result{Requeue: true, RequeueAfter: 10 * time.Second}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Update the status with any errors, or set completed condition

@@ -14,11 +14,12 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Logger) (bool, error) {
+	r.Log.Info("In function MirrorVolumeSnapshotContent")
 	// Get volumesnapshotbackup from cluster
 	// TODO: handle multiple VSBs
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
 
@@ -62,6 +63,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 }
 
 func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool, error) {
+	r.Log.Info("In function MirrorVolumeSnapshot")
 	// Get volumesnapshotbackup from cluster
 	// TODO: handle multiple VSBs
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}

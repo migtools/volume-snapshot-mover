@@ -12,7 +12,7 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
-
+	r.Log.Info("In function CleanBackupResources")
 	// get datamoverbackup from cluster
 	dmb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
