@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -81,7 +80,8 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 
 	// check if vsc clone is ready to use before going ahead with vs clone creation
 	if vscClone.Status == nil || vscClone.Status.ReadyToUse == nil || *vscClone.Status.ReadyToUse != true {
-		return false, errors.New("volumesnapshotcontent clone is not ready to use")
+		r.Log.Info("volumesnapshotcontent clone is not ready to use")
+		return false, nil
 	}
 
 	// keep the snapshot name the same as referred in the vsc clone

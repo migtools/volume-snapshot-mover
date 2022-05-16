@@ -40,6 +40,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 
 	// check if vsClone is ready to use
 	if vsClone.Status == nil || vsClone.Status.ReadyToUse == nil || *vsClone.Status.ReadyToUse != true {
+		r.Log.Info("cloned volumesnapshot is not ready to use in the protected namespace")
 		return false, nil
 	}
 
@@ -98,11 +99,11 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	//	StorageClassName: sourcePVC.Spec.StorageClassName,
 	//}
 	//pvcClone.Spec = newSpec
-
+	apiGroup := "snapshot.storage.k8s.io"
 	pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
 		Name:     vsClone.Name,
 		Kind:     vsClone.Kind,
-		APIGroup: &vsClone.APIVersion,
+		APIGroup: &apiGroup,
 	}
 
 	pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
@@ -141,10 +142,39 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 				VSBLabel: vsb.Name,
 			},
 		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "busybox",
+					Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
+					Command: []string{
+						"/bin/sh", "-c", "tail -f /dev/null",
+					},
+
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "vol1",
+							MountPath: "/mnt/volume1",
+						},
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "vol1",
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: clonedPVC.Name,
+						},
+					},
+				},
+			},
+			RestartPolicy: corev1.RestartPolicyNever,
+		},
 	}
 
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, dp, func() error {
-		return r.buildDummyPod(&clonedPVC, dp)
+		return err
 	})
 
 	if err != nil {
@@ -164,37 +194,68 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 
 func (r *VolumeSnapshotBackupReconciler) buildDummyPod(clonedPVC *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
 
-	podspec := corev1.PodSpec{
-		Containers: []corev1.Container{
-			{
-				Name:  "busybox",
-				Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
-				Command: []string{
-					"/bin/sh", "-c", "tail -f /dev/null",
-				},
+	//podspec := corev1.PodSpec{
+	//	Containers: []corev1.Container{
+	//		{
+	//			Name:  "busybox",
+	//			Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
+	//			Command: []string{
+	//				"/bin/sh", "-c", "tail -f /dev/null",
+	//			},
+	//
+	//			VolumeMounts: []corev1.VolumeMount{
+	//				{
+	//					Name:      "vol1",
+	//					MountPath: "/mnt/volume1",
+	//				},
+	//			},
+	//		},
+	//	},
+	//	Volumes: []corev1.Volume{
+	//		{
+	//			Name: "vol1",
+	//			VolumeSource: corev1.VolumeSource{
+	//				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+	//					ClaimName: clonedPVC.Name,
+	//				},
+	//			},
+	//		},
+	//	},
+	//	RestartPolicy: corev1.RestartPolicyNever,
+	//}
 
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      "vol1",
-						MountPath: "/mnt/volume1",
-					},
+	//p.Spec = podspec
+
+	p.Spec.Containers = []corev1.Container{
+		{
+			Name:  "busybox",
+			Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
+			Command: []string{
+				"/bin/sh", "-c", "tail -f /dev/null",
+			},
+
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "vol1",
+					MountPath: "/mnt/volume1",
 				},
 			},
 		},
-		Volumes: []corev1.Volume{
-			{
-				Name: "vol1",
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: clonedPVC.Name,
-					},
-				},
-			},
-		},
-		RestartPolicy: corev1.RestartPolicyNever,
 	}
 
-	p.Spec = podspec
+	p.Spec.Volumes = []corev1.Volume{
+		{
+			Name: "vol1",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: clonedPVC.Name,
+				},
+			},
+		},
+	}
+
+	p.Spec.RestartPolicy = corev1.RestartPolicyNever
+
 	return nil
 }
 

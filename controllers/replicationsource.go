@@ -113,7 +113,8 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 	}
 
 	if repSource.Status == nil {
-		return false, errors.New("replication source is yet to have a status")
+		r.Log.Info("replication source is yet to have a status")
+		return false, nil
 	}
 
 	if repSource.Status != nil {

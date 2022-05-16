@@ -103,7 +103,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	// Run through all reconcilers associated with DMB needs
 	// Reconciliation logic
 
-	_, err := ReconcileBatch(r.Log,
+	reconFlag, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverBackup,
 		r.MirrorVolumeSnapshotContent,
 		r.MirrorVolumeSnapshot,
@@ -112,8 +112,12 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CreateResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
-		r.CleanBackupResources,
+		//r.CleanBackupResources,
 	)
+
+	if !reconFlag {
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)
 	if !DMBComplete {
