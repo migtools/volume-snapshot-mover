@@ -21,6 +21,7 @@ import (
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -106,7 +107,9 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	reconFlag, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverBackup,
 		r.MirrorVolumeSnapshotContent,
+		r.WaitForClonedVolumeSnapshotContentToBeReady,
 		r.MirrorVolumeSnapshot,
+		r.WaitForClonedVolumeSnapshotToBeReady,
 		r.MirrorPVC,
 		r.BindPVCToDummyPod,
 		r.CreateResticSecret,
@@ -116,7 +119,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	)
 
 	if !reconFlag {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)

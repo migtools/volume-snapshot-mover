@@ -321,7 +321,8 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 
 	// move forward to create replication source only when the PVC is bound
 	if clonedPVC.Status.Phase != corev1.ClaimBound {
-		return false, errors.New("cloned PVC is not in bound state")
+		r.Log.Info("cloned PVC is not in bound state")
+		return false, nil
 	}
 
 	return true, nil

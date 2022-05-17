@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -154,4 +155,66 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotClone(vsClone *snapv
 
 	vsClone.Spec = vsSpec
 	return nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(log logr.Logger) (bool, error) {
+	// Get volumesnapshotbackup from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		return false, err
+	}
+
+	// Get the clone VSC
+	vscClone := snapv1.VolumeSnapshotContent{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
+		r.Log.Error(err, "cloned volumesnapshotcontent not found")
+		return false, err
+	}
+
+	// Check if Volumesnapshot clone is present in the protected namespace
+	vsClone := snapv1.VolumeSnapshot{}
+	if err := r.Get(r.Context,
+		types.NamespacedName{Name: fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name), Namespace: vsb.Spec.ProtectedNamespace}, &vsClone); err != nil {
+		r.Log.Info("cloned volumesnapshot not available in the protected namespace")
+		return false, nil
+	}
+
+	//skip waiting if vs is ready
+	if vsClone.Status != nil && *vsClone.Status.ReadyToUse == true && *vsClone.Status.BoundVolumeSnapshotContentName == vscClone.Name {
+		r.Log.Info("cloned volumesnapshot is in ready status and has a bound volumesnapshotcontent, skipping wait step")
+		return true, nil
+	}
+
+	r.Log.Info("waiting for volumesnapshot to be ready")
+	time.Sleep(time.Minute * 2)
+	r.Log.Info("volumesnapshot wait period done")
+	return true, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeReady(log logr.Logger) (bool, error) {
+	// fetch clone vsc and skip waiting if its ready
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		return false, err
+	}
+
+	// fetch vsc clone
+	vscClone := snapv1.VolumeSnapshotContent{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
+		r.Log.Error(err, "volumesnapshotcontent clone not found")
+		return false, err
+	}
+
+	//skip waiting if vsc is ready
+	if vscClone.Status != nil && *vscClone.Status.ReadyToUse == true {
+		r.Log.Info("cloned volumesnapshotcontent is in ready status, skipping wait step")
+		return true, nil
+	}
+
+	r.Log.Info("waiting for volumesnapshotcontent to be ready")
+	time.Sleep(time.Minute * 2)
+	r.Log.Info("volumesnapshotcontent wait period done")
+	return true, nil
 }
