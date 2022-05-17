@@ -187,7 +187,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 	}
 
 	r.Log.Info("waiting for volumesnapshot to be ready")
-	time.Sleep(time.Minute * 2)
+	time.Sleep(time.Second * 30)
 	r.Log.Info("volumesnapshot wait period done")
 	return true, nil
 }
@@ -214,7 +214,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 	}
 
 	r.Log.Info("waiting for volumesnapshotcontent to be ready")
-	time.Sleep(time.Minute * 2)
+	time.Sleep(time.Second * 30)
 	r.Log.Info("volumesnapshotcontent wait period done")
 	return true, nil
 }
