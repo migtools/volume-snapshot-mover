@@ -29,6 +29,7 @@ func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger
 		r.Log.Error(err, "volumesnapshotcontent not found")
 		return false, err
 	}
+	r.Log.Info("returning true In function ValidateDataMoverBackup")
 	return true, nil
 }
 

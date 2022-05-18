@@ -49,7 +49,6 @@ const (
 )
 
 func (r *VolumeSnapshotBackupReconciler) CreateResticSecret(log logr.Logger) (bool, error) {
-
 	// get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -60,7 +59,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateResticSecret(log logr.Logger) (bo
 	// get cloned pvc
 	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
 	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: pvcName, Namespace: r.NamespacedName.Namespace}, &pvc); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Name: pvcName, Namespace: vsb.Spec.ProtectedNamespace}, &pvc); err != nil {
 		r.Log.Error(err, "unable to fetch PVC")
 		return false, err
 	}

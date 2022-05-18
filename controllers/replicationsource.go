@@ -9,13 +9,13 @@ import (
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger) (bool, error) {
-
 	// get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -25,9 +25,9 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 
 	// get cloned pvc
 	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
-	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: pvcName}, &pvc); err != nil {
-		r.Log.Error(err, "unable to fetch PVC")
+	clonedPVC := corev1.PersistentVolumeClaim{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: pvcName}, &clonedPVC); err != nil {
+		r.Log.Error(err, "unable to fetch cloned PVC")
 		return false, err
 	}
 
@@ -35,7 +35,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-rep-src", vsb.Name),
-			Namespace: r.NamespacedName.Namespace,
+			Namespace: vsb.Spec.ProtectedNamespace,
 			Labels: map[string]string{
 				VSBLabel: vsb.Name,
 			},
@@ -45,7 +45,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
 
-		return r.buildReplicationSource(repSource, &vsb, &pvc)
+		return r.buildReplicationSource(repSource, &vsb, &clonedPVC)
 	})
 	if err != nil {
 		return false, err
@@ -66,7 +66,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: resticSecretName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return err
 	}
@@ -98,8 +98,17 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
+		r.Log.Info("error here setDMBRepSourceStatus")
+		if k8serror.IsNotFound(err) {
+			return false, nil
+		}
 		return false, err
+	}
+
+	if repSource.Status == nil {
+		r.Log.Info("replication source is yet to have a status")
+		return false, nil
 	}
 
 	if repSource.Status != nil {
@@ -164,7 +173,8 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *datamoverv1al
 	// get replicationsource
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
+		r.Log.Info("error here isRepSourceCompleted")
 		return false, err
 	}
 
