@@ -140,6 +140,8 @@ spec:
                   - type
                   type: object
                 type: array
+              snapshotHandle:
+                type: string
             required:
             - completed
             type: object
