@@ -16,7 +16,6 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger) (bool, error) {
-	r.Log.Info("In function CreateReplicationSource")
 	// get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -42,11 +41,6 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 			},
 		},
 	}
-
-	// move forward to create replication source only when the PVC is bound
-	//if clonedPVC.Status.Phase != corev1.ClaimBound {
-	//	return false, errors.New("cloned PVC is not in bound state")
-	//}
 
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {

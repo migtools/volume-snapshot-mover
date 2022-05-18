@@ -15,7 +15,6 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error) {
-	r.Log.Info("In function MirrorPVC")
 	// Get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -116,7 +115,6 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 }
 
 func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (bool, error) {
-	r.Log.Info("In function BindPVCToDummyPod")
 	// Get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -303,7 +301,6 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 }
 
 func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, error) {
-	r.Log.Info("In function IsPVCBound")
 	// get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
