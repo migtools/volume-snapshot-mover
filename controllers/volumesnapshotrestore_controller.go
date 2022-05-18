@@ -94,7 +94,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		r.ValidateDataMoverRestore,
 		r.CreateDMRResticSecret,
 		r.CreateReplicationDestination,
-		//r.MirrorVolumeSnapshot,
+
 		//r.CleanupRestoreResources,
 	)
 

@@ -32,9 +32,9 @@ type VolumeSnapshotRestoreSpec struct {
 
 // VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore
 type VolumeSnapshotRestoreStatus struct {
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	Completed  bool               `json:"completed"`
-	// TODO: Add data mover refs and velero refs
+	Conditions     []metav1.Condition `json:"conditions,omitempty"`
+	Completed      bool               `json:"completed"`
+	SnapshotHandle *string            `json:"snapshotHandle,omitempty"`
 }
 
 type DMBRef struct {
