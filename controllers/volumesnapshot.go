@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -237,11 +238,18 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 
 	if vsc.Status != nil {
 		if *vsc.Status.ReadyToUse == true {
-			r.Log.Info("volSync volumesnapshotcontent is in ready status")
+			r.Log.Info("volSync volumesnapshotcontent is ready")
 			// TODO: handle better
 			// this prevents the cloned VS being created too quickly after cloned VSC is created
 			// which causes long pending time for the cloned PVC
 			time.Sleep(time.Second * 20)
+			vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
+
+			// Update VSR status
+			err := r.Status().Update(context.Background(), &vsr)
+			if err != nil {
+				return false, err
+			}
 			return true, nil
 		}
 		r.Log.Info("volSync volumesnapshotcontent is not yet in ready status")
@@ -252,6 +260,15 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 	r.Log.Info("waiting for volumesnapshotcontent to be ready")
 	time.Sleep(time.Second * 20)
 	r.Log.Info("volumesnapshotcontent wait period done")
+
+	vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
+
+	// Update VSR status
+	err = r.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -262,7 +279,7 @@ func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *datamov
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
 	repDest := volsyncv1alpha1.ReplicationDestination{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
-		r.Log.Info("error getting replicationDestination")
+		r.Log.Error(err, "error getting replicationDestination")
 		return nil, err
 	}
 

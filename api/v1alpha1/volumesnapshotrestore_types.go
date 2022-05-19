@@ -34,7 +34,7 @@ type VolumeSnapshotRestoreSpec struct {
 type VolumeSnapshotRestoreStatus struct {
 	Conditions     []metav1.Condition `json:"conditions,omitempty"`
 	Completed      bool               `json:"completed"`
-	SnapshotHandle *string            `json:"snapshotHandle,omitempty"`
+	SnapshotHandle string             `json:"snapshotHandle,omitempty"`
 }
 
 type DMBRef struct {

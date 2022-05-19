@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"errors"
+	"context"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -83,30 +83,6 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 	return nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) isRepDestinationCompleted(vsr *datamoverv1alpha1.VolumeSnapshotRestore, log logr.Logger) (bool, error) {
-
-	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
-	repDest := volsyncv1alpha1.ReplicationDestination{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
-		r.Log.Info("error here isRepDestinationCompleted")
-		return false, err
-	}
-
-	if repDest.Status != nil {
-		// for manual trigger, if spec.trigger.manual == status.lastManualSync, sync has completed
-		if len(repDest.Status.LastManualSync) > 0 && len(repDest.Spec.Trigger.Manual) > 0 {
-			sourceStatus := repDest.Status.LastManualSync
-			sourceSpec := repDest.Spec.Trigger.Manual
-			if sourceStatus == sourceSpec {
-				return true, nil
-			}
-		}
-	}
-
-	// ReplicationDestination has not yet completed but has not failed
-	return false, nil
-}
-
 func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady(log logr.Logger) (bool, error) {
 
 	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
@@ -122,12 +98,27 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 		return false, err
 	}
 
-	//skip waiting if replicationDestination is ready
-	if repDest.Status != nil && repDest.Status.LastSyncDuration != nil && repDest.Spec.Trigger.Manual == repDest.Status.LastManualSync {
-		r.Log.Info("replicationDestination has completed")
-		return true, nil
+	if repDest.Status != nil {
+		// for manual trigger, if spec.trigger.manual == status.lastManualSync, sync has completed
+		if len(repDest.Status.LastManualSync) > 0 && len(repDest.Spec.Trigger.Manual) > 0 {
+			sourceStatus := repDest.Status.LastManualSync
+			sourceSpec := repDest.Spec.Trigger.Manual
+			if sourceStatus == sourceSpec {
+
+				vsr.Status.Completed = true
+
+				// Update VSR status as completed
+				err := r.Status().Update(context.Background(), &vsr)
+				if err != nil {
+					return false, err
+				}
+
+				r.Log.Info("replicationDestination has completed")
+				return true, nil
+			}
+		}
 	}
 
 	r.Log.Info("waiting for replicationDestination to complete")
-	return false, errors.New("replicationDestination not completed")
+	return false, nil
 }

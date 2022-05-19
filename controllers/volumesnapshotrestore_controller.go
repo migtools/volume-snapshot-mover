@@ -81,12 +81,12 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		Name:      vsr.Name,
 	}
 
-	if vsr.Status.Completed {
-		// stop reconciling on this resource
-		return ctrl.Result{
-			Requeue: false,
-		}, nil
-	}
+	// if vsr.Status.Completed {
+	// 	// stop reconciling on this resource
+	// 	return ctrl.Result{
+	// 		Requeue: false,
+	// 	}, nil
+	// }
 
 	// Run through all reconcilers associated with DMR needs
 	// Reconciliation logic
