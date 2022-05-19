@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -208,6 +210,10 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 	//skip waiting if vsc is ready
 	if vscClone.Status != nil && *vscClone.Status.ReadyToUse == true {
 		r.Log.Info("cloned volumesnapshotcontent is in ready status, skipping wait step")
+		// TODO: handle better
+		// this prevents the cloned VS being created too quickly after cloned VSC is created
+		// which causes long pending time for the cloned PVC
+		time.Sleep(time.Second * 20)
 		return true, nil
 	}
 
@@ -215,4 +221,88 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 	time.Sleep(time.Second * 30)
 	r.Log.Info("volumesnapshotcontent wait period done")
 	return true, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady(log logr.Logger) (bool, error) {
+
+	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
+		return false, err
+	}
+
+	vsc, err := r.getVolSyncSnapshotContent(&vsr)
+	if err != nil {
+		return false, err
+	}
+
+	if vsc.Status != nil {
+		if *vsc.Status.ReadyToUse == true {
+			r.Log.Info("volSync volumesnapshotcontent is ready")
+			// TODO: handle better
+			// this prevents the cloned VS being created too quickly after cloned VSC is created
+			// which causes long pending time for the cloned PVC
+			time.Sleep(time.Second * 20)
+			vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
+
+			// Update VSR status
+			err := r.Status().Update(context.Background(), &vsr)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+		r.Log.Info("volSync volumesnapshotcontent is not yet in ready status")
+		return false, nil
+
+	}
+
+	r.Log.Info("waiting for volumesnapshotcontent to be ready")
+	time.Sleep(time.Second * 20)
+	r.Log.Info("volumesnapshotcontent wait period done")
+
+	vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
+
+	// Update VSR status
+	err = r.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *datamoverv1alpha1.VolumeSnapshotRestore) (*snapv1.VolumeSnapshotContent, error) {
+	vsc := snapv1.VolumeSnapshotContent{}
+	vs := snapv1.VolumeSnapshot{}
+
+	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
+	repDest := volsyncv1alpha1.ReplicationDestination{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
+		r.Log.Error(err, "error getting replicationDestination")
+		return nil, err
+	}
+
+	if repDest.Status != nil && repDest.Status.LastSyncTime != nil {
+
+		volSyncSnapName := repDest.Status.LatestImage.Name
+
+		// fetch vs from replicationDestination
+		if err := r.Get(r.Context, types.NamespacedName{Name: volSyncSnapName, Namespace: vsr.Spec.ProtectedNamespace}, &vs); err != nil {
+			r.Log.Error(err, "volumesnapshot from VolSync not found")
+			return nil, err
+		}
+
+		volSyncSnapContentName := *vs.Status.BoundVolumeSnapshotContentName
+
+		// fetch vsc from replicationDestination
+		if err := r.Get(r.Context, types.NamespacedName{Name: volSyncSnapContentName}, &vsc); err != nil {
+			r.Log.Error(err, "volumesnapshotcontent clone not found")
+			return nil, err
+		}
+
+	}
+
+	r.Log.Info("fetched volumesnapshotcontent from replicationDestination")
+	return &vsc, nil
 }

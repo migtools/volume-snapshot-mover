@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,23 +81,28 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		Name:      vsr.Name,
 	}
 
-	if vsr.Status.Completed {
-		// stop reconciling on this resource
-		return ctrl.Result{
-			Requeue: false,
-		}, nil
-	}
+	// if vsr.Status.Completed {
+	// 	// stop reconciling on this resource
+	// 	return ctrl.Result{
+	// 		Requeue: false,
+	// 	}, nil
+	// }
 
 	// Run through all reconcilers associated with DMR needs
 	// Reconciliation logic
 
-	_, err := ReconcileBatch(r.Log,
+	reconFlag, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverRestore,
 		r.CreateDMRResticSecret,
 		r.CreateReplicationDestination,
-
+		r.WaitForReplicationDestinationToBeReady,
+		r.WaitForVolSyncSnapshotContentToBeReady,
 		//r.CleanupRestoreResources,
 	)
+
+	if !reconFlag {
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
+	}
 
 	// Update the status with any errors, or set completed condition
 	if err != nil {
