@@ -34,57 +34,7 @@ $ helm repo add backube https://backube.github.io/helm-charts/
 $ helm install -n openshift-adp volsync backube/volsync
 ```
 
-- Install the VolumeSnapshotMover CRDs `VolumeSnapshotBackup` and `VolumeSnapshotRestore` using: `oc create -f config/crd/bases/`
-
-- Create a DPA similar to this:
-
-```
-apiVersion: oadp.openshift.io/v1alpha1
-kind: DataProtectionApplication
-metadata:
-  name: velero-sample
-  namespace: openshift-adp
-spec:
-  backupLocations:
-    - velero:
-        config:
-          profile: default
-          region: us-east-1
-        credential:
-          key: cloud
-          name: cloud-credentials
-        default: true
-        objectStorage:
-          bucket: bucket-name
-          prefix: bucket-prefix
-        provider: aws
-  configuration:
-    restic:
-      enable: false
-    velero:
-      defaultPlugins:
-        - openshift
-        - aws
-        - csi
-      featureFlags:
-        - EnableCSI
-  snapshotLocations:
-    - velero:
-        config:
-          profile: default
-          region: us-west-2
-        provider: aws
-  unsupportedOverrides:
-    csiPluginImageFqin: 'quay.io/spampatt/velero-plugin-for-csi:latest'
-```
-
-<hr style="height:1px;border:none;color:#333;">
-
-<h4> For backup: <a id="backup"></a></h4>
-
 - We will be using VolSync's Restic option, hence configure a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2)
-  - Name this secret `restic-secret` in the protected namespace
-
 ```
 $ cat << EOF > ./restic-secret.yaml
 apiVersion: v1
@@ -101,23 +51,51 @@ stringData:
   AWS_SECRET_ACCESS_KEY: <bucket_secret_access_key>
 EOF
 ```
-
 ```
 $ oc create -n openshift-adp -f ./restic-secret.yaml
 ```
 
+- Install the VolumeSnapshotMover CRDs `DataMoverBackup` and `DataMoverRestore` using: `oc create -f config/crd/bases/`
+
+### Run the controller:
+
+<hr style="height:1px;border:none;color:#333;">
+
+<h4> For backup: <a id="backup"></a></h4>
+
+- Create a Restic secret named `restic-secret` in the protected namespace, following the above steps.
+
 - Run the controller by executing `make run`
 
-- Create a Velero backup using CSI snapshotting following the backup steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md).
+- Create a Velero backup using CSI snapshotting following the steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md).
 
 <h4> For restore: <a id="restore"></a></h4>
 
-- Create a Restic secret named `restic-secret` in the protected namespace following the above steps.
+- Create a Restic secret named `restic-secret` in the protected namespace (if this no longer exists) following the above steps.
+
+- Create an empty PVC in the protected namespace with the name as the PVC used by DMB.
+
+- Create a `DataMoverRestore` CR. This will create a VolSync `ReplicationDestination` which will then create a new 
+volumeSnapshot and volumeSnapshotContent in the cluster.
+  - *Note:* in the future this will be created by the controller.
+
+```
+apiVersion: pvc.oadp.openshift.io/v1alpha1
+kind: DataMoverRestore
+metadata:
+  name: datamoverrestore-sample
+spec:
+  resticSecretRef: 
+    name: restic-secret
+  destinationClaimRef: 
+    name: <PVC_NAME>
+    namespace: <APP_NS>
+```
 
 - Run the controller by executing `make run`
 
-- Create a Velero restore using CSI snapshotting following the restore steps specified [here](https://github.com/openshift/oadp-operator/blob/master/docs/examples/csi_example.md).
-  - Make sure `restorePVs` is set to `true`.
+- To complete the restore process, create a Velero restore.
+  Make sure `restorePVs` is set to `true`.
 
 ```
 apiVersion: velero.io/v1
