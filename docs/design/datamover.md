@@ -80,10 +80,8 @@ The above `DataMoverClass` name will be referenced in `VolumeSnapshotBackup` & `
 
 ### Data Mover Backup
 
-Assuming that the `DataMover Enable` flag is set to true in the DPA config, when a velero backup is created, it triggers the custom velero CSI plugin plugin (velero BackupItemAction plugin) to create the `VolumeSnapshotBackup` CR in the app namespace. The extended plugin looks up for the PVCs in the user namespace mentioned in the velero backup and creates a `VolumeSnapshotBackup` CR for every PVC in that namespace that is filtered by the `datamoverclass.spec.selector`.
+When a velero backup is created, it triggers the custom velero CSI plugin plugin (velero BackupItemAction plugin) to create the `VolumeSnapshotBackup` CR in the app namespace. The extended plugin looks up for the PVCs in the user namespace mentioned in the velero backup and creates a `VolumeSnapshotBackup` CR for every PVC in that namespace that is filtered by the `datamoverclass.spec.selector`.
 
-`VolumeSnapshotBackup` CR supports either a volumesnapshot or a pvc as the type of the backup object. If the velero CSI plugin is used for backup, `VolumeSnapshot` is used as the type or else `PVC`
-is used.
 
 ```
 apiVersion: volumesnapshotmover.datamover.io/v1alpha1
@@ -142,13 +140,8 @@ VolSync will be used as the default Data Mover for this PoC and `restic` will be
 
 We will follow a two phased approach for implementation of this controller. For phase 1, the user will create a restic secret. Using that secret as source, the controller will create on-demand secrets for every backup/restore request. For phase 2, the user will provide the restic repo details. This may be an encryption password and BSL reference, and the controller will create restic secret using BSL info, or they can supply their own backup target repo and access credentials. We will be focussing on phase 1 approach for this design.
 
-```
-...
-DataMoverEnable: True/False
-...
-```
+The user creates a restic secret with all the following details,
 
-If the DataMover flag is enabled, then the user creates a restic secret with all the following details,
 ```
 apiVersion: v1
 kind: Secret
