@@ -193,7 +193,7 @@ spec:
     copyMethod: None
 ```
 
-Similarly, when a DataMoverRestore CR gets created, controller will create a `ReplicationDestination` CR in the protected namespace. VolSync controller copies the PVC data from the restic repository to the protect namespace, which then gets transferred to the user namespace by the controller.
+Similarly, when a DataMoverRestore CR gets created, controller will create a `ReplicationDestination` CR in the protected namespace. VolSync controller copies the PVC data from the restic repository to the protected namespace, which then gets transferred to the user namespace by the controller.
 
 ```
 apiVersion: volsync.backube/v1alpha1
