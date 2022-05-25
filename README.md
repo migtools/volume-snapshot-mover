@@ -7,7 +7,7 @@
 VolumeSnapshotMover relocates snapshots off of the cluster into an object store to be used during a restore process to recover stateful applications 
 in instances such as cluster deletion or disaster. 
 
-#### Design Proposal (in-progress): https://github.com/openshift/oadp-operator/pull/597/files
+#### Design Proposal: https://github.com/openshift/oadp-operator/blob/master/docs/design/datamover.md
 
 # Table of Contents
 
@@ -29,6 +29,7 @@ by using the Velero CSI plugin during backup of the stateful application.
 - Have a stateful application running in a separate namespace. 
 
 - [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) the VolSync controller.
+
 ```
 $ helm repo add backube https://backube.github.io/helm-charts/
 $ helm install -n openshift-adp volsync backube/volsync
@@ -36,7 +37,37 @@ $ helm install -n openshift-adp volsync backube/volsync
 
 - Install the VolumeSnapshotMover CRDs `VolumeSnapshotBackup` and `VolumeSnapshotRestore` using: `oc create -f config/crd/bases/`
 
-- Create a DPA similar to this:
+  - Example data mover CRs:
+
+```
+apiVersion: datamover.oadp.openshift.io/v1alpha1
+kind: VolumeSnapshotBackup
+metadata:
+  name: <vsb-name>
+spec:
+  volumeSnapshotContent:
+    name: <snapcontent-name>
+  protectedNamespace: <adp-namespace>
+
+```
+
+```
+apiVersion: datamover.oadp.openshift.io/v1alpha1
+kind: VolumeSnapshotRestore
+metadata:
+  name: <vsr-name>
+spec:
+  protectedNamespace: <protected-ns>
+  resticSecretRef: 
+    name: restic-secret
+  dataMoverBackupRef:
+    sourcePVCData: 
+      name: <source-pvc-name>
+      size: <source-pvc-size>
+    resticrepository: <your-restic-repo>
+```
+
+- Create a DPA similar to below:
 
 ```
 apiVersion: oadp.openshift.io/v1alpha1
@@ -112,7 +143,10 @@ $ oc create -n openshift-adp -f ./restic-secret.yaml
 
 <h4> For restore: <a id="restore"></a></h4>
 
-- Create a Restic secret named `restic-secret` in the protected namespace following the above steps.
+- Make sure the application namespace is deleted, as well as the volumeSnapshotContent
+  that was created by the Velero CSI plugin.
+
+- If needed, create a Restic secret named `restic-secret` in the protected namespace following the above steps.
 
 - Run the controller by executing `make run`
 
