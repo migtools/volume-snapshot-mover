@@ -89,6 +89,7 @@ kind: VolumeSnapshotBackup
 metadata:
   name: <name>
 spec:
+  protectedNamespace: <ns>
   dataMoverClass: <DataMoverClass name> 
   dataSourceRef:
     apiGroup: <APIGroup>
@@ -106,11 +107,14 @@ kind: VolumeSnapshotRestore
 metadata:
   name: <name>
 spec:
-  DataMoverClass: <DataMoverClass name>
-  destinationClaimRef:
-    name: <PVC_claim_name>
-    namespace: <namespace>
-  config:     //optional based on the datamover impl
+  protectedNamespace: <ns>
+  resticSecretRef:  // optional
+    name: restic-secret  
+  dataMoverBackupRef:
+    sourcePVCData: 
+      name: <pvc_name>
+      size: <size>
+    resticrepository: <restic_repo>
 ```
 Config section in the above CR is optional. It lets the user specify extra parameters needed by the data mover. For eg: VolSync data mover needs restic secret to perform backup & restore
 
@@ -122,13 +126,14 @@ kind: VolumeSnapshotRestore
 metadata:
   name: <name>
 spec:
-  DataMoverClass: <DataMoverClass name>
-  destinationClaimRef:
-    name: <PVC_claim_name>
-    namespace: <namespace>
-  config:     //optional based on the datamover impl
-    resticSecret:
-      name: <secret_name>
+  protectedNamespace: <ns>
+  resticSecretRef:  
+    name: restic-secret  
+  dataMoverBackupRef:
+    sourcePVCData: 
+      name: <pvc_name>
+      size: <size>
+    resticrepository: <restic_repo>
 ```
 
 We will provide a sample codebase which the vendors will be able to extend and implement their own data movers. 
@@ -186,7 +191,7 @@ spec:
     copyMethod: None
 ```
 
-Similarly, when a VolumeSnapshotRestore CR gets created, controller will create a `ReplicationDestination` CR in the protected namespace. VolSync controller copies the PVC data from the restic repository to the protected namespace, which then gets transferred to the user namespace by the controller.
+Similarly, when a VolumeSnapshotRestore CR gets created, controller will create a `ReplicationDestination` CR in the protected namespace. VolSync controller copies the PVC data from the restic repository to the protected namespace and creates a volumesnapshot, which in turn gets referenced as the datasource for PVC.
 
 ```
 apiVersion: volsync.backube/v1alpha1
