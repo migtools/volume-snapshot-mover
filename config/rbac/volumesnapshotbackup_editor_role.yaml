@@ -1,13 +1,13 @@
-# permissions for end users to edit datamoverbackups.
+# permissions for end users to edit volumesnapshotbackups.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: datamoverbackup-editor-role
+  name: volumesnapshotbackup-editor-role
 rules:
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverbackups
+  - volumesnapshotbackups
   verbs:
   - create
   - delete
@@ -17,8 +17,8 @@ rules:
   - update
   - watch
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverbackups/status
+  - volumesnapshotbackups/status
   verbs:
   - get

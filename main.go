@@ -86,21 +86,21 @@ func main() {
 		setupLog.Error(err, "unable to add v1alpha1.Volsync APIs to scheme")
 		os.Exit(1)
 	}
-	if err = (&controllers.DataMoverBackupReconciler{
+	if err = (&controllers.VolumeSnapshotBackupReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
-		EventRecorder: mgr.GetEventRecorderFor("DataMoverBackup-Controller"),
+		EventRecorder: mgr.GetEventRecorderFor("VolumeSnapshotBackup-Controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DataMoverBackup")
+		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotBackup")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.DataMoverRestoreReconciler{
+	if err = (&controllers.VolumeSnapshotRestoreReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
-		EventRecorder: mgr.GetEventRecorderFor("DataMoverRestore-Controller"),
+		EventRecorder: mgr.GetEventRecorderFor("VolumeSnapshotRestore-Controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DataMoverRestore")
+		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotRestore")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

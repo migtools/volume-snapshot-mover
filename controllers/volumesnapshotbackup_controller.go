@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,7 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 )
 
@@ -38,8 +41,8 @@ const ReconciledReasonError = "Error"
 const ReconciledReasonComplete = "Complete"
 const ReconcileCompleteMessage = "Reconcile complete"
 
-// DataMoverBackupReconciler reconciles a DataMoverBackup object
-type DataMoverBackupReconciler struct {
+// VolumeSnapshotBackupReconciler reconciles a VolumeSnapshotBackup object
+type VolumeSnapshotBackupReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	Log            logr.Logger
@@ -49,67 +52,75 @@ type DataMoverBackupReconciler struct {
 	req            ctrl.Request
 }
 
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=pvc.oadp.openshift.io,resources=datamoverbackups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the DataMoverBackup object against the actual cluster state, and then
+// the VolumeSnapshotBackup object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Set reconciler vars
-	r.Log = log.FromContext(ctx).WithValues("dmb", req.NamespacedName)
+	r.Log = log.FromContext(ctx).WithValues("vsb", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
 	// needed to preserve the application ns whenever we fetch the latest DMB instance
 	r.req = req
 
-	// Get DMB CR from cluster
-	dmb := pvcv1alpha1.DataMoverBackup{}
-	if err := r.Get(ctx, req.NamespacedName, &dmb); err != nil {
-		r.Log.Error(err, "unable to fetch DataMoverBackup CR")
+	// Get VSB CR from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(ctx, req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return result, err
 	}
 
 	// add protected namespace
 	r.NamespacedName = types.NamespacedName{
-		Namespace: dmb.Spec.ProtectedNamespace,
-		Name:      dmb.Name,
+		Namespace: vsb.Spec.ProtectedNamespace,
+		Name:      vsb.Name,
 	}
 
-	if dmb.Status.Completed {
-
-		// stop reconciling on this resource
-		return ctrl.Result{
-			Requeue: false,
-		}, nil
+	if vsb.Status.Conditions != nil {
+		for i := range vsb.Status.Conditions {
+			if vsb.Status.Conditions[i].Type == ConditionReconciled && vsb.Status.Conditions[i].Status == metav1.ConditionTrue {
+				// stop reconciling on this resource
+				return ctrl.Result{
+					Requeue: false,
+				}, nil
+			}
+		}
 	}
 
-	/*if dmb.Status.DataMoverBackupStarted {
+	/*if dmb.Status.VolumeSnapshotBackupStarted {
 		// wait for it to complete... poll every 5 seconds
 	}*/
 
 	// Run through all reconcilers associated with DMB needs
 	// Reconciliation logic
 
-	_, err := ReconcileBatch(r.Log,
+	reconFlag, err := ReconcileBatch(r.Log,
 		r.ValidateDataMoverBackup,
+		r.MirrorVolumeSnapshotContent,
+		r.WaitForClonedVolumeSnapshotContentToBeReady,
 		r.MirrorVolumeSnapshot,
-		r.BindPVC,
-		// TODO: Does data mover specific bits belong in a separate controller?
+		r.WaitForClonedVolumeSnapshotToBeReady,
+		r.MirrorPVC,
+		r.BindPVCToDummyPod,
 		r.CreateResticSecret,
+		r.IsPVCBound,
 		r.CreateReplicationSource,
-		r.SetupDataMoverConfig,
-		r.RunDataMoverBackup,
-		//r.WaitForDataMoverBackupToComplete, // This should also update events of velero resource
 		//r.CleanBackupResources,
 	)
+
+	if !reconFlag {
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
+	}
 
 	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)
 	if !DMBComplete {
@@ -120,7 +131,7 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err != nil {
 		r.Log.Info(fmt.Sprintf("Error from batch reconcile: %v", err))
 		// Set failed status condition
-		apimeta.SetStatusCondition(&dmb.Status.Conditions,
+		apimeta.SetStatusCondition(&vsb.Status.Conditions,
 			metav1.Condition{
 				Type:    ConditionReconciled,
 				Status:  metav1.ConditionFalse,
@@ -129,7 +140,7 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			})
 	} else {
 		// Set complete status condition
-		apimeta.SetStatusCondition(&dmb.Status.Conditions,
+		apimeta.SetStatusCondition(&vsb.Status.Conditions,
 			metav1.Condition{
 				Type:    ConditionReconciled,
 				Status:  metav1.ConditionTrue,
@@ -138,7 +149,7 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			})
 	}
 
-	statusErr := r.Client.Status().Update(ctx, &dmb)
+	statusErr := r.Client.Status().Update(ctx, &vsb)
 	if err == nil { // Don't mask previous error
 		err = statusErr
 	}
@@ -147,8 +158,13 @@ func (r *DataMoverBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *DataMoverBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *VolumeSnapshotBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&pvcv1alpha1.DataMoverBackup{}).
+		For(&datamoverv1alpha1.VolumeSnapshotBackup{}).
+		Owns(&snapv1.VolumeSnapshotContent{}).
+		Owns(&snapv1.VolumeSnapshot{}).
+		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&v1.Pod{}).
+		WithEventFilter(volumeSnapshotBackupPredicate(r.Scheme)).
 		Complete(r)
 }

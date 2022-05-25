@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	DMBLabel = "pvc.oadp.openshift.io/dmb"
+	VSBLabel = "datamover.oadp.openshift.io/dmb"
+	VSRLabel = "datamover.oadp.openshift.io/dmr"
 )
 
 type ReconcileFunc func(logr.Logger) (bool, error)

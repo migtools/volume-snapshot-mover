@@ -6,9 +6,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverbackups
+  - volumesnapshotbackups
   verbs:
   - create
   - delete
@@ -18,23 +18,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverbackups/finalizers
+  - volumesnapshotbackups/finalizers
   verbs:
   - update
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverbackups/status
+  - volumesnapshotbackups/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverrestores
+  - volumesnapshotrestores
   verbs:
   - create
   - delete
@@ -44,15 +44,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverrestores/finalizers
+  - volumesnapshotrestores/finalizers
   verbs:
   - update
 - apiGroups:
-  - pvc.oadp.openshift.io
+  - datamover.oadp.openshift.io
   resources:
-  - datamoverrestores/status
+  - volumesnapshotrestores/status
   verbs:
   - get
   - patch

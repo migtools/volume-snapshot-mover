@@ -5,20 +5,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: datamoverbackups.pvc.oadp.openshift.io
+  name: volumesnapshotbackups.datamover.oadp.openshift.io
 spec:
-  group: pvc.oadp.openshift.io
+  group: datamover.oadp.openshift.io
   names:
-    kind: DataMoverBackup
-    listKind: DataMoverBackupList
-    plural: datamoverbackups
-    singular: datamoverbackup
+    kind: VolumeSnapshotBackup
+    listKind: VolumeSnapshotBackupList
+    plural: volumesnapshotbackups
+    singular: volumesnapshotbackup
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: DataMoverBackup is the Schema for the datamoverbackups API
+        description: VolumeSnapshotBackup is the Schema for the volumesnapshotbackups
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: DataMoverBackupSpec defines the desired state of DataMoverBackup
+            description: VolumeSnapshotBackupSpec defines the desired state of VolumeSnapshotBackup
             properties:
               protectedNamespace:
                 description: Namespace where the Velero deployment is present
@@ -98,7 +99,8 @@ spec:
                 type: object
             type: object
           status:
-            description: DataMoverBackupStatus defines the observed state of DataMoverBackup
+            description: VolumeSnapshotBackupStatus defines the observed state of
+              VolumeSnapshotBackup
             properties:
               completed:
                 type: boolean
@@ -173,7 +175,7 @@ spec:
                   type: object
                 type: array
               phase:
-                description: Datamovement backup phase status
+                description: volumesnapshot backup phase status
                 type: string
               resticrepository:
                 description: Includes restic repository path

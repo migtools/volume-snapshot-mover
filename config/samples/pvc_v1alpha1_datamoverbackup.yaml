@@ -1,8 +1,0 @@
-apiVersion: pvc.oadp.openshift.io/v1alpha1
-kind: DataMoverBackup
-metadata:
-  name: datamoverbackup-sample
-spec:
-  volumeSnapshotContent:
-    name: your-snapcontent-id
-  protectedNamespace: your-protected-ns
