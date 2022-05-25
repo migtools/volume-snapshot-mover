@@ -34,7 +34,7 @@ Create an extensible design to support various data movers that can be integrate
 ## Goals
 * Create an extensible data mover solution
 * Supply a default data mover option 
-* Supply APIs for DataMover CRs (eg: DataMoverBackup, DataMoverRestore, DataMoverClass)
+* Supply APIs for DataMover CRs (eg: VolumeSnapshotBackup, VolumeSnapshotRestore, DataMoverClass)
 * Supply a sample codebase for the Data Mover plugin and controller implementation
 
 
@@ -58,7 +58,7 @@ This design supports adding the data mover feature to the Velero CSI plugin and 
 
 Note: We will be supporting VolSync as the default data mover. 
 
-There will be two controllers - DataMoverBackup & DataMoverRestore. The DataMoverBackup Controller will be responsible for reconciling DataMoverBackup CR. Likewise, DataMoverRestore Controller will watch for DataMoverRestore CR. Both of these CRs will have a reference to a DataMoverClass. 
+There will be two controllers - VolumeSnapshotBackup & VolumeSnapshotRestore. The VolumeSnapshotBackup Controller will be responsible for reconciling VolumeSnapshotBackup CR. Likewise, VolumeSnapshotRestore Controller will watch for VolumeSnapshotRestore CR. Both of these CRs will have a reference to a DataMoverClass. 
 
 `DataMoverClass` is a cluster scoped Custom Resource that will have details about the data mover. The specified mover will be registered in the system by creating the datamoverclass CR, addig a velero plugin that will create the appropriate resources for datamovement of a single datamoverclass and a controller that will reconcile the objects created by the plugin. The datamoverclass spec will also include a field (`selector`) to identify the PVCs that would be moved with the given data mover.
 
@@ -76,18 +76,18 @@ spec:
 
 ```
 
-The above `DataMoverClass` name will be referenced in `DataMoverBackup` & `DataMoverRestore` CRs. This will help in selecting the data mover implementation during runtime. If the `DataMoverClass` name is not defined, then the default `DataMoverClass` will be used, which in this case will be `VolSync`
+The above `DataMoverClass` name will be referenced in `VolumeSnapshotBackup` & `VolumeSnapshotRestore` CRs. This will help in selecting the data mover implementation during runtime. If the `DataMoverClass` name is not defined, then the default `DataMoverClass` will be used, which in this case will be `VolSync`
 
 ### Data Mover Backup
 
-Assuming that the `DataMover Enable` flag is set to true in the DPA config, when a velero backup is created, it triggers the custom velero CSI plugin plugin (velero BackupItemAction plugin) to create the `DataMoverBackup` CR in the app namespace. The extended plugin looks up for the PVCs in the user namespace mentioned in the velero backup and creates a `DataMoverBackup` CR for every PVC in that namespace that is filtered by the `datamoverclass.spec.selector`.
+Assuming that the `DataMover Enable` flag is set to true in the DPA config, when a velero backup is created, it triggers the custom velero CSI plugin plugin (velero BackupItemAction plugin) to create the `VolumeSnapshotBackup` CR in the app namespace. The extended plugin looks up for the PVCs in the user namespace mentioned in the velero backup and creates a `VolumeSnapshotBackup` CR for every PVC in that namespace that is filtered by the `datamoverclass.spec.selector`.
 
-`DataMoverBackup` CR supports either a volumesnapshot or a pvc as the type of the backup object. If the velero CSI plugin is used for backup, `VolumeSnapshot` is used as the type or else `PVC`
+`VolumeSnapshotBackup` CR supports either a volumesnapshot or a pvc as the type of the backup object. If the velero CSI plugin is used for backup, `VolumeSnapshot` is used as the type or else `PVC`
 is used.
 
 ```
 apiVersion: volumesnapshotmover.datamover.io/v1alpha1
-kind: DataMoverBackup
+kind: VolumeSnapshotBackup
 metadata:
   name: <name>
 spec:
@@ -100,11 +100,11 @@ spec:
 
 ```
 ### Data Mover Restore
-When a velero restore is triggered, the custom Velero CSI plugin looks for `DataMoverBackup` in the backup resources. If it encounters a `DataMoverBackup` resource, then the extended plugin (velero RestoreItemAction plugin) will create a `DataMoverRestore` CR in the app namespace. It will populate the CR with the details obtained from the `DataMoverBackup` resource. 
+When a velero restore is triggered, the custom Velero CSI plugin looks for `VolumeSnapshotBackup` in the backup resources. If it encounters a `VolumeSnapshotBackup` resource, then the extended plugin (velero RestoreItemAction plugin) will create a `VolumeSnapshotRestore` CR in the app namespace. It will populate the CR with the details obtained from the `VolumeSnapshotBackup` resource. 
 
 ```
 apiVersion: volumesnapshotmover.datamover.io/v1alpha1
-kind: DataMoverRestore
+kind: VolumeSnapshotRestore
 metadata:
   name: <name>
 spec:
@@ -120,7 +120,7 @@ eg:
 
 ```
 apiVersion: volumesnapshotmover.datamover.io/v1alpha1
-kind: DataMoverRestore
+kind: VolumeSnapshotRestore
 metadata:
   name: <name>
 spec:
@@ -168,9 +168,9 @@ stringData:
 *Note: More details for installing restic secret in [here](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#specifying-a-repository)*
 
 
-Custom velero CSI plugin will be responsible for creating `DataMoverBackup` & `DataMoverRestore` CRs. 
+Custom velero CSI plugin will be responsible for creating `VolumeSnapshotBackup` & `VolumeSnapshotRestore` CRs. 
 
-Once a DataMoverBackup CR gets created, the controller will create the corresponding `ReplicationSource` CR in the protected namespace. VolSync watches for the creation of `ReplicationSource` CR and copies the PVC data to the restic repository mentioned in the `restic-secret`.  
+Once a VolumeSnapshotBackup CR gets created, the controller will create the corresponding `ReplicationSource` CR in the protected namespace. VolSync watches for the creation of `ReplicationSource` CR and copies the PVC data to the restic repository mentioned in the `restic-secret`.  
 ```
 apiVersion: volsync.backube/v1alpha1
 kind: ReplicationSource
@@ -193,7 +193,7 @@ spec:
     copyMethod: None
 ```
 
-Similarly, when a DataMoverRestore CR gets created, controller will create a `ReplicationDestination` CR in the protected namespace. VolSync controller copies the PVC data from the restic repository to the protected namespace, which then gets transferred to the user namespace by the controller.
+Similarly, when a VolumeSnapshotRestore CR gets created, controller will create a `ReplicationDestination` CR in the protected namespace. VolSync controller copies the PVC data from the restic repository to the protected namespace, which then gets transferred to the user namespace by the controller.
 
 ```
 apiVersion: volsync.backube/v1alpha1
@@ -222,6 +222,6 @@ Data mover controller will clean up all controller-created resources after the p
 PVC must be labelled with the `<tagname>`, to be moved by the specific `DataMoverClass`. User/Admin of the cluster must label the PVCs with the required `<tagname>` and map it to a `DataMoverClass`. If the PVCs are not labelled, it will be moved by the default datamover.
 
 #### Alternate options
-PVCs can be annotated with the `DataMoverClass`, and when a backup is created, the controller will look at the DataMoverClass and add it to the `DataMoverBackup` CR. 
+PVCs can be annotated with the `DataMoverClass`, and when a backup is created, the controller will look at the DataMoverClass and add it to the `VolumeSnapshotBackup` CR. 
 
 
