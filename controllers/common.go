@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	VSBLabel = "datamover.oadp.openshift.io/dmb"
-	VSRLabel = "datamover.oadp.openshift.io/dmr"
+	VSBLabel      = "datamover.oadp.openshift.io/dmb"
+	VSRLabel      = "datamover.oadp.openshift.io/dmr"
+	DummyPodImage = "quay.io/konveyor/rsync-transfer:latest"
 )
 
 type ReconcileFunc func(logr.Logger) (bool, error)

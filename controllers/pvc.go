@@ -227,7 +227,7 @@ func (r *VolumeSnapshotBackupReconciler) buildDummyPod(clonedPVC *corev1.Persist
 	p.Spec.Containers = []corev1.Container{
 		{
 			Name:  "busybox",
-			Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
+			Image: DummyPodImage,
 			Command: []string{
 				"/bin/sh", "-c", "tail -f /dev/null",
 			},
