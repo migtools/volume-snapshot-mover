@@ -80,7 +80,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	if err != nil {
 		return err
 	}
-	
+
 	apiGroup := "snapshot.storage.k8s.io"
 	pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
 		Name:     vsClone.Name,

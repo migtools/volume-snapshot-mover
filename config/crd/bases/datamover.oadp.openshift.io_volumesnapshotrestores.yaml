@@ -12,6 +12,8 @@ spec:
     kind: VolumeSnapshotRestore
     listKind: VolumeSnapshotRestoreList
     plural: volumesnapshotrestores
+    shortNames:
+    - vsr
     singular: volumesnapshotrestore
   scope: Namespaced
   versions:
