@@ -80,24 +80,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	if err != nil {
 		return err
 	}
-
-	//newSpec := corev1.PersistentVolumeClaimSpec{
-	//	DataSource: &corev1.TypedLocalObjectReference{
-	//		Name:     vsClone.Name,
-	//		Kind:     vsClone.Kind,
-	//		APIGroup: &vsClone.APIVersion,
-	//	},
-	//	AccessModes: []corev1.PersistentVolumeAccessMode{
-	//		"ReadWriteOnce",
-	//	},
-	//	Resources: corev1.ResourceRequirements{
-	//		Requests: corev1.ResourceList{
-	//			corev1.ResourceStorage: *sourcePVC.Spec.Resources.Requests.Storage(),
-	//		},
-	//	},
-	//	StorageClassName: sourcePVC.Spec.StorageClassName,
-	//}
-	//pvcClone.Spec = newSpec
+	
 	apiGroup := "snapshot.storage.k8s.io"
 	pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
 		Name:     vsClone.Name,
@@ -191,38 +174,6 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 }
 
 func (r *VolumeSnapshotBackupReconciler) buildDummyPod(clonedPVC *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
-
-	//podspec := corev1.PodSpec{
-	//	Containers: []corev1.Container{
-	//		{
-	//			Name:  "busybox",
-	//			Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
-	//			Command: []string{
-	//				"/bin/sh", "-c", "tail -f /dev/null",
-	//			},
-	//
-	//			VolumeMounts: []corev1.VolumeMount{
-	//				{
-	//					Name:      "vol1",
-	//					MountPath: "/mnt/volume1",
-	//				},
-	//			},
-	//		},
-	//	},
-	//	Volumes: []corev1.Volume{
-	//		{
-	//			Name: "vol1",
-	//			VolumeSource: corev1.VolumeSource{
-	//				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-	//					ClaimName: clonedPVC.Name,
-	//				},
-	//			},
-	//		},
-	//	},
-	//	RestartPolicy: corev1.RestartPolicyNever,
-	//}
-
-	//p.Spec = podspec
 
 	p.Spec.Containers = []corev1.Container{
 		{
