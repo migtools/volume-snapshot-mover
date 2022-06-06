@@ -101,6 +101,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// stop reconciling on this resource when completed
 	if vsb.Status.Phase == datamoverv1alpha1.DatamoverBackupPhaseCompleted {
+		r.Log.Info("stopping reconciliation of volumesnapshotbackup")
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
@@ -124,23 +125,16 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CreateResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
+		r.CleanVSBBackupResources,
 	)
+
+	VSBComplete, err := r.setVSBRepSourceStatus(r.Log)
+	if !VSBComplete {
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	if !reconFlag {
 		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
-	}
-
-	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)
-	if !DMBComplete {
-		return ctrl.Result{Requeue: true}, err
-
-	} else {
-
-		// delete resources created by controller
-		cleanReady, err := r.CleanVSBBackupResources(r.Log)
-		if !cleanReady {
-			return ctrl.Result{Requeue: true}, err
-		}
 	}
 
 	// Update the status with any errors, or set completed condition

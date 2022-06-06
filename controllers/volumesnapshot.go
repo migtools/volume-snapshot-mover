@@ -183,6 +183,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 	//skip waiting if vs is ready
 	if vsClone.Status != nil && *vsClone.Status.ReadyToUse == true && *vsClone.Status.BoundVolumeSnapshotContentName == vscClone.Name {
 		r.Log.Info("cloned volumesnapshot is in ready status and has a bound volumesnapshotcontent, skipping wait step")
+		time.Sleep(time.Second * 10)
 		return true, nil
 	}
 
@@ -213,7 +214,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 		// TODO: handle better
 		// this prevents the cloned VS being created too quickly after cloned VSC is created
 		// which causes long pending time for the cloned PVC
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 10)
 		return true, nil
 	}
 

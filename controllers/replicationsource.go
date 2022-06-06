@@ -88,7 +88,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	return nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) (bool, error) {
 
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -99,7 +99,7 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
-		r.Log.Info("error here setDMBRepSourceStatus")
+		r.Log.Info("replicationSource not yet found")
 		if k8serror.IsNotFound(err) {
 			return false, nil
 		}
@@ -132,12 +132,12 @@ func (r *VolumeSnapshotBackupReconciler) setDMBRepSourceStatus(log logr.Logger) 
 		if repSourceCompleted && reconCondition.Status == metav1.ConditionTrue {
 
 			// Update VSB status as completed
-			vsb.Status.Phase = datamoverv1alpha1.DatamoverBackupPhaseCompleted
+			vsb.Status.Phase = datamoverv1alpha1.DatamoverVolSyncPhaseCompleted
 			err := r.Status().Update(context.Background(), &vsb)
 			if err != nil {
 				return false, err
 			}
-			r.Log.Info("marking volumesnapshotbackup as complete")
+			r.Log.Info("marking volumesnapshotbackup VolSync phase as complete")
 			return true, nil
 
 			// ReplicationSource phase is still in progress
