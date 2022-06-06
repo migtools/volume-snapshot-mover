@@ -12,6 +12,8 @@ spec:
     kind: VolumeSnapshotBackup
     listKind: VolumeSnapshotBackupList
     plural: volumesnapshotbackups
+    shortNames:
+    - vsb
     singular: volumesnapshotbackup
   scope: Namespaced
   versions:

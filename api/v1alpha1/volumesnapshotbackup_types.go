@@ -63,6 +63,7 @@ const (
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:path=volumesnapshotbackups,shortName=vsb
 
 // VolumeSnapshotBackup is the Schema for the volumesnapshotbackups API
 type VolumeSnapshotBackup struct {

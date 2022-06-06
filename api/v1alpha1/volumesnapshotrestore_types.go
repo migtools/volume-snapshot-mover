@@ -46,6 +46,7 @@ type DMBRef struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:path=volumesnapshotrestores,shortName=vsr
 
 // VolumeSnapshotRestore is the Schema for the volumesnapshotrestores API
 type VolumeSnapshotRestore struct {

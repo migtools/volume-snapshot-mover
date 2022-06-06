@@ -262,14 +262,17 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 	time.Sleep(time.Second * 20)
 	r.Log.Info("volumesnapshotcontent wait period done")
 
-	vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
+	if vsc.Status != nil && vsc.Status.SnapshotHandle != nil {
+		vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
 
-	// Update VSR status
-	err = r.Status().Update(context.Background(), &vsr)
-	if err != nil {
-		return false, err
+		// Update VSR status
+		err = r.Status().Update(context.Background(), &vsr)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
 	}
-
 	return true, nil
 }
 
