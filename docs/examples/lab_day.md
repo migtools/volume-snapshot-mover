@@ -2,7 +2,7 @@
 
 Data mover make use of a custom Velero [CSI plugin](https://github.com/openshift/velero-plugin-for-csi/tree/data-mover) 
 and [VolSync](https://volsync.readthedocs.io/en/stable/) to take a snapshot
-of a stateful application and relocate this snapshots into an object store.   
+of a stateful application and relocate this snapshot into an object store.   
 The snapshot can then be used during a restore process to recover stateful 
 application data in instances such as cluster deletion or disaster. 
 
@@ -11,11 +11,12 @@ application data in instances such as cluster deletion or disaster.
 * For this example, you will deploy [rocket chat](https://github.com/konveyor/mig-demo-apps/tree/master/apps/rocket-chat).
 * Add data to the rocket chat application.
 * Using the custom CSI plugin, take a backup of the application.
-* Uh oh, your application namespace has been deleted!
+* Uh oh, your application namespace and snapshot have been deleted!
 * Using the custom CSI plugin, create a restore of the application. Disaster adverted.
 
 ## Prerequisites
 * Install OADP Operator using [these steps](https://github.com/openshift/oadp-operator/blob/master/docs/install_olm.md).
+
 * [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) the VolSync controller:
 
     `$ helm repo add backube https://backube.github.io/helm-charts/`  
@@ -25,7 +26,7 @@ application data in instances such as cluster deletion or disaster.
 
     `$ oc create -f config/crd/bases/`
 
-* Have a DPA CR such as below. Note the `` field to enable dataMover.
+* Have a DPA CR such as below. Note the `enableDataMover` field.
 
 
 ```
@@ -35,7 +36,8 @@ metadata:
   name: velero-sample
   namespace: openshift-adp
 spec:
-  enableDataMover: true
+  features:
+    enableDataMover: true
   backupLocations:
     - velero:
         config:
@@ -71,7 +73,7 @@ spec:
 
 * Create a [restic secret](https://volsync.readthedocs.io/en/stable/usage/restic/index.html#id2) named `restic-secret` in the adp namespace:
 
-    `$ oc create -n openshift-adp -f ./restic-secret.yaml`
+  `$ oc create -n openshift-adp -f ./restic-secret.yaml`
 
 ## Deploy Rocket Chat
 
@@ -79,7 +81,7 @@ spec:
 
 ## Add data to Rocket Chat
 
-* You can add data to Rocket Chat by first finding the application route.
+* You can add data to Rocket Chat by first finding the application route:
 
     `$ oc get route rocket-chat -n rocket-chat -ojsonpath="{.spec.host}"`
 
@@ -89,10 +91,10 @@ spec:
 
 * Next, add a message in one of the channels.
 
-![Rocket_chat_message](/docs/examples/images/message.png)
+![Rocket_chat_backup](/docs/examples/images/message.png)
         
 
-## Create backup using custom CSI plugin
+## Create a backup using the custom CSI plugin
 
 * The Velero CSI plugin has been extended to support data mover backup.  
 To use these additional features, you must add the `enableDataMover` flag 
@@ -111,13 +113,49 @@ spec:
   storageLocation: velero-sample-1
 ```
 
-`oc create -f backup.yaml -n openshift-adp`
+`$ oc create -f backup.yaml -n openshift-adp`
 
-## Delete the Rocket Chat namespace
+* Once the backup is completed, we can make sure `volumeSnapshotBackup` status has completed:
 
-`$ oc delete ns rocket-chat"`
+`$ oc get volumesnapshotbackup <VSB_name> -n rocket-chat -o yaml`
 
-## Restore Rocket Chat
+```
+apiVersion: datamover.oadp.openshift.io/v1alpha1
+kind: VolumeSnapshotBackup
+metadata:
+  name: vsb-velero-rocketchat-data-claim-wf6x5
+  namespace: rocket-chat
+spec:
+  protectedNamespace: openshift-adp
+  volumeSnapshotContent:
+    name: <velero_snapcontent_name>
+status:
+  phase: Completed
+  resticrepository: <VSB_repo_name>
+  sourcePVCData:
+    name: rocketchat-data-claim
+    size: 10Gi
+```
+
+* We can also check that we now have a snapshot in our remote storage. Example with aws s3:
+
+`$ aws s3 ls <repo_name>/openshift-adp/<pvc_name>/snapshots/`
+
+## Delete the Rocket Chat namespace and VolumeSnapshotContent
+
+`$ oc delete ns rocket-chat`
+
+
+* Get the VSC created by the Velero backup
+
+`$ oc get volumesnapshotcontent`
+
+* Delete this VSC. *Note:* you may have to edit `oc edit volumesnapshotcontent <vsc_name>` the VSC 
+and remove the finalizer in order for this VSC to delete.
+
+`$ oc delete volumesnapshotcontent <vsc_name>`
+
+## Restore Rocket Chat using the custom CSI plugin
 
 * The Velero CSI plugin has also been extended to support data mover restore.  
 To use these additional features, your OADP DPA must have the `enableDataMover` flag.
@@ -136,13 +174,43 @@ spec:
   restorePVs: true
 ```
 
-`oc create -f restore.yaml -n openshift-adp`
+`$ oc create -f restore.yaml -n openshift-adp`
 
 ## Check for successful restore
 
-* Once the restore is completed, navigate to the app's page and check
-that the data that was added before backup has been restored.
+* Once the restore is completed, we can make sure `volumeSnapshotRestore` status has completed:
 
-`oc get routes -n rocket-chat`
+`$ oc get volumesnapshotrestore <VSR_name> -n rocket-chat -o yaml`
 
-![Rocket_chat_restore](/docs/examples/images/restore.png)
+```
+apiVersion: datamover.oadp.openshift.io/v1alpha1
+kind: VolumeSnapshotRestore
+metadata:
+  name: vsr-rocketchat-data-claim
+  namespace: rocket-chat
+spec:
+  dataMoverBackupRef:
+    resticrepository: <VSR_repo_name>
+    sourcePVCData:
+      name: rocketchat-data-claim
+      size: 10Gi
+  protectedNamespace: openshift-adp
+  resticSecretRef:
+    name: restic-secret
+status:
+  completed: true
+  conditions:
+  - lastTransitionTime: "2022-06-07T16:29:25Z"
+    message: Reconcile complete
+    reason: Complete
+    status: "True"
+    type: Reconciled
+  snapshotHandle: snap-08d70e6a8ed9685dc
+```
+
+* Now navigate to the app's page and check that the data that was added before backup has been restored:
+
+`$ oc get route rocket-chat -n rocket-chat -ojsonpath="{.spec.host}"`
+
+![Rocket_chat_restore](/docs/examples/images/message.png)
+
