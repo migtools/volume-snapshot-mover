@@ -11,8 +11,8 @@ application data in instances such as cluster deletion or disaster.
 * For this example, you will deploy [rocket chat](https://github.com/konveyor/mig-demo-apps/tree/master/apps/rocket-chat).
 * Add data to the rocket chat application.
 * Using the custom CSI plugin, take a backup of the application.
-* Unfortuantely, you had an "uh oh spaghettios" moment and deleted your application namespace.
-* Using the custom CSI plugin, create a restore of the application. Disaster adverted!
+* Uh oh, your application namespace has been deleted!
+* Using the custom CSI plugin, create a restore of the application. Disaster adverted.
 
 ## Prerequisites
 * Install OADP Operator using [these steps](https://github.com/openshift/oadp-operator/blob/master/docs/install_olm.md).
@@ -35,6 +35,7 @@ metadata:
   name: velero-sample
   namespace: openshift-adp
 spec:
+  enableDataMover: true
   backupLocations:
     - velero:
         config:
@@ -65,7 +66,6 @@ spec:
           region: us-west-2
         provider: aws
   unsupportedOverrides:
-    csiPluginImageFqin: 'quay.io/spampatt/velero-plugin-for-csi:latest'
     veleroImageFqin: 'quay.io/emcmulla/velero:test2'
 ```
 
@@ -94,6 +94,55 @@ spec:
 
 ## Create backup using custom CSI plugin
 
-* The Velero CSI plugin has been extended to support data mover.  
-To use these additional features, you must make use of the `unsupportedOverrides` option 
-in your OADP DPA config, as shown above in the prerequisites.
+* The Velero CSI plugin has been extended to support data mover backup.  
+To use these additional features, you must add the `enableDataMover` flag 
+to your OADP DPA, as shown above. 
+
+* Create a backup using the custom Velero CSI plugin:
+
+```
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: sample-backup
+spec:
+  includedNamespaces:
+  - rocket-chat
+  storageLocation: velero-sample-1
+```
+
+`oc create -f backup.yaml -n openshift-adp`
+
+## Delete the Rocket Chat namespace
+
+`$ oc delete ns rocket-chat"`
+
+## Restore Rocket Chat
+
+* The Velero CSI plugin has also been extended to support data mover restore.  
+To use these additional features, your OADP DPA must have the `enableDataMover` flag.
+
+* You must also add an `unsupportedOverride` for the Velero image 
+to execute on this CR. This image can be found above in the example DPA.
+
+```
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: sample-restore
+  namespace: openshift-adp
+spec:
+  backupName: sample-backup
+  restorePVs: true
+```
+
+`oc create -f restore.yaml -n openshift-adp`
+
+## Check for successful restore
+
+* Once the restore is completed, navigate to the app's page and check
+that the data that was added before backup has been restored.
+
+`oc get routes -n rocket-chat`
+
+![Rocket_chat_restore](/docs/examples/images/restore.png)
