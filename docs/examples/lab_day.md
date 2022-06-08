@@ -22,10 +22,6 @@ application data in instances such as cluster deletion or disaster.
     `$ helm repo add backube https://backube.github.io/helm-charts/`  
     `$ helm install -n openshift-adp volsync backube/volsync`
 
-* Install the VolumeSnapshotMover CRDs `VolumeSnapshotBackup` and `VolumeSnapshotRestore`:
-
-    `$ oc create -f config/crd/bases/`
-
 * Have a DPA CR such as below. Note the `enableDataMover` field.
 
 
