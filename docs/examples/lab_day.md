@@ -22,6 +22,56 @@ application data in instances such as cluster deletion or disaster.
     `$ helm repo add backube https://backube.github.io/helm-charts/`  
     `$ helm install -n openshift-adp volsync backube/volsync`
 
+* Create a StorageClass and VolumeShapshotClass:
+
+- A `StorageClass` and a `VolumeSnapshotClass` are needed before the Rocket Chat application
+is created. The app will map to the `StorageClass`, which contains information about the CSI driver.
+
+- Include a label in `VolumeSnapshotClass` to let
+Velero know which to use, and set `deletionPolicy` to  `Retain` in order for
+`VolumeSnapshotContent` to remain after the application namespace is deleted.
+
+- *Note:* Make sure you only have one default volumeSnapshotClass and StorageClass!
+
+`oc create -f docs/examples/manifests/mysql/VolumeSnapshotClass.yaml`
+
+```
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: snapshot.storage.k8s.io/v1
+    kind: VolumeSnapshotClass
+    metadata:
+      name: example-snapclass
+      labels:
+        velero.io/csi-volumesnapshot-class: 'true'
+      annotations:
+        snapshot.storage.kubernetes.io/is-default-class: 'true'
+    driver: ebs.csi.aws.com
+    deletionPolicy: Retain
+```
+
+`gp2-csi` comes as a default `StorageClass` with OpenShift clusters.
+
+`oc get storageclass`
+
+If this is not found, create a `StorageClass` like below:
+
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2-csi
+  annotations:
+    storageclass.kubernetes.io/is-default-class: 'true'
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp2
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+```
+
 * Have a DPA CR such as below. Note the `enableDataMover` boolean field. It is specified under `spec.features` . This CR will deploy our volume-snapshot-mover
 controller as well as the modified CSI plugin. Make sure you replace the object storage details appropriately.
 
