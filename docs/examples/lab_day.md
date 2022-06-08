@@ -15,7 +15,7 @@ application data in instances such as cluster deletion or disaster.
 * Using the custom CSI plugin, create a restore of the application. Disaster adverted.
 
 ## Prerequisites
-* Install OADP Operator using [these steps](https://github.com/openshift/oadp-operator/blob/master/docs/install_olm.md).
+* Install OADP Operator using [these steps](https://github.com/openshift/oadp-operator/blob/master/docs/developer/install_from_source.md).
 
 * [Install](https://volsync.readthedocs.io/en/stable/installation/index.html) the VolSync controller:
 
