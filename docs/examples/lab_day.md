@@ -22,7 +22,8 @@ application data in instances such as cluster deletion or disaster.
     `$ helm repo add backube https://backube.github.io/helm-charts/`  
     `$ helm install -n openshift-adp volsync backube/volsync`
 
-* Have a DPA CR such as below. Note the `enableDataMover` field.
+* Have a DPA CR such as below. Note the `enableDataMover` boolean field. It is specified under `spec.features` . This CR will deploy our volume-snapshot-mover
+controller as well as the modified CSI plugin. Make sure you replace the object storage details appropriately.
 
 
 ```
