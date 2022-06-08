@@ -19,9 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,11 +91,20 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		for i := range vsb.Status.Conditions {
 			if vsb.Status.Conditions[i].Type == ConditionReconciled && vsb.Status.Conditions[i].Status == metav1.ConditionTrue {
 				// stop reconciling on this resource
+				r.Log.Info("stopping reconciliation of volumesnapshotbackup")
 				return ctrl.Result{
 					Requeue: false,
 				}, nil
 			}
 		}
+	}
+
+	// stop reconciling on this resource when completed
+	if vsb.Status.Phase == datamoverv1alpha1.DatamoverBackupPhaseCompleted {
+		r.Log.Info("stopping reconciliation of volumesnapshotbackup")
+		return ctrl.Result{
+			Requeue: false,
+		}, nil
 	}
 
 	/*if dmb.Status.VolumeSnapshotBackupStarted {
