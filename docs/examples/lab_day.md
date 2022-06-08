@@ -108,12 +108,6 @@ spec:
         - csi
       featureFlags:
         - EnableCSI
-  snapshotLocations:
-    - velero:
-        config:
-          profile: default
-          region: us-west-2
-        provider: aws
   unsupportedOverrides:
     veleroImageFqin: 'quay.io/emcmulla/velero:test2'
 ```
