@@ -25,6 +25,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 	}
 
 	// fetch original vsc
+	time.Sleep(time.Second * 10)
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		r.Log.Error(err, "original volumesnapshotcontent not found")
