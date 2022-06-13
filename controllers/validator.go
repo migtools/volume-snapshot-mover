@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bool, error) {
@@ -29,6 +31,15 @@ func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger
 		r.Log.Error(err, "volumesnapshotcontent not found")
 		return false, err
 	}
+
+	hasOneDefaultVSClass, err := r.checkForOneDefaultSnapClass()
+	if err != nil {
+		return false, err
+	}
+	if !hasOneDefaultVSClass {
+		return false, err
+	}
+
 	r.Log.Info("returning true In function ValidateDataMoverBackup")
 	return true, nil
 }
@@ -62,5 +73,22 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateDataMoverRestore(log logr.Logg
 		return false, errors.New("VolumeSnapshotRestore CR protected ns cannot be empty")
 	}
 
+	return true, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultSnapClass() (bool, error) {
+
+	vsClassList := snapv1.VolumeSnapshotClassList{}
+	vsClassOptions := []client.ListOption{}
+
+	if err := r.List(r.Context, &vsClassList, vsClassOptions...); err != nil {
+		return false, err
+	}
+
+	for _, vsClass := range vsClassList.Items {
+		fmt.Printf("VSClass annotation: %v\n", vsClass.Annotations)
+	}
+
+	r.Log.Info("returning true In function checkForOneDefaultSnapClass")
 	return true, nil
 }
