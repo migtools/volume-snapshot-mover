@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -32,11 +32,13 @@ func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger
 		return false, err
 	}
 
-	hasOneDefaultVSClass, err := r.checkForOneDefaultSnapClass()
-	if err != nil {
+	hasOneDefaultVSClass, err := r.checkForOneDefaultSnapClass(log)
+	if !hasOneDefaultVSClass {
 		return false, err
 	}
-	if !hasOneDefaultVSClass {
+
+	hasOneDefaultStorageClass, err := r.checkForOneDefaultStorageClass(log)
+	if !hasOneDefaultStorageClass {
 		return false, err
 	}
 
@@ -76,19 +78,56 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateDataMoverRestore(log logr.Logg
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultSnapClass() (bool, error) {
-
+func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultSnapClass(log logr.Logger) (bool, error) {
 	vsClassList := snapv1.VolumeSnapshotClassList{}
 	vsClassOptions := []client.ListOption{}
 
+	// get all volumeSnapshotClasses in cluster
 	if err := r.List(r.Context, &vsClassList, vsClassOptions...); err != nil {
 		return false, err
 	}
 
+	numDefaultClasses := 0
 	for _, vsClass := range vsClassList.Items {
-		fmt.Printf("VSClass annotation: %v\n", vsClass.Annotations)
+
+		_, hasAnnotation := vsClass.Annotations[volumeSnapshotClassDefaultKey]
+
+		// found a default volumeSnapshotClass
+		if hasAnnotation {
+			numDefaultClasses++
+		}
+
+		if numDefaultClasses > 1 {
+			return false, errors.New("cannot have more than one default volumeSnapshotClass")
+		}
 	}
 
-	r.Log.Info("returning true In function checkForOneDefaultSnapClass")
+	return true, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultStorageClass(log logr.Logger) (bool, error) {
+	storageClassList := storagev1.StorageClassList{}
+	storageClassOptions := []client.ListOption{}
+
+	// get all volumeSnapshotClasses in cluster
+	if err := r.List(r.Context, &storageClassList, storageClassOptions...); err != nil {
+		return false, err
+	}
+
+	numDefaultClasses := 0
+	for _, storageClass := range storageClassList.Items {
+
+		_, hasAnnotation := storageClass.Annotations[storageClassDefaultKey]
+
+		// found a default storageClass
+		if hasAnnotation {
+			numDefaultClasses++
+		}
+
+		if numDefaultClasses > 1 {
+			return false, errors.New("cannot have more than one default storageClass")
+		}
+	}
+
 	return true, nil
 }
