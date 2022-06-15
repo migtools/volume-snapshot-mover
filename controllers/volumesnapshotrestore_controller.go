@@ -82,7 +82,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	// stop reconciling on this resource when completed
-	if vsr.Status.Completed {
+	if vsr.Status.Phase == datamoverv1alpha1.DatamoverRestorePhaseCompleted {
 		r.Log.Info("stopping reconciliation of volumesnapshotrestore")
 		return ctrl.Result{
 			Requeue: false,
@@ -98,7 +98,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		r.CreateReplicationDestination,
 		r.WaitForReplicationDestinationToBeReady,
 		r.WaitForVolSyncSnapshotContentToBeReady,
-		//r.CleanupRestoreResources,
+		r.CleanRestoreResources,
 	)
 
 	if !reconFlag {

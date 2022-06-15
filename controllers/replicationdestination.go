@@ -108,7 +108,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 			sourceSpec := repDest.Spec.Trigger.Manual
 			if sourceStatus == sourceSpec {
 
-				vsr.Status.Completed = true
+				vsr.Status.Phase = datamoverv1alpha1.DatamoverRestoreVolSyncPhaseCompleted
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)

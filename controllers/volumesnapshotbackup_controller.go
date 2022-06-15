@@ -125,7 +125,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CreateResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
-		r.CleanVSBBackupResources,
+		r.CleanBackupResources,
 	)
 
 	VSBComplete, err := r.setVSBRepSourceStatus(r.Log)

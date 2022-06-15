@@ -32,9 +32,10 @@ type VolumeSnapshotRestoreSpec struct {
 
 // VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore
 type VolumeSnapshotRestoreStatus struct {
-	Conditions     []metav1.Condition `json:"conditions,omitempty"`
-	Completed      bool               `json:"completed"`
-	SnapshotHandle string             `json:"snapshotHandle,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	//Completed      bool               `json:"completed"`
+	Phase          VolumeSnapshotRestorePhase `json:"phase,omitempty"`
+	SnapshotHandle string                     `json:"snapshotHandle,omitempty"`
 }
 
 type DMBRef struct {
@@ -43,6 +44,18 @@ type DMBRef struct {
 	// Includes restic repository path
 	ResticRepository string `json:"resticrepository,omitempty"`
 }
+
+type VolumeSnapshotRestorePhase string
+
+const (
+	DatamoverRestoreVolSyncPhaseCompleted VolumeSnapshotRestorePhase = "VolSyncCompleted"
+
+	DatamoverRestorePhaseCompleted VolumeSnapshotRestorePhase = "Completed"
+
+	DatamoverRestorePhaseInProgress VolumeSnapshotRestorePhase = "InProgress"
+
+	DatamoverRestorePhaseFailed VolumeSnapshotRestorePhase = "Failed"
+)
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

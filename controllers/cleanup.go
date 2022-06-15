@@ -23,8 +23,13 @@ var cleanupVSBTypes = []client.Object{
 	&volsyncv1alpha1.ReplicationSource{},
 }
 
-func (r *VolumeSnapshotBackupReconciler) CleanVSBBackupResources(log logr.Logger) (bool, error) {
-	r.Log.Info("In function CleanBackupResources")
+var cleanupVSRTypes = []client.Object{
+	&corev1.Secret{},
+	&volsyncv1alpha1.ReplicationDestination{},
+}
+
+func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
+
 	// get volumesnapshotbackup from cluster
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -33,7 +38,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanVSBBackupResources(log logr.Logger
 
 	// make sure VSB is completed before deleting resources
 	if vsb.Status.Phase != datamoverv1alpha1.DatamoverVolSyncPhaseCompleted {
-		r.Log.Info("waiting for volSync to complete before deleting resources")
+		r.Log.Info("waiting for volSync to complete before deleting vsb resources")
 		return false, nil
 	}
 
@@ -144,5 +149,43 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 	//all resources have been deleted
 	r.Log.Info("all VSB resources have been deleted")
+	return true, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger) (bool, error) {
+
+	// get volumesnapshotrestore from cluster
+	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		return false, err
+	}
+
+	// make sure VSR is completed before deleting resources
+	if vsr.Status.Phase != datamoverv1alpha1.DatamoverRestoreVolSyncPhaseCompleted {
+		r.Log.Info("waiting for volSync to complete before deleting vsr resources")
+		return false, nil
+	}
+
+	// get resources with VSR controller label in protected ns
+	deleteOptions := []client.DeleteAllOfOption{
+		client.MatchingLabels{VSRLabel: vsr.Name},
+		client.InNamespace(vsr.Spec.ProtectedNamespace),
+	}
+
+	for _, obj := range cleanupVSRTypes {
+		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
+		if err != nil {
+			r.Log.Error(err, "unable to delete VSR resource")
+			return false, err
+		}
+	}
+
+	// Update VSR status as completed
+	vsr.Status.Phase = datamoverv1alpha1.DatamoverRestorePhaseCompleted
+	err := r.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return false, err
+	}
+	r.Log.Info("returning from cleaning VSR resources as completed")
 	return true, nil
 }
