@@ -52,7 +52,7 @@ type PVCData struct {
 type VolumeSnapshotBackupPhase string
 
 const (
-	DatamoverVolSyncPhaseCompleted VolumeSnapshotBackupPhase = "VolSyncCompleted"
+	DatamoverVolSyncPhaseCompleted VolumeSnapshotBackupPhase = "SnapshotBackupDone"
 
 	DatamoverBackupPhaseCompleted VolumeSnapshotBackupPhase = "Completed"
 

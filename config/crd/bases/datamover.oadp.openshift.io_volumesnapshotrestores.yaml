@@ -141,7 +141,7 @@ spec:
                   type: object
                 type: array
               phase:
-                description: Completed      bool               `json:"completed"`
+                description: volumesnapshot restore phase status
                 type: string
               snapshotHandle:
                 type: string

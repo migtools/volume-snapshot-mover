@@ -33,7 +33,7 @@ type VolumeSnapshotRestoreSpec struct {
 // VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore
 type VolumeSnapshotRestoreStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	//Completed      bool               `json:"completed"`
+	// volumesnapshot restore phase status
 	Phase          VolumeSnapshotRestorePhase `json:"phase,omitempty"`
 	SnapshotHandle string                     `json:"snapshotHandle,omitempty"`
 }
@@ -48,7 +48,7 @@ type DMBRef struct {
 type VolumeSnapshotRestorePhase string
 
 const (
-	DatamoverRestoreVolSyncPhaseCompleted VolumeSnapshotRestorePhase = "VolSyncCompleted"
+	DatamoverRestoreVolSyncPhaseCompleted VolumeSnapshotRestorePhase = "SnapshotRestoreDone"
 
 	DatamoverRestorePhaseCompleted VolumeSnapshotRestorePhase = "Completed"
 
