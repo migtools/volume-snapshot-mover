@@ -31,3 +31,13 @@
 |----------------------|---------------------------------------|---------------------------------------------|
 | Name    | string                                      | Name is the name of the application's source PVC.   |
 | Size     | string                                     | Size is the size of the source PVC.           |
+
+
+### VolumeSnapshotRestorePhase
+
+| Property           |     Type                     |     Description              |
+|--------------------|-----------------------------|----------------------------------|
+| SnapMoverRestoreVolSyncPhaseCompleted                          | VolumeSnapshotRestorePhase     |  VolumeSnapshotRestore VolSync ReplicationDestination has completed.   |
+| SnapMoverRestorePhaseCompleted                                 | VolumeSnapshotRestorePhase  |  VolumeSnapshotRestore has completed.   |
+| SnapMoverRestorePhaseInProgress                             | VolumeSnapshotRestorePhase        |   VolumeSnapshotRestore is still in progress. |
+| SnapMoverRestorePhaseFailed                                | VolumeSnapshotRestorePhase    |    VolumeSnapshotRestore has failed.   |

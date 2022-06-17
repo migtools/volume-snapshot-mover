@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	VSBLabel      = "datamover.oadp.openshift.io/dmb"
-	VSRLabel      = "datamover.oadp.openshift.io/dmr"
+	VSBLabel      = "datamover.oadp.openshift.io/vsb"
+	VSRLabel      = "datamover.oadp.openshift.io/vsr"
 	DummyPodImage = "quay.io/konveyor/rsync-transfer:latest"
 )
 

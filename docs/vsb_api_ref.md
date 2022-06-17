@@ -28,8 +28,9 @@
 
 ### VolumeSnapshotBackupPhase
 
-| Property           |  Description                                            |
-|---------------------------|-----------------------------------------------------------|
-| VolumeSnapshotBackupPhaseCompleted                                  | VolumeSnapshotBackup has completed.   |
-| VolumeSnapshotBackupPhaseInProgress                              | VolumeSnapshotBackup has not yet completed.         |
-| VolumeSnapshotBackupPhaseFailed                                 | VolumeSnapshotBackup has failed.      |      
+| Property           |     Type                     |     Description              |
+|--------------------|-----------------------------|----------------------------------|
+| SnapMoverVolSyncPhaseCompleted                          | VolumeSnapshotBackupPhase     |  VolumeSnapshotBackup VolSync ReplicationSource has completed.   |
+| SnapMoverBackupPhaseCompleted                                 | VolumeSnapshotBackupPhase  |  VolumeSnapshotBackup has completed.   |
+| SnapMoverBackupPhaseInProgress                             | VolumeSnapshotBackupPhase        |   VolumeSnapshotBackup is still in progress. |
+| SnapMoverBackupPhaseFailed                                | VolumeSnapshotBackupPhase    |    VolumeSnapshotBackup has failed.   |

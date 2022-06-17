@@ -46,10 +46,10 @@ func newContextForTest(name string) context.Context {
 	return context.TODO()
 }
 
-func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
+func TestVolumeSnapshotMoverBackupReconciler_getSourcePVC(t *testing.T) {
 	tests := []struct {
 		name    string
-		dmb     *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb     *datamoverv1alpha1.VolumeSnapshotBackup
 		vsc     *snapv1.VolumeSnapshotContent
 		vs      *snapv1.VolumeSnapshot
 		pvc     *corev1.PersistentVolumeClaim
@@ -58,10 +58,10 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Given DMB CR, there should be a valid source PVC returned",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			name: "Given VSB CR, there should be a valid source PVC returned",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -113,7 +113,7 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjects(tt.dmb, tt.vs, tt.vsc, tt.pvc)
+			fakeClient, err := getFakeClientFromObjects(tt.vsb, tt.vs, tt.vsc, tt.pvc)
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
@@ -123,14 +123,14 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Spec.ProtectedNamespace,
-					Name:      tt.dmb.Name,
+					Namespace: tt.vsb.Spec.ProtectedNamespace,
+					Name:      tt.vsb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
 				req: reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Namespace: tt.dmb.Namespace,
-						Name:      tt.dmb.Name,
+						Namespace: tt.vsb.Namespace,
+						Name:      tt.vsb.Name,
 					},
 				},
 			}
@@ -150,15 +150,15 @@ func TestDataMoverBackupReconciler_getSourcePVC(t *testing.T) {
 			}
 			got, err := r.getSourcePVC()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverBackupReconciler.getSourcePVC() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("VolumeSnapshotMoverBackupReconciler.getSourcePVC() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got.Name, Wantpvc.Name) {
-				t.Errorf("Name does not match DataMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
+				t.Errorf("Name does not match VolumeSnapshotMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
 
 			}
 			if !reflect.DeepEqual(got.Spec, Wantpvc.Spec) {
-				t.Errorf("Spec does not match DataMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
+				t.Errorf("Spec does not match VolumeSnapshotMoverBackupReconciler.getSourcePVC() = %v, want %v", got, Wantpvc)
 			}
 		})
 	}

@@ -64,10 +64,10 @@ func getFakeClientFromObjectsRepSrc(objs ...client.Object) (client.WithWatch, er
 	return fake.NewClientBuilder().WithScheme(schemeForFakeClient).WithObjects(objs...).Build(), nil
 }
 
-func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
+func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 	tests := []struct {
 		name    string
-		dmb     *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb     *datamoverv1alpha1.VolumeSnapshotBackup
 		pvc     *corev1.PersistentVolumeClaim
 		repsrc  *volsyncv1alpha1.ReplicationSource
 		secret  *corev1.Secret
@@ -76,9 +76,9 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "given valid pvc,secret -> create valid rep src",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -104,14 +104,14 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 			},
 			secret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-secret",
+					Name:      "sample-vsb-secret",
 					Namespace: namespace,
 				},
 				Data: secretData,
 			},
 			repsrc: &volsyncv1alpha1.ReplicationSource{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-rep-src",
+					Name:      "sample-vsb-rep-src",
 					Namespace: namespace,
 				},
 			},
@@ -119,9 +119,9 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 		},
 		{
 			name: "given invalid secret -> err",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -147,14 +147,14 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 			},
 			secret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: namespace,
 				},
 				Data: secretData,
 			},
 			repsrc: &volsyncv1alpha1.ReplicationSource{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-rep-src",
+					Name:      "sample-vsb-rep-src",
 					Namespace: namespace,
 				},
 			},
@@ -163,7 +163,7 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjectsRepSrc(tt.dmb, tt.pvc, tt.secret)
+			fakeClient, err := getFakeClientFromObjectsRepSrc(tt.vsb, tt.pvc, tt.secret)
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
@@ -173,20 +173,20 @@ func TestDataMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Spec.ProtectedNamespace,
-					Name:      tt.dmb.Name,
+					Namespace: tt.vsb.Spec.ProtectedNamespace,
+					Name:      tt.vsb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
 				req: reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Namespace: tt.dmb.Namespace,
-						Name:      tt.dmb.Name,
+						Namespace: tt.vsb.Namespace,
+						Name:      tt.vsb.Name,
 					},
 				},
 			}
-			err = r.buildReplicationSource(tt.repsrc, tt.dmb, tt.pvc)
+			err = r.buildReplicationSource(tt.repsrc, tt.vsb, tt.pvc)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverBackupReconciler.buildReplicationSource() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("VolumeSnapshotMoverBackupReconciler.buildReplicationSource() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})

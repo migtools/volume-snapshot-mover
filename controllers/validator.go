@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log logr.Logger) (bool, error) {
 	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
@@ -29,11 +29,11 @@ func (r *VolumeSnapshotBackupReconciler) ValidateDataMoverBackup(log logr.Logger
 		r.Log.Error(err, "volumesnapshotcontent not found")
 		return false, err
 	}
-	r.Log.Info("returning true In function ValidateDataMoverBackup")
+	r.Log.Info("returning true In function ValidateVolumeSnapshotMoverBackup")
 	return true, nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) ValidateDataMoverRestore(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log logr.Logger) (bool, error) {
 	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
@@ -45,22 +45,22 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateDataMoverRestore(log logr.Logg
 		return false, errors.New("VolumeSnapshotRestore CR ResticSecretRef name cannot be empty")
 	}
 
-	// Check if DatamoverbackuRef attributes are empty
-	if len(vsr.Spec.DataMoverBackupref.ResticRepository) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR DataMoverBackupref ResticRepository cannot be empty")
+	// Check if VolumeSnapshotMoverbackuRef attributes are empty
+	if len(vsr.Spec.VolumeSnapshotMoverBackupref.ResticRepository) == 0 {
+		return false, errors.New("VolumeSnapshotRestore CR volumeSnapshotMoverBackupref ResticRepository cannot be empty")
 	}
 
-	if len(vsr.Spec.DataMoverBackupref.BackedUpPVCData.Name) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR DataMoverBackupref BackedUpPVCData name cannot be empty")
+	if len(vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Name) == 0 {
+		return false, errors.New("VolumeSnapshotRestore CR volumeSnapshotMoverBackupref BackedUpPVCData name cannot be empty")
 	}
 
-	if len(vsr.Spec.DataMoverBackupref.BackedUpPVCData.Size) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR DataMoverBackupref BackedUpPVCData size cannot be empty")
+	if len(vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size) == 0 {
+		return false, errors.New("VolumeSnapshotRestore CR volumeSnapshotMoverBackupref BackedUpPVCData size cannot be empty")
 	}
 
 	if len(vsr.Spec.ProtectedNamespace) == 0 {
 		return false, errors.New("VolumeSnapshotRestore CR protected ns cannot be empty")
 	}
-
+	r.Log.Info("returning true In function ValidateVolumeSnapshotMoverRestore")
 	return true, nil
 }

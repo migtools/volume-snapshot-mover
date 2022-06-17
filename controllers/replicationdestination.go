@@ -63,7 +63,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		return err
 	}
 
-	stringCapacity := vsr.Spec.DataMoverBackupref.BackedUpPVCData.Size
+	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
 
 	// build ReplicationDestination
@@ -108,7 +108,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 			sourceSpec := repDest.Spec.Trigger.Manual
 			if sourceStatus == sourceSpec {
 
-				vsr.Status.Phase = datamoverv1alpha1.DatamoverRestoreVolSyncPhaseCompleted
+				vsr.Status.Phase = datamoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)

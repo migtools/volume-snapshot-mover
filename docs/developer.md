@@ -1,8 +1,8 @@
-# Develop and Test Data Mover Controller
+# Develop and Test VolumeSnapshotMover Controller
 
-## Data Mover Backup
+## VolumeSnapshotMover Backup
 
-- To use the data move backup controller, you will first need a volumeSnapshot. This can be achieved
+- To use the volumesnapshotmover backup controller, you will first need a volumeSnapshot. This can be achieved
 by using the Velero CSI plugin during backup of the stateful application.
 
 - Install OADP Operator 
@@ -57,9 +57,9 @@ spec:
 
 `oc create -n <application-namespace> -f vsb.yaml`
 
-- When data mover backup is completed, you should have a snapshot in your Restic repository.
+- When volumesnapshotmover backup is completed, you should have a snapshot in your Restic repository.
 
-## Data Mover Restore
+## VolumeSnapshotMover Restore
 
 - Have a completed backup, as well as a snapshot in a Restic repository by following the above steps.
 
@@ -78,7 +78,7 @@ spec:
   protectedNamespace: <protected-ns>
   resticSecretRef: 
     name: restic-secret
-  dataMoverBackupRef:
+  volumeSnapshotMoverBackupRef:
     sourcePVCData: 
       name: <source-pvc-name>
       size: <source-pvc-size>
@@ -87,5 +87,5 @@ spec:
 
 `oc create -n <application-namespace> -f vsr.yaml`
 
-- When data mover restore is completed, there should be a VolSync `ReplicationDestination`,
+- When volumesnapshotmover restore is completed, there should be a VolSync `ReplicationDestination`,
   as well as a snapshot, in the protected namespace.

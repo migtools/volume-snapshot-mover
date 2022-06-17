@@ -37,7 +37,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	}
 
 	// make sure VSB is completed before deleting resources
-	if vsb.Status.Phase != datamoverv1alpha1.DatamoverVolSyncPhaseCompleted {
+	if vsb.Status.Phase != datamoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
 		r.Log.Info("waiting for volSync to complete before deleting vsb resources")
 		return false, nil
 	}
@@ -64,7 +64,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	// }
 
 	// Update VSB status as completed
-	vsb.Status.Phase = datamoverv1alpha1.DatamoverBackupPhaseCompleted
+	vsb.Status.Phase = datamoverv1alpha1.SnapMoverBackupPhaseCompleted
 	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return false, err
@@ -161,7 +161,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	// make sure VSR is completed before deleting resources
-	if vsr.Status.Phase != datamoverv1alpha1.DatamoverRestoreVolSyncPhaseCompleted {
+	if vsr.Status.Phase != datamoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
 		r.Log.Info("waiting for volSync to complete before deleting vsr resources")
 		return false, nil
 	}
@@ -181,7 +181,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	// Update VSR status as completed
-	vsr.Status.Phase = datamoverv1alpha1.DatamoverRestorePhaseCompleted
+	vsr.Status.Phase = datamoverv1alpha1.SnapMoverRestorePhaseCompleted
 	err := r.Status().Update(context.Background(), &vsr)
 	if err != nil {
 		return false, err

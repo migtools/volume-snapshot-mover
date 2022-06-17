@@ -16,7 +16,7 @@ import (
 func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 	tests := []struct {
 		name             string
-		dmb              *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb              *datamoverv1alpha1.VolumeSnapshotBackup
 		secret, rpsecret *corev1.Secret
 		pvc              *corev1.PersistentVolumeClaim
 		want             bool
@@ -25,9 +25,9 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "Given invalid pvc -> error in restic secret creation",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -60,7 +60,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			},
 			rpsecret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-secret",
+					Name:      "sample-vsb-secret",
 					Namespace: namespace,
 				},
 			},
@@ -68,10 +68,10 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Given valid dmb,restic secret -> successful creation of pvc specific restic secret",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			name: "Given valid vsb,restic secret -> successful creation of pvc specific restic secret",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -104,7 +104,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			},
 			rpsecret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-secret",
+					Name:      "sample-vsb-secret",
 					Namespace: namespace,
 				},
 			},
@@ -112,10 +112,10 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Given invalid dmb -> error in restic secret creation",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			name: "Given invalid vsb -> error in restic secret creation",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -148,7 +148,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			},
 			rpsecret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-secret",
+					Name:      "sample-vsb-secret",
 					Namespace: namespace,
 				},
 			},
@@ -157,9 +157,9 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given invalid base secret -> error in restic secret creation",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -192,7 +192,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 			},
 			rpsecret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb-secret",
+					Name:      "sample-vsb-secret",
 					Namespace: namespace,
 				},
 			},
@@ -202,7 +202,7 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjects(tt.dmb, tt.secret, tt.pvc, tt.rpsecret)
+			fakeClient, err := getFakeClientFromObjects(tt.vsb, tt.secret, tt.pvc, tt.rpsecret)
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
@@ -212,44 +212,44 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Spec.ProtectedNamespace,
-					Name:      tt.dmb.Name,
+					Namespace: tt.vsb.Spec.ProtectedNamespace,
+					Name:      tt.vsb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
 				req: reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Namespace: tt.dmb.Namespace,
-						Name:      tt.dmb.Name,
+						Namespace: tt.vsb.Namespace,
+						Name:      tt.vsb.Name,
 					},
 				},
 			}
 			got, err := r.CreateResticSecret(r.Log)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverBackupReconciler.CreateResticSecret() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("VolumeSnapshotMoverBackupReconciler.CreateResticSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("DataMoverBackupReconciler.CreateResticSecret() = %v, want %v", got, tt.want)
+				t.Errorf("VolumeSnapshotMoverBackupReconciler.CreateResticSecret() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
+func TestVolumeSnapshotMoverRestoreReconciler_buildVSRResticSecret(t *testing.T) {
 	tests := []struct {
 		name             string
-		dmb              *datamoverv1alpha1.VolumeSnapshotBackup
-		dmr              *datamoverv1alpha1.VolumeSnapshotRestore
+		vsb              *datamoverv1alpha1.VolumeSnapshotBackup
+		vsr              *datamoverv1alpha1.VolumeSnapshotRestore
 		secret, rpsecret *corev1.Secret
 		pvc              *corev1.PersistentVolumeClaim
 		want             bool
 		wantErr          bool
 	}{
 		// TODO: Add test cases.
-		{name: "Valid dmb, valid dmr -> create DMR secret successful",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+		{name: "Valid vsb, valid vsr -> create VSR secret successful",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -262,14 +262,14 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 					ResticRepository: "some-repo",
 				},
 			},
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 					Annotations: map[string]string{
-						DatamoverResticRepository: "s3://bucket-url",
-						DatamoverSourcePVCSize:    "10G",
-						DatamoverSourcePVCName:    "sample-pvc",
+						SnapMoverResticRepository: "s3://bucket-url",
+						SnapMoverSourcePVCSize:    "10G",
+						SnapMoverSourcePVCName:    "sample-pvc",
 					},
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
@@ -301,22 +301,22 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 			},
 			rpsecret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr-secret",
+					Name:      "sample-vsr-secret",
 					Namespace: namespace,
 				},
 			},
 			want:    true,
 			wantErr: false,
 		},
-		{name: "invalid dmb, valid dmr -> create DMR secret successful",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+		{name: "invalid vsb, valid vsr -> create VSR secret successful",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-VSb",
 					Namespace: "bar",
 					Annotations: map[string]string{
-						DatamoverResticRepository: "s3://bucket-url",
-						DatamoverSourcePVCSize:    "10G",
-						DatamoverSourcePVCName:    "sample-pvc",
+						SnapMoverResticRepository: "s3://bucket-url",
+						SnapMoverSourcePVCSize:    "10G",
+						SnapMoverSourcePVCName:    "sample-pvc",
 					},
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -327,9 +327,9 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 				},
 				Status: datamoverv1alpha1.VolumeSnapshotBackupStatus{},
 			},
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
@@ -361,7 +361,7 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 			},
 			rpsecret: &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr-secret",
+					Name:      "sample-vsr-secret",
 					Namespace: namespace,
 				},
 			},
@@ -371,7 +371,7 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjects(tt.dmb, tt.secret, tt.pvc, tt.rpsecret)
+			fakeClient, err := getFakeClientFromObjects(tt.vsb, tt.secret, tt.pvc, tt.rpsecret)
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
@@ -381,19 +381,19 @@ func TestDataMoverRestoreReconciler_buildDMRResticSecret(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Spec.ProtectedNamespace,
-					Name:      tt.dmr.Name,
+					Namespace: tt.vsb.Spec.ProtectedNamespace,
+					Name:      tt.vsr.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
 				req: reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Namespace: tt.dmr.Namespace,
-						Name:      tt.dmr.Name,
+						Namespace: tt.vsr.Namespace,
+						Name:      tt.vsr.Name,
 					},
 				},
 			}
-			if err := r.buildDMRResticSecret(tt.secret, tt.dmr); (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverRestoreReconciler.buildDMRResticSecret() error = %v, wantErr %v", err, tt.wantErr)
+			if err := r.buildVSRResticSecret(tt.secret, tt.vsr); (err != nil) != tt.wantErr {
+				t.Errorf("VolumeSnapshotMoverRestoreReconciler.buildVSRResticSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

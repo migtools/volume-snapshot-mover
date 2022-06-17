@@ -40,7 +40,7 @@ func isObjectOursBackup(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.DMBKind {
+	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.VSBKind {
 		return true
 	}
 	return object.GetLabels()[VSBLabel] != ""
@@ -75,7 +75,7 @@ func isObjectOursRestore(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.DMRKind {
+	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.VSRKind {
 		return true
 	}
 	return object.GetLabels()[VSRLabel] != ""
