@@ -25,7 +25,7 @@ import (
 type VolumeSnapshotRestoreSpec struct {
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
 	// Includes associated volumesnapshotbackup details
-	DataMoverBackupref DMBRef `json:"dataMoverBackupRef,omitempty"`
+	VolumeSnapshotMoverBackupref VSBRef `json:"volumeSnapshotMoverBackupRef,omitempty"`
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 }
@@ -38,7 +38,7 @@ type VolumeSnapshotRestoreStatus struct {
 	SnapshotHandle string                     `json:"snapshotHandle,omitempty"`
 }
 
-type DMBRef struct {
+type VSBRef struct {
 	// Includes backed up PVC name and size
 	BackedUpPVCData PVCData `json:"sourcePVCData,omitempty"`
 	// Includes restic repository path
@@ -48,13 +48,13 @@ type DMBRef struct {
 type VolumeSnapshotRestorePhase string
 
 const (
-	DatamoverRestoreVolSyncPhaseCompleted VolumeSnapshotRestorePhase = "SnapshotRestoreDone"
+	SnapMoverRestoreVolSyncPhaseCompleted VolumeSnapshotRestorePhase = "SnapshotRestoreDone"
 
-	DatamoverRestorePhaseCompleted VolumeSnapshotRestorePhase = "Completed"
+	SnapMoverRestorePhaseCompleted VolumeSnapshotRestorePhase = "Completed"
 
-	DatamoverRestorePhaseInProgress VolumeSnapshotRestorePhase = "InProgress"
+	SnapMoverRestorePhaseInProgress VolumeSnapshotRestorePhase = "InProgress"
 
-	DatamoverRestorePhaseFailed VolumeSnapshotRestorePhase = "Failed"
+	SnapMoverRestorePhaseFailed VolumeSnapshotRestorePhase = "Failed"
 )
 
 //+kubebuilder:object:root=true

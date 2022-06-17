@@ -65,7 +65,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	r.Log = log.FromContext(ctx).WithValues("vsr", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
-	// needed to preserve the application ns whenever we fetch the latest DMR instance
+	// needed to preserve the application ns whenever we fetch the latest VSR instance
 	r.req = req
 
 	// Get VSR CR from cluster
@@ -82,19 +82,19 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	// stop reconciling on this resource when completed
-	if vsr.Status.Phase == datamoverv1alpha1.DatamoverRestorePhaseCompleted {
+	if vsr.Status.Phase == datamoverv1alpha1.SnapMoverRestorePhaseCompleted {
 		r.Log.Info("stopping reconciliation of volumesnapshotrestore")
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
 	}
 
-	// Run through all reconcilers associated with DMR needs
+	// Run through all reconcilers associated with VSR needs
 	// Reconciliation logic
 
 	reconFlag, err := ReconcileBatch(r.Log,
-		r.ValidateDataMoverRestore,
-		r.CreateDMRResticSecret,
+		r.ValidateVolumeSnapshotMoverRestore,
+		r.CreateVSRResticSecret,
 		r.CreateReplicationDestination,
 		r.WaitForReplicationDestinationToBeReady,
 		r.WaitForVolSyncSnapshotContentToBeReady,

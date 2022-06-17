@@ -26,10 +26,10 @@ const (
 	ResticPassword   = "RESTIC_PASSWORD"
 	ResticRepository = "RESTIC_REPOSITORY"
 
-	// Datamover annotation keys
-	DatamoverResticRepository = "datamover.io/restic-repository"
-	DatamoverSourcePVCName    = "datamover.io/source-pvc-name"
-	DatamoverSourcePVCSize    = "datamover.io/source-pvc-size"
+	// VolumeSnapshotMover annotation keys
+	SnapMoverResticRepository = "datamover.io/restic-repository"
+	SnapMoverSourcePVCName    = "datamover.io/source-pvc-name"
+	SnapMoverSourcePVCSize    = "datamover.io/source-pvc-size"
 )
 
 // Restic secret vars to create new secrets
@@ -85,10 +85,10 @@ func (r *VolumeSnapshotBackupReconciler) CreateResticSecret(log logr.Logger) (bo
 		return false, err
 	}
 
-	// set created Restic repo to DMB status
+	// set created Restic repo to VSB status
 	vsb.Status.ResticRepository = string(newResticSecret.Data[ResticRepository])
 
-	// Update DMB status
+	// Update VSB status
 	err = r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return false, err
@@ -104,7 +104,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateResticSecret(log logr.Logger) (bo
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildResticSecret(secret *corev1.Secret, dmb *datamoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
+func (r *VolumeSnapshotBackupReconciler) buildResticSecret(secret *corev1.Secret, vsb *datamoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
 
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
@@ -153,10 +153,10 @@ func (r *VolumeSnapshotBackupReconciler) buildResticSecret(secret *corev1.Secret
 }
 
 // TODO: move these 2 functions to a common.go and check for VSB or VSR being used
-func (r *VolumeSnapshotRestoreReconciler) CreateDMRResticSecret(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger) (bool, error) {
 	// get volumesnapshotrestore from cluster
-	dmr := datamoverv1alpha1.VolumeSnapshotRestore{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmr); err != nil {
+	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}
@@ -164,10 +164,10 @@ func (r *VolumeSnapshotRestoreReconciler) CreateDMRResticSecret(log logr.Logger)
 	// define Restic secret to be created
 	newResticSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-secret", dmr.Name),
+			Name:      fmt.Sprintf("%s-secret", vsr.Name),
 			Namespace: r.NamespacedName.Namespace,
 			Labels: map[string]string{
-				VSRLabel: dmr.Name,
+				VSRLabel: vsr.Name,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -176,7 +176,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateDMRResticSecret(log logr.Logger)
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return r.buildDMRResticSecret(newResticSecret, &dmr)
+		return r.buildVSRResticSecret(newResticSecret, &vsr)
 	})
 	if err != nil {
 		return false, err
@@ -192,8 +192,8 @@ func (r *VolumeSnapshotRestoreReconciler) CreateDMRResticSecret(log logr.Logger)
 	return true, nil
 }
 
-// TODO: move these 2 functions to a common.go and check for DMB or DMR being used
-func (r *VolumeSnapshotRestoreReconciler) buildDMRResticSecret(secret *corev1.Secret, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
+// TODO: move these 2 functions to a common.go and check for VSB or VSR being used
+func (r *VolumeSnapshotRestoreReconciler) buildVSRResticSecret(secret *corev1.Secret, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
 
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
@@ -223,7 +223,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildDMRResticSecret(secret *corev1.Se
 			AWSSecretKey:     AWSSecretValue,
 			AWSDefaultRegion: AWSDefaultRegionValue,
 			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(vsr.Spec.DataMoverBackupref.ResticRepository),
+			ResticRepository: []byte(vsr.Spec.VolumeSnapshotMoverBackupref.ResticRepository),
 		},
 	}
 

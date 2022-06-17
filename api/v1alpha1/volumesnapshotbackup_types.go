@@ -52,13 +52,13 @@ type PVCData struct {
 type VolumeSnapshotBackupPhase string
 
 const (
-	DatamoverVolSyncPhaseCompleted VolumeSnapshotBackupPhase = "SnapshotBackupDone"
+	SnapMoverVolSyncPhaseCompleted VolumeSnapshotBackupPhase = "SnapshotBackupDone"
 
-	DatamoverBackupPhaseCompleted VolumeSnapshotBackupPhase = "Completed"
+	SnapMoverBackupPhaseCompleted VolumeSnapshotBackupPhase = "Completed"
 
-	DatamoverBackupPhaseInProgress VolumeSnapshotBackupPhase = "InProgress"
+	SnapMoverBackupPhaseInProgress VolumeSnapshotBackupPhase = "InProgress"
 
-	DatamoverBackupPhaseFailed VolumeSnapshotBackupPhase = "Failed"
+	SnapMoverBackupPhaseFailed VolumeSnapshotBackupPhase = "Failed"
 )
 
 //+kubebuilder:object:root=true

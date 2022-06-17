@@ -209,7 +209,7 @@ func (r *VolumeSnapshotBackupReconciler) buildDummyPod(clonedPVC *corev1.Persist
 }
 
 // Get the source PVC from VSB CR's volumesnapshotcontent
-// TODO: Add logic for PVC datasource type in DMB CR
+// TODO: Add logic for PVC datasource type in VSB CR
 func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolumeClaim, error) {
 
 	// Get volumesnapshotbackup from cluster
@@ -237,12 +237,12 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 	// set source PVC name in VSB status
 	vsb.Status.SourcePVCData.Name = pvc.Name
 
-	// set source PVC size in DMB status
+	// set source PVC size in VSB status
 	size := pvc.Spec.Resources.Requests.Storage()
 	sizeString := size.String()
 	vsb.Status.SourcePVCData.Size = sizeString
 
-	// Update DMB status
+	// Update VSB status
 	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return nil, err

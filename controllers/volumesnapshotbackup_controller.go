@@ -71,7 +71,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	r.Log = log.FromContext(ctx).WithValues("vsb", req.NamespacedName)
 	result := ctrl.Result{}
 	r.Context = ctx
-	// needed to preserve the application ns whenever we fetch the latest DMB instance
+	// needed to preserve the application ns whenever we fetch the latest VSB instance
 	r.req = req
 
 	// Get VSB CR from cluster
@@ -100,22 +100,22 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	// stop reconciling on this resource when completed
-	if vsb.Status.Phase == datamoverv1alpha1.DatamoverBackupPhaseCompleted {
+	if vsb.Status.Phase == datamoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info("stopping reconciliation of volumesnapshotbackup")
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
 	}
 
-	/*if dmb.Status.VolumeSnapshotBackupStarted {
+	/*if vsb.Status.VolumeSnapshotBackupStarted {
 		// wait for it to complete... poll every 5 seconds
 	}*/
 
-	// Run through all reconcilers associated with DMB needs
+	// Run through all reconcilers associated with VSB needs
 	// Reconciliation logic
 
 	reconFlag, err := ReconcileBatch(r.Log,
-		r.ValidateDataMoverBackup,
+		r.ValidateVolumeSnapshotMoverBackup,
 		r.MirrorVolumeSnapshotContent,
 		r.WaitForClonedVolumeSnapshotContentToBeReady,
 		r.MirrorVolumeSnapshot,

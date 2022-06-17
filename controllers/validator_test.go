@@ -13,20 +13,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
+func TestVolumeSnapshotMoverBackupReconciler_ValidateVolumeSnapshotMoverBackup(t *testing.T) {
 	tests := []struct {
 		name    string
-		dmb     *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb     *datamoverv1alpha1.VolumeSnapshotBackup
 		vsc     *snapv1.VolumeSnapshotContent
 		want    bool
 		wantErr bool
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Given valid DMB CR -> no validation errors",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			name: "Given valid VSB CR -> no validation errors",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -50,10 +50,10 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Given an invalid DMB CR ->  validation errors",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			name: "Given an invalid VSB CR ->  validation errors",
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -76,9 +76,9 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 		},
 		{
 			name: "Given an invalid VSC ->  validation errors",
-			dmb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmb",
+					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
@@ -104,7 +104,7 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjects(tt.dmb, tt.vsc)
+			fakeClient, err := getFakeClientFromObjects(tt.vsb, tt.vsc)
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
@@ -114,42 +114,42 @@ func TestDataMoverBackupReconciler_ValidateDataMoverBackup(t *testing.T) {
 				Log:     logr.Discard(),
 				Context: newContextForTest(tt.name),
 				NamespacedName: types.NamespacedName{
-					Namespace: tt.dmb.Spec.ProtectedNamespace,
-					Name:      tt.dmb.Name,
+					Namespace: tt.vsb.Spec.ProtectedNamespace,
+					Name:      tt.vsb.Name,
 				},
 				EventRecorder: record.NewFakeRecorder(10),
 				req: reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Namespace: tt.dmb.Namespace,
-						Name:      tt.dmb.Name,
+						Namespace: tt.vsb.Namespace,
+						Name:      tt.vsb.Name,
 					},
 				},
 			}
-			got, err := r.ValidateDataMoverBackup(r.Log)
+			got, err := r.ValidateVolumeSnapshotMoverBackup(r.Log)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverBackupReconciler.ValidateDataMoverBackup() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("VolumeSnapshotMoverBackupReconciler.ValidateVolumeSnapshotMoverBackup() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("DataMoverBackupReconciler.ValidateDataMoverBackup() = %v, want %v", got, tt.want)
+				t.Errorf("VolumeSnapshotMoverBackupReconciler.ValidateVolumeSnapshotMoverBackup() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
+func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore(t *testing.T) {
 	tests := []struct {
 		name    string
-		dmr     *datamoverv1alpha1.VolumeSnapshotRestore
+		vsr     *datamoverv1alpha1.VolumeSnapshotRestore
 		wantErr bool
 		want    bool
 	}{
 		// TODO: Add test cases.
 		{
-			name: "valid DMR -> no validation errors",
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			name: "valid VSR -> no validation errors",
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
@@ -157,7 +157,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: datamoverv1alpha1.DMBRef{
+					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
@@ -171,16 +171,16 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty protected ns -> no validation errors",
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
-					DataMoverBackupref: datamoverv1alpha1.DMBRef{
+					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
@@ -194,9 +194,9 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty restic repository -> validation errors",
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
@@ -204,7 +204,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: datamoverv1alpha1.DMBRef{
+					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
 						ResticRepository: "",
 						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
@@ -218,9 +218,9 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty pvc name -> validation errors",
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
@@ -228,7 +228,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: datamoverv1alpha1.DMBRef{
+					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "",
@@ -242,9 +242,9 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty pvc size -> validation errors",
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
@@ -252,7 +252,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: datamoverv1alpha1.DMBRef{
+					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
@@ -266,15 +266,15 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 		},
 		{
 			name: "empty secret ->  validation errors",
-			dmr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-dmr",
+					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
 				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef:    corev1.LocalObjectReference{},
 					ProtectedNamespace: "foo",
-					DataMoverBackupref: datamoverv1alpha1.DMBRef{
+					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
 						BackedUpPVCData: datamoverv1alpha1.PVCData{
 							Name: "sample-pvc",
@@ -289,7 +289,7 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient, err := getFakeClientFromObjects(tt.dmr)
+			fakeClient, err := getFakeClientFromObjects(tt.vsr)
 			if err != nil {
 				t.Errorf("error creating fake client, likely programmer error")
 			}
@@ -302,18 +302,18 @@ func TestDataMoverRestoreReconciler_ValidateDataMoverRestore(t *testing.T) {
 				EventRecorder: record.NewFakeRecorder(10),
 				req: reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Namespace: tt.dmr.Namespace,
-						Name:      tt.dmr.Name,
+						Namespace: tt.vsr.Namespace,
+						Name:      tt.vsr.Name,
 					},
 				},
 			}
-			got, err := r.ValidateDataMoverRestore(r.Log)
+			got, err := r.ValidateVolumeSnapshotMoverRestore(r.Log)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("DataMoverRestoreReconciler.ValidateDataMoverRestore() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("VolumeSnapshotMoverRestoreReconciler.ValidateVolumeSnapshotMoverRestore() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("DataMoverRestoreReconciler.ValidateDataMoverRestore() = %v, want %v", got, tt.want)
+				t.Errorf("VolumeSnapshotMoverRestoreReconciler.ValidateVolumeSnapshotMoverRestore() = %v, want %v", got, tt.want)
 			}
 		})
 	}
