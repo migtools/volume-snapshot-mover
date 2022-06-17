@@ -8,6 +8,9 @@ const (
 	VSBLabel      = "datamover.oadp.openshift.io/dmb"
 	VSRLabel      = "datamover.oadp.openshift.io/dmr"
 	DummyPodImage = "quay.io/konveyor/rsync-transfer:latest"
+
+	volumeSnapshotClassDefaultKey = "snapshot.storage.kubernetes.io/is-default-class"
+	storageClassDefaultKey        = "storageclass.kubernetes.io/is-default-class"
 )
 
 type ReconcileFunc func(logr.Logger) (bool, error)
