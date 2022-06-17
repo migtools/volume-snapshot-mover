@@ -159,6 +159,15 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 			})
 	}
 
+	// get VSB again before updating status here
+	// since it has been updated in reconcile batch, resourceVersion has changed
+	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
+	vsb = datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Client.Get(ctx, req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		return result, err
+	}
+
 	statusErr := r.Client.Status().Update(ctx, &vsb)
 	if err == nil { // Don't mask previous error
 		err = statusErr
