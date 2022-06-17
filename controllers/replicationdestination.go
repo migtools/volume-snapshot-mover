@@ -28,10 +28,13 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-rep-dest", vsr.Name),
 			Namespace: r.NamespacedName.Namespace,
+			Labels: map[string]string{
+				VSRLabel: vsr.Name,
+			},
 		},
 	}
 
-	// Create ReplicationDestination in OADP namespace
+	// Create ReplicationDestination in protected namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
 		return r.buildReplicationDestination(repDestination, &vsr)
@@ -105,7 +108,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 			sourceSpec := repDest.Spec.Trigger.Manual
 			if sourceStatus == sourceSpec {
 
-				vsr.Status.Completed = true
+				vsr.Status.Phase = datamoverv1alpha1.DatamoverRestoreVolSyncPhaseCompleted
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)

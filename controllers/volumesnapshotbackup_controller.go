@@ -91,7 +91,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		for i := range vsb.Status.Conditions {
 			if vsb.Status.Conditions[i].Type == ConditionReconciled && vsb.Status.Conditions[i].Status == metav1.ConditionTrue {
 				// stop reconciling on this resource
-				r.Log.Info("stopping reconciliation of volumesnapshotbackup")
+				r.Log.Info("stopping reconciliation of volumesnapshotbackup %v", vsb.Name)
 				return ctrl.Result{
 					Requeue: false,
 				}, nil
@@ -125,16 +125,16 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CreateResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
-		//r.CleanBackupResources,
+		r.CleanBackupResources,
 	)
+
+	VSBComplete, err := r.setVSBRepSourceStatus(r.Log)
+	if !VSBComplete {
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	if !reconFlag {
 		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
-	}
-
-	DMBComplete, err := r.setDMBRepSourceStatus(r.Log)
-	if !DMBComplete {
-		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Update the status with any errors, or set completed condition

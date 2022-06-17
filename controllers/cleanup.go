@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -8,145 +9,183 @@ import (
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var cleanupVSBTypes = []client.Object{
+	&corev1.PersistentVolumeClaim{},
+	&corev1.Pod{},
+	&snapv1.VolumeSnapshot{},
+	&snapv1.VolumeSnapshotContent{},
+	&corev1.Secret{},
+	&volsyncv1alpha1.ReplicationSource{},
+}
+
+var cleanupVSRTypes = []client.Object{
+	&corev1.Secret{},
+	&volsyncv1alpha1.ReplicationDestination{},
+}
+
 func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
-	r.Log.Info("In function CleanBackupResources")
-	// get datamoverbackup from cluster
-	dmb := datamoverv1alpha1.VolumeSnapshotBackup{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &dmb); err != nil {
+
+	// get volumesnapshotbackup from cluster
+	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		return false, err
 	}
 
-	// wait for replicationSource to complete before deleting DMB resources
-	if dmb.Status.Phase != datamoverv1alpha1.DatamoverBackupPhaseCompleted {
-		r.Log.Info("waiting for datamoverbackup to complete before deleting resources")
+	// make sure VSB is completed before deleting resources
+	if vsb.Status.Phase != datamoverv1alpha1.DatamoverVolSyncPhaseCompleted {
+		r.Log.Info("waiting for volSync to complete before deleting vsb resources")
 		return false, nil
 	}
 
-	err := r.deleteVSandVSC(&dmb)
-	if err != nil {
-		return false, err
+	// get resources with VSB controller label in protected ns
+	deleteOptions := []client.DeleteAllOfOption{
+		client.MatchingLabels{VSBLabel: vsb.Name},
+		client.InNamespace(vsb.Spec.ProtectedNamespace),
 	}
 
-	err = r.deleteResticSecret(&dmb)
-	if err != nil {
-		return false, err
+	for _, obj := range cleanupVSBTypes {
+		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
+		if err != nil {
+			r.Log.Error(err, "unable to delete VSB resource")
+			return false, err
+		}
 	}
 
-	err = r.deleteRepSource(&dmb)
-	if err != nil {
-		return false, err
-	}
+	// check resources have been deleted
+	// resourcesDeleted, err := r.areVSBResourcesDeleted(r.Log, &vsb)
+	// if err != nil || !resourcesDeleted {
+	// 	r.Log.Error(err, "not all VSB resources have been deleted")
+	// 	return false, err
+	// }
 
-	err = r.deletePod(&dmb)
+	// Update VSB status as completed
+	vsb.Status.Phase = datamoverv1alpha1.DatamoverBackupPhaseCompleted
+	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return false, err
 	}
-
-	err = r.deletePVC(&dmb)
-	if err != nil {
-		return false, err
-	}
-	r.Log.Info("deleting datamoverbackup resources")
+	r.Log.Info("returning from cleaning VSB resources as completed")
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) deleteVSandVSC(vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
+func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger, vsb *datamoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
 
-	// get source VSC
-	vscInCluster := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		return err
+	// check the cloned PVC has been deleted
+	clonedPVC := corev1.PersistentVolumeClaim{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name), Namespace: vsb.Spec.ProtectedNamespace}, &clonedPVC); err != nil {
+
+		// we expect resource to not be found
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("cloned volumesnapshot has been deleted")
+		}
+		// other error
+		return false, err
 	}
 
-	// get cloned VSC
-	vscName := fmt.Sprintf("%s-clone", vscInCluster.Name)
-	vsc := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: vscName}, &vsc); err != nil {
-		return err
-	}
-
-	// get cloned VS
-	vsName := fmt.Sprintf("%s-volumesnapshot", vsb.Spec.VolumeSnapshotContent.Name)
-	vs := snapv1.VolumeSnapshot{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: vsName}, &vs); err != nil {
-		return err
-	}
-
-	// delete cloned VS
-	if err := r.Delete(r.Context, &vs); err != nil {
-		return err
-	}
-
-	// delete cloned VSC
-	if err := r.Delete(r.Context, &vsc); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *VolumeSnapshotBackupReconciler) deleteResticSecret(vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
-
-	// get restic secret created by controller
-	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
-	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
-		return err
-	}
-
-	// delete controller created restic secret
-	if err := r.Delete(r.Context, &resticSecret); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *VolumeSnapshotBackupReconciler) deleteRepSource(vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
-
-	// get replicationsource
-	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
-	repSource := volsyncv1alpha1.ReplicationSource{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: repSourceName}, &repSource); err != nil {
-		return err
-	}
-
-	// delete replicationsource
-	if err := r.Delete(r.Context, &repSource); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *VolumeSnapshotBackupReconciler) deletePod(vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
-
-	// get dummy pod
-	podName := fmt.Sprintf("%s-pod", vsb.Name)
+	// check dummy pod is deleted
 	dummyPod := corev1.Pod{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: podName, Namespace: r.NamespacedName.Namespace}, &dummyPod); err != nil {
-		return err
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-pod", vsb.Name), Namespace: vsb.Spec.ProtectedNamespace}, &dummyPod); err != nil {
+
+		// we expect resource to not be found
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("dummy pod has been deleted")
+		}
+		// other error
+		return false, err
 	}
 
-	// delete dummy pod
-	if err := r.Delete(r.Context, &dummyPod); err != nil {
-		return err
+	// check the cloned VSC has been deleted
+	vscClone := snapv1.VolumeSnapshotContent{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
+
+		// we expect resource to not be found
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("cloned volumesnapshotcontent has been deleted")
+		}
+		// other error
+		return false, err
 	}
-	return nil
+
+	// check the cloned VS has been deleted
+	vsClone := snapv1.VolumeSnapshotContent{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name), Namespace: vsb.Spec.ProtectedNamespace}, &vsClone); err != nil {
+
+		// we expect resource to not be found
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("cloned volumesnapshot has been deleted")
+		}
+		// other error
+		return false, err
+	}
+
+	// check secret has been deleted
+	secret := corev1.Secret{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-secret", vsb.Name), Namespace: vsb.Spec.ProtectedNamespace}, &secret); err != nil {
+
+		// we expect resource to not be found
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("restic secret has been deleted")
+		}
+		// other error
+		return false, err
+	}
+
+	// check replicationSource has been deleted
+	repSource := volsyncv1alpha1.ReplicationSource{}
+	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-rep-src", vsb.Name), Namespace: vsb.Spec.ProtectedNamespace}, &repSource); err != nil {
+
+		// we expect resource to not be found
+		if k8serror.IsNotFound(err) {
+			r.Log.Info("replicationSource has been deleted")
+		}
+		// other error
+		return false, err
+	}
+
+	//all resources have been deleted
+	r.Log.Info("all VSB resources have been deleted")
+	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) deletePVC(vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
+func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger) (bool, error) {
 
-	// get cloned pvc
-	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
-	pvc := corev1.PersistentVolumeClaim{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: pvcName}, &pvc); err != nil {
-		return err
+	// get volumesnapshotrestore from cluster
+	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		return false, err
 	}
 
-	// delete cloned pvc
-	if err := r.Delete(r.Context, &pvc); err != nil {
-		return err
+	// make sure VSR is completed before deleting resources
+	if vsr.Status.Phase != datamoverv1alpha1.DatamoverRestoreVolSyncPhaseCompleted {
+		r.Log.Info("waiting for volSync to complete before deleting vsr resources")
+		return false, nil
 	}
-	return nil
+
+	// get resources with VSR controller label in protected ns
+	deleteOptions := []client.DeleteAllOfOption{
+		client.MatchingLabels{VSRLabel: vsr.Name},
+		client.InNamespace(vsr.Spec.ProtectedNamespace),
+	}
+
+	for _, obj := range cleanupVSRTypes {
+		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
+		if err != nil {
+			r.Log.Error(err, "unable to delete VSR resource")
+			return false, err
+		}
+	}
+
+	// Update VSR status as completed
+	vsr.Status.Phase = datamoverv1alpha1.DatamoverRestorePhaseCompleted
+	err := r.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return false, err
+	}
+	r.Log.Info("returning from cleaning VSR resources as completed")
+	return true, nil
 }

@@ -72,8 +72,6 @@ spec:
             description: VolumeSnapshotRestoreStatus defines the observed state of
               VolumeSnapshotRestore
             properties:
-              completed:
-                type: boolean
               conditions:
                 items:
                   description: "Condition contains details for one aspect of the current
@@ -142,10 +140,11 @@ spec:
                   - type
                   type: object
                 type: array
+              phase:
+                description: volumesnapshot restore phase status
+                type: string
               snapshotHandle:
                 type: string
-            required:
-            - completed
             type: object
         type: object
     served: true
