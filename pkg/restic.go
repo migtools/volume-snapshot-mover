@@ -80,7 +80,7 @@ func PopulateResticSecret(vsb *datamoverv1alpha1.VolumeSnapshotBackup, vsr *data
 
 
 
-func BuildResticSecret(givensecret *corev1.Secret, resticsecret *corev1.Secret, pvc *corev1.PersistentVolumeClaim) error {
+func BuildVSBResticSecret(givensecret *corev1.Secret, resticsecret *corev1.Secret, pvc *corev1.PersistentVolumeClaim) error {
 
 	// assign new restic secret values
 	for key, val := range givensecret.Data {
@@ -120,7 +120,6 @@ func BuildResticSecret(givensecret *corev1.Secret, resticsecret *corev1.Secret, 
 	return nil
 }
 
-// TODO: move these 2 functions to a common.go and check for VSB or VSR being used
 func BuildVSRResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
 
 
