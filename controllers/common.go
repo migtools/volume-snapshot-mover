@@ -3,7 +3,6 @@ package controllers
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -95,48 +94,11 @@ func PopulateResticSecret(vsb *datamoverv1alpha1.VolumeSnapshotBackup, vsr *data
 	return newResticSecret, nil
 }
 
-func BuildVSBResticSecret(givensecret *corev1.Secret, resticsecret *corev1.Secret, pvc *corev1.PersistentVolumeClaim) error {
+func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo string) error {
 
-	// assign new restic secret values
-	for key, val := range givensecret.Data {
-		switch {
-		case key == AWSAccessKey:
-			AWSAccessValue = val
-		case key == AWSSecretKey:
-			AWSSecretValue = val
-		case key == AWSDefaultRegion:
-			AWSDefaultRegionValue = val
-		case key == ResticPassword:
-			ResticPasswordValue = val
-		case key == ResticRepository:
-
-			// if trailing '/' in user-created Restic repo, remove it
-			stringVal := string(val)
-			stringVal = strings.TrimRight(stringVal, "/")
-
-			ResticRepoValue = stringVal
-		}
+	if resticrepo == "" {
+		return errors.New("restic repo value is empty")
 	}
-	// create new repo path for snapshot
-	newRepoName := fmt.Sprintf("%s/%s/%s", ResticRepoValue, pvc.Namespace, pvc.Name)
-
-	// build new Restic secret
-	resticSecretData := &corev1.Secret{
-		Data: map[string][]byte{
-			AWSAccessKey:     AWSAccessValue,
-			AWSSecretKey:     AWSSecretValue,
-			AWSDefaultRegion: AWSDefaultRegionValue,
-			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(newRepoName),
-		},
-	}
-
-	resticsecret.Data = resticSecretData.Data
-	return nil
-}
-
-func BuildVSRResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
-
 	// assign new restic secret values
 	for key, val := range givensecret.Data {
 		switch {
@@ -158,7 +120,7 @@ func BuildVSRResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, vsr
 			AWSSecretKey:     AWSSecretValue,
 			AWSDefaultRegion: AWSDefaultRegionValue,
 			ResticPassword:   ResticPasswordValue,
-			ResticRepository: []byte(vsr.Spec.VolumeSnapshotMoverBackupref.ResticRepository),
+			ResticRepository: []byte(resticrepo),
 		},
 	}
 
