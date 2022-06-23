@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -63,22 +62,9 @@ func ReconcileBatch(l logr.Logger, reconcileFuncs ...ReconcileFunc) (bool, error
 	return true, nil
 }
 
-func PopulateResticSecret(vsb *datamoverv1alpha1.VolumeSnapshotBackup, vsr *datamoverv1alpha1.VolumeSnapshotRestore) (*corev1.Secret, error) {
+func PopulateResticSecret(name string, namespace string, label string) (*corev1.Secret, error) {
 
-	var label, name, namespace string
-	if vsb != nil {
 
-		label = VSBLabel
-		name = vsb.Name
-		namespace = vsb.Spec.ProtectedNamespace
-
-	} else if vsr != nil {
-		label = VSRLabel
-		name = vsr.Name
-		namespace = vsr.Spec.ProtectedNamespace
-	} else {
-		return nil, errors.New("both vsr & vsb reference cannot be empty")
-	}
 	// define Restic secret to be created
 	newResticSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

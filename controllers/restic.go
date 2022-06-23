@@ -54,7 +54,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	}
 	resticrepo := fmt.Sprintf("%s/%s/%s", ResticRepoValue, pvc.Namespace, pvc.Name)
 
-	rsecret, err := PopulateResticSecret(&vsb, nil)
+	rsecret, err := PopulateResticSecret(vsb.Name, vsb.Spec.ProtectedNamespace, VSBLabel)
 	if err != nil {
 		return false, err
 	}
@@ -102,7 +102,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	}
 
 	// define Restic secret to be created
-	newResticSecret, err := PopulateResticSecret(nil, &vsr)
+	newResticSecret, err := PopulateResticSecret(vsr.Name, vsr.Spec.ProtectedNamespace, VSRLabel)
 	if err != nil {
 		return false, err
 	}
