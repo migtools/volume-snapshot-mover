@@ -64,7 +64,6 @@ func ReconcileBatch(l logr.Logger, reconcileFuncs ...ReconcileFunc) (bool, error
 
 func PopulateResticSecret(name string, namespace string, label string) (*corev1.Secret, error) {
 
-
 	// define Restic secret to be created
 	newResticSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -82,9 +81,6 @@ func PopulateResticSecret(name string, namespace string, label string) (*corev1.
 
 func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo string) error {
 
-	if resticrepo == "" {
-		return errors.New("restic repo value is empty")
-	}
 	// assign new restic secret values
 	for key, val := range givensecret.Data {
 		switch {
@@ -112,4 +108,41 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 
 	secret.Data = resticSecretData.Data
 	return nil
+}
+
+func ValidateResticSecret(resticsecret *corev1.Secret) error {
+	if resticsecret == nil {
+		return errors.New("empty restic secret. Please create a restic secret")
+	}
+
+	for key, val := range resticsecret.Data {
+		switch key {
+		case AWSAccessKey:
+			b := checkByteArrayIsEmpty(val)
+			if !b {
+				return errors.New("awsAccessKey value cannot be empty")
+			}
+		case AWSSecretKey:
+			b := checkByteArrayIsEmpty(val)
+			if !b {
+				return errors.New("awsSecretKey value cannot be empty")
+			}
+		case ResticPassword:
+			b := checkByteArrayIsEmpty(val)
+			if !b {
+				return errors.New("resticPassword value cannot be empty")
+			}
+		case ResticRepository:
+			b := checkByteArrayIsEmpty(val)
+			if !b {
+				return errors.New("resticRepository value cannot be empty")
+			}
+		}
+	}
+	return nil
+}
+
+func checkByteArrayIsEmpty(val []byte) bool {
+
+	return len(val) != 0
 }

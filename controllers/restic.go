@@ -43,6 +43,12 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 		return false, err
 	}
 
+	err := ValidateResticSecret(&resticSecret)
+	if err != nil {
+		r.Log.Error(err, "Restic Secret is malformed")
+		return false, err
+	}
+
 	for key, val := range resticSecret.Data {
 		if key == ResticRepository {
 			// if trailing '/' in user-created Restic repo, remove it
@@ -101,6 +107,11 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 		return false, err
 	}
 
+	err := ValidateResticSecret(&resticSecret)
+	if err != nil {
+		r.Log.Error(err, "Restic Secret is malformed")
+		return false, err
+	}
 	// define Restic secret to be created
 	newResticSecret, err := PopulateResticSecret(vsr.Name, vsr.Spec.ProtectedNamespace, VSRLabel)
 	if err != nil {
