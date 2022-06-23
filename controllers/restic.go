@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-logr/logr"
 	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
-	resticcommon "github.com/konveyor/volume-snapshot-mover/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -14,37 +13,11 @@ import (
 
 // Restic secret data keys
 const (
-	// AWS vars
-	AWSAccessKey     = "AWS_ACCESS_KEY_ID"
-	AWSSecretKey     = "AWS_SECRET_ACCESS_KEY"
-	AWSDefaultRegion = "AWS_DEFAULT_REGION"
-
-	// TODO: GCP and Azure
-
-	// Restic repo vars
-	ResticPassword   = "RESTIC_PASSWORD"
-	ResticRepository = "RESTIC_REPOSITORY"
 
 	// VolumeSnapshotMover annotation keys
 	SnapMoverResticRepository = "datamover.io/restic-repository"
 	SnapMoverSourcePVCName    = "datamover.io/source-pvc-name"
 	SnapMoverSourcePVCSize    = "datamover.io/source-pvc-size"
-)
-
-// Restic secret vars to create new secrets
-var (
-	AWSAccessValue        []byte
-	AWSSecretValue        []byte
-	AWSDefaultRegionValue []byte
-
-	// TODO: GCP and Azure
-
-	ResticPasswordValue []byte
-	ResticRepoValue     string
-)
-
-const (
-	resticSecretName = "restic-secret"
 )
 
 func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) (bool, error) {
@@ -69,7 +42,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 		return false, err
 	}
 
-	rsecret, err := resticcommon.PopulateResticSecret(&vsb, nil)
+	rsecret, err := PopulateResticSecret(&vsb, nil)
 	if err != nil {
 		return false, err
 	}
@@ -77,7 +50,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, rsecret, func() error {
 
-		return resticcommon.BuildVSBResticSecret(&resticSecret, rsecret, &pvc)
+		return BuildVSBResticSecret(&resticSecret, rsecret, &pvc)
 	})
 	if err != nil {
 		return false, err
@@ -117,7 +90,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	}
 
 	// define Restic secret to be created
-	newResticSecret, err := resticcommon.PopulateResticSecret(nil, &vsr)
+	newResticSecret, err := PopulateResticSecret(nil, &vsr)
 	if err != nil {
 		return false, err
 	}
@@ -125,7 +98,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return resticcommon.BuildVSRResticSecret(&resticSecret, newResticSecret, &vsr)
+		return BuildVSRResticSecret(&resticSecret, newResticSecret, &vsr)
 	})
 	if err != nil {
 		return false, err
