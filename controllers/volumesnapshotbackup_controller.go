@@ -122,7 +122,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.WaitForClonedVolumeSnapshotToBeReady,
 		r.MirrorPVC,
 		r.BindPVCToDummyPod,
-		r.CreateResticSecret,
+		r.CreateVSBResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
 		r.CleanBackupResources,
