@@ -6,7 +6,7 @@ import (
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +17,7 @@ import (
 func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.Logger) (bool, error) {
 
 	// get volumesnapshotrestore from cluster
-	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
@@ -53,7 +53,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 	return true, nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *datamoverv1alpha1.VolumeSnapshotRestore) error {
+func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore) error {
 
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
@@ -88,7 +88,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 
 func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady(log logr.Logger) (bool, error) {
 
-	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
@@ -108,7 +108,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 			sourceSpec := repDest.Spec.Trigger.Manual
 			if sourceStatus == sourceSpec {
 
-				vsr.Status.Phase = datamoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
+				vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)

@@ -6,7 +6,7 @@ import (
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -31,13 +31,13 @@ var cleanupVSRTypes = []client.Object{
 func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
 
 	// get volumesnapshotbackup from cluster
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		return false, err
 	}
 
 	// make sure VSB is completed before deleting resources
-	if vsb.Status.Phase != datamoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
 		r.Log.Info("waiting for volSync to complete before deleting vsb resources")
 		return false, nil
 	}
@@ -64,7 +64,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	// }
 
 	// Update VSB status as completed
-	vsb.Status.Phase = datamoverv1alpha1.SnapMoverBackupPhaseCompleted
+	vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted
 	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return false, err
@@ -73,7 +73,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger, vsb *datamoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
+func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
 
 	// check the cloned PVC has been deleted
 	clonedPVC := corev1.PersistentVolumeClaim{}
@@ -155,13 +155,13 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger) (bool, error) {
 
 	// get volumesnapshotrestore from cluster
-	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		return false, err
 	}
 
 	// make sure VSR is completed before deleting resources
-	if vsr.Status.Phase != datamoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
+	if vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
 		r.Log.Info("waiting for volSync to complete before deleting vsr resources")
 		return false, nil
 	}
@@ -181,7 +181,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	// Update VSR status as completed
-	vsr.Status.Phase = datamoverv1alpha1.SnapMoverRestorePhaseCompleted
+	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted
 	err := r.Status().Update(context.Background(), &vsr)
 	if err != nil {
 		return false, err

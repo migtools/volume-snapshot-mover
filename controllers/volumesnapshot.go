@@ -7,7 +7,7 @@ import (
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +18,7 @@ import (
 func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Logger) (bool, error) {
 	// Get volumesnapshotbackup from cluster
 	// TODO: handle multiple VSBs
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -67,7 +67,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (bool, error) {
 	// Get volumesnapshotbackup from cluster
 	// TODO: handle multiple VSBs
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -118,7 +118,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClone *snapv1.VolumeSnapshotContent, vsb *datamoverv1alpha1.VolumeSnapshotBackup) error {
+func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClone *snapv1.VolumeSnapshotContent, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) error {
 	// Get VSC that is defined in spec
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
@@ -160,7 +160,7 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotClone(vsClone *snapv
 
 func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(log logr.Logger) (bool, error) {
 	// Get volumesnapshotbackup from cluster
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -196,7 +196,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 
 func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeReady(log logr.Logger) (bool, error) {
 	// fetch clone vsc and skip waiting if its ready
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -227,7 +227,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 
 func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady(log logr.Logger) (bool, error) {
 
-	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
@@ -277,7 +277,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 	return true, nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *datamoverv1alpha1.VolumeSnapshotRestore) (*snapv1.VolumeSnapshotContent, error) {
+func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore) (*snapv1.VolumeSnapshotContent, error) {
 	vsc := snapv1.VolumeSnapshotContent{}
 	vs := snapv1.VolumeSnapshot{}
 

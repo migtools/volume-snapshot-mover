@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -40,7 +40,7 @@ func isObjectOursBackup(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.VSBKind {
+	if gvk.Group == volsnapmoverv1alpha1.GroupVersion.Group && gvk.Version == volsnapmoverv1alpha1.GroupVersion.Version && gvk.Kind == volsnapmoverv1alpha1.VSBKind {
 		return true
 	}
 	return object.GetLabels()[VSBLabel] != ""
@@ -75,7 +75,7 @@ func isObjectOursRestore(scheme *runtime.Scheme, object client.Object) bool {
 		return false
 	}
 	gvk := objGVKs[0]
-	if gvk.Group == datamoverv1alpha1.GroupVersion.Group && gvk.Version == datamoverv1alpha1.GroupVersion.Version && gvk.Kind == datamoverv1alpha1.VSRKind {
+	if gvk.Group == volsnapmoverv1alpha1.GroupVersion.Group && gvk.Version == volsnapmoverv1alpha1.GroupVersion.Version && gvk.Kind == volsnapmoverv1alpha1.VSRKind {
 		return true
 	}
 	return object.GetLabels()[VSRLabel] != ""

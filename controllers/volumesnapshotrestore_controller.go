@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,7 +69,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	r.req = req
 
 	// Get VSR CR from cluster
-	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(ctx, req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return result, err
@@ -82,7 +82,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	// stop reconciling on this resource when completed
-	if vsr.Status.Phase == datamoverv1alpha1.SnapMoverRestorePhaseCompleted {
+	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted {
 		r.Log.Info("stopping reconciliation of volumesnapshotrestore")
 		return ctrl.Result{
 			Requeue: false,
@@ -130,7 +130,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	// get VSR again before updating status here
 	// since it has been updated in reconcile batch, resourceVersion has changed
 	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
-	vsr = datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr = volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return result, err
@@ -147,7 +147,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 // SetupWithManager sets up the controller with the Manager.
 func (r *VolumeSnapshotRestoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&datamoverv1alpha1.VolumeSnapshotRestore{}).
+		For(&volsnapmoverv1alpha1.VolumeSnapshotRestore{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&snapv1.VolumeSnapshotContent{}).
 		WithEventFilter(volumeSnapshotRestorePredicate(r.Scheme)).

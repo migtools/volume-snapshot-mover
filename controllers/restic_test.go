@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 	tests := []struct {
 		name             string
-		vsb              *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb              *volsnapmoverv1alpha1.VolumeSnapshotBackup
 		secret, rpsecret *corev1.Secret
 		pvc              *corev1.PersistentVolumeClaim
 		want             bool
@@ -25,12 +25,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "Given invalid pvc -> error in restic secret creation",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -69,12 +69,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given valid vsb,restic secret -> successful creation of pvc specific restic secret",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -113,12 +113,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given invalid vsb -> error in restic secret creation",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -157,12 +157,12 @@ func TestDataMoverBackupReconciler_CreateResticSecret(t *testing.T) {
 		},
 		{
 			name: "Given invalid base secret -> error in restic secret creation",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},

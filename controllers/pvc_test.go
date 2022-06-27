@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -23,7 +23,7 @@ import (
 var pvcName string = "sample-pvc"
 
 func getSchemeForFakeClient() (*runtime.Scheme, error) {
-	err := datamoverv1alpha1.AddToScheme(scheme.Scheme)
+	err := volsnapmoverv1alpha1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func newContextForTest(name string) context.Context {
 func TestVolumeSnapshotMoverBackupReconciler_getSourcePVC(t *testing.T) {
 	tests := []struct {
 		name    string
-		vsb     *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb     *volsnapmoverv1alpha1.VolumeSnapshotBackup
 		vsc     *snapv1.VolumeSnapshotContent
 		vs      *snapv1.VolumeSnapshot
 		pvc     *corev1.PersistentVolumeClaim
@@ -59,12 +59,12 @@ func TestVolumeSnapshotMoverBackupReconciler_getSourcePVC(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "Given VSB CR, there should be a valid source PVC returned",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
