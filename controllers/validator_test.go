@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 func TestVolumeSnapshotMoverBackupReconciler_ValidateVolumeSnapshotMoverBackup(t *testing.T) {
 	tests := []struct {
 		name    string
-		vsb     *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb     *volsnapmoverv1alpha1.VolumeSnapshotBackup
 		vsc     *snapv1.VolumeSnapshotContent
 		want    bool
 		wantErr bool
@@ -24,12 +24,12 @@ func TestVolumeSnapshotMoverBackupReconciler_ValidateVolumeSnapshotMoverBackup(t
 		// TODO: Add test cases.
 		{
 			name: "Given valid VSB CR -> no validation errors",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -51,12 +51,12 @@ func TestVolumeSnapshotMoverBackupReconciler_ValidateVolumeSnapshotMoverBackup(t
 		},
 		{
 			name: "Given an invalid VSB CR ->  validation errors",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{},
 					ProtectedNamespace:    "foo",
 				},
@@ -76,12 +76,12 @@ func TestVolumeSnapshotMoverBackupReconciler_ValidateVolumeSnapshotMoverBackup(t
 		},
 		{
 			name: "Given an invalid VSC ->  validation errors",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot-vsc",
 					},
@@ -140,26 +140,26 @@ func TestVolumeSnapshotMoverBackupReconciler_ValidateVolumeSnapshotMoverBackup(t
 func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore(t *testing.T) {
 	tests := []struct {
 		name    string
-		vsr     *datamoverv1alpha1.VolumeSnapshotRestore
+		vsr     *volsnapmoverv1alpha1.VolumeSnapshotRestore
 		wantErr bool
 		want    bool
 	}{
 		// TODO: Add test cases.
 		{
 			name: "valid VSR -> no validation errors",
-			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: datamoverv1alpha1.PVCData{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -171,18 +171,18 @@ func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore
 		},
 		{
 			name: "empty protected ns -> no validation errors",
-			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
-					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: datamoverv1alpha1.PVCData{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -194,19 +194,19 @@ func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore
 		},
 		{
 			name: "empty restic repository -> validation errors",
-			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
 						ResticRepository: "",
-						BackedUpPVCData: datamoverv1alpha1.PVCData{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},
@@ -218,19 +218,19 @@ func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore
 		},
 		{
 			name: "empty pvc name -> validation errors",
-			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: datamoverv1alpha1.PVCData{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
 							Name: "",
 							Size: "10Gi",
 						},
@@ -242,19 +242,19 @@ func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore
 		},
 		{
 			name: "empty pvc size -> validation errors",
-			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef: corev1.LocalObjectReference{
 						Name: resticSecret,
 					},
 					ProtectedNamespace: "foo",
-					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: datamoverv1alpha1.PVCData{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "",
 						},
@@ -266,17 +266,17 @@ func TestVolumeSnapshotMoverRestoreReconciler_ValidateVolumeSnapshotMoverRestore
 		},
 		{
 			name: "empty secret ->  validation errors",
-			vsr: &datamoverv1alpha1.VolumeSnapshotRestore{
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotRestoreSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
 					ResticSecretRef:    corev1.LocalObjectReference{},
 					ProtectedNamespace: "foo",
-					VolumeSnapshotMoverBackupref: datamoverv1alpha1.VSBRef{
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
 						ResticRepository: "s3://sample-path/snapshots",
-						BackedUpPVCData: datamoverv1alpha1.PVCData{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
 							Name: "sample-pvc",
 							Size: "10Gi",
 						},

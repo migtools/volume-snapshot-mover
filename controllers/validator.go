@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -12,7 +12,7 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log logr.Logger) (bool, error) {
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -47,7 +47,7 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 }
 
 func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log logr.Logger) (bool, error) {
-	vsr := datamoverv1alpha1.VolumeSnapshotRestore{}
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err

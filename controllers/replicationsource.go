@@ -7,7 +7,7 @@ import (
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +17,7 @@ import (
 
 func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger) (bool, error) {
 	// get volumesnapshotbackup from cluster
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -61,7 +61,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *datamoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
+func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
 
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
@@ -90,7 +90,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 
 func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) (bool, error) {
 
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
@@ -131,7 +131,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 		if repSourceCompleted && reconCondition.Status == metav1.ConditionTrue {
 
 			// Update VSB status as completed
-			vsb.Status.Phase = datamoverv1alpha1.SnapMoverVolSyncPhaseCompleted
+			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted
 			err := r.Status().Update(context.Background(), &vsb)
 			if err != nil {
 				return false, err
@@ -141,7 +141,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 
 			// ReplicationSource phase is still in progress
 		} else if !repSourceCompleted && reconConditionProgress.Type == volsyncv1alpha1.ConditionSynchronizing {
-			vsb.Status.Phase = datamoverv1alpha1.SnapMoverBackupPhaseInProgress
+			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseInProgress
 
 			// Update VSB status as in progress
 			err := r.Status().Update(context.Background(), &vsb)
@@ -153,7 +153,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 
 			//if not in progress or completed, phase failed
 		} else {
-			vsb.Status.Phase = datamoverv1alpha1.SnapMoverBackupPhaseFailed
+			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed
 
 			// Update VSB status
 			err := r.Status().Update(context.Background(), &vsb)
@@ -167,7 +167,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 	return false, errors.New("replication source status not ready")
 }
 
-func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *datamoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
+func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
 
 	// get replicationsource
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)

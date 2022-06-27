@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 )
@@ -75,7 +75,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	r.req = req
 
 	// Get VSB CR from cluster
-	vsb := datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(ctx, req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return result, err
@@ -100,7 +100,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	// stop reconciling on this resource when completed
-	if vsb.Status.Phase == datamoverv1alpha1.SnapMoverBackupPhaseCompleted {
+	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info("stopping reconciliation of volumesnapshotbackup")
 		return ctrl.Result{
 			Requeue: false,
@@ -162,7 +162,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	// get VSB again before updating status here
 	// since it has been updated in reconcile batch, resourceVersion has changed
 	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
-	vsb = datamoverv1alpha1.VolumeSnapshotBackup{}
+	vsb = volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &vsb); err != nil {
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return result, err
@@ -179,7 +179,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 // SetupWithManager sets up the controller with the Manager.
 func (r *VolumeSnapshotBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&datamoverv1alpha1.VolumeSnapshotBackup{}).
+		For(&volsnapmoverv1alpha1.VolumeSnapshotBackup{}).
 		Owns(&snapv1.VolumeSnapshotContent{}).
 		Owns(&snapv1.VolumeSnapshot{}).
 		Owns(&v1.PersistentVolumeClaim{}).

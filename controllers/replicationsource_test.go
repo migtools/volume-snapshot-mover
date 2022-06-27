@@ -5,7 +5,7 @@ import (
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
-	datamoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -39,7 +39,7 @@ var (
 )
 
 func getSchemeForFakeClientRepSrc() (*runtime.Scheme, error) {
-	err := datamoverv1alpha1.AddToScheme(scheme.Scheme)
+	err := volsnapmoverv1alpha1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func getFakeClientFromObjectsRepSrc(objs ...client.Object) (client.WithWatch, er
 func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 	tests := []struct {
 		name    string
-		vsb     *datamoverv1alpha1.VolumeSnapshotBackup
+		vsb     *volsnapmoverv1alpha1.VolumeSnapshotBackup
 		pvc     *corev1.PersistentVolumeClaim
 		repsrc  *volsyncv1alpha1.ReplicationSource
 		secret  *corev1.Secret
@@ -76,12 +76,12 @@ func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T
 		// TODO: Add test cases.
 		{
 			name: "given valid pvc,secret -> create valid rep src",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
@@ -119,12 +119,12 @@ func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T
 		},
 		{
 			name: "given invalid secret -> err",
-			vsb: &datamoverv1alpha1.VolumeSnapshotBackup{
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb",
 					Namespace: "bar",
 				},
-				Spec: datamoverv1alpha1.VolumeSnapshotBackupSpec{
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
 					VolumeSnapshotContent: corev1.ObjectReference{
 						Name: "sample-snapshot",
 					},
