@@ -36,9 +36,17 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 		r.Log.Error(err, "unable to fetch PVC")
 		return false, err
 	}
+
+	// get restic secret name
+	rs := resticSecretName
+	cred := vsb.Spec.ResticSecretRef
+	if cred.Name != "" {
+		rs = cred.Name
+	}
+
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: rs}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return false, err
 	}
@@ -100,9 +108,16 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}
+
+	// get restic secret name
+	rs := resticSecretName
+	cred := vsr.Spec.ResticSecretRef
+	if cred.Name != "" {
+		rs = cred.Name
+	}
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: rs}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return false, err
 	}
