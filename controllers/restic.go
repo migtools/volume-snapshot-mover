@@ -38,7 +38,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	}
 
 	// get restic secret name
-	rs := resticSecretName
+	rs := dmresticSecretName
 	cred := vsb.Spec.ResticSecretRef
 	if cred.Name != "" {
 		rs = cred.Name
@@ -110,7 +110,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	}
 
 	// get restic secret name
-	rs := resticSecretName
+	rs := dmresticSecretName
 	cred := vsr.Spec.ResticSecretRef
 	if cred.Name != "" {
 		rs = cred.Name

@@ -25,7 +25,7 @@ const (
 	restic_password       = "some_restic_password"
 	restic_repo           = "some_restic_repo"
 	namespace             = "foo"
-	resticSecret          = "restic-secret"
+	resticSecret          = "dm-restic-secret"
 )
 
 var (
