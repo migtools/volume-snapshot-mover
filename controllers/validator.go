@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -79,6 +80,7 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 }
 
 func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultSnapClass(log logr.Logger) (bool, error) {
+
 	vsClassList := snapv1.VolumeSnapshotClassList{}
 	vsClassOptions := []client.ListOption{}
 
@@ -90,14 +92,16 @@ func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultSnapClass(log logr.Lo
 	numDefaultClasses := 0
 	for _, vsClass := range vsClassList.Items {
 
-		_, hasAnnotation := vsClass.Annotations[volumeSnapshotClassDefaultKey]
+		isDefaultClass, _ := vsClass.Annotations[volumeSnapshotClassDefaultKey]
+		boolIsDefault, _ := strconv.ParseBool(isDefaultClass)
 
 		// found a default volumeSnapshotClass
-		if hasAnnotation {
+		if boolIsDefault {
 			numDefaultClasses++
 		}
 
 		if numDefaultClasses > 1 {
+			r.Log.Info("cannot have more than one default volumeSnapshotClass")
 			return false, errors.New("cannot have more than one default volumeSnapshotClass")
 		}
 	}
@@ -117,14 +121,16 @@ func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultStorageClass(log logr
 	numDefaultClasses := 0
 	for _, storageClass := range storageClassList.Items {
 
-		_, hasAnnotation := storageClass.Annotations[storageClassDefaultKey]
+		isDefaultClass, _ := storageClass.Annotations[storageClassDefaultKey]
+		boolIsDefault, _ := strconv.ParseBool(isDefaultClass)
 
 		// found a default storageClass
-		if hasAnnotation {
+		if boolIsDefault {
 			numDefaultClasses++
 		}
 
 		if numDefaultClasses > 1 {
+			r.Log.Info("cannot have more than one default storageClass")
 			return false, errors.New("cannot have more than one default storageClass")
 		}
 	}
