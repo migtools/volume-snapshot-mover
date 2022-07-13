@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -81,18 +80,20 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		return err
 	}
 
-	apiGroup := "snapshot.storage.k8s.io"
-	pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
-		Name:     vsClone.Name,
-		Kind:     vsClone.Kind,
-		APIGroup: &apiGroup,
+	if pvcClone.CreationTimestamp.IsZero() {
+		apiGroup := "snapshot.storage.k8s.io"
+		pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
+			Name:     vsClone.Name,
+			Kind:     vsClone.Kind,
+			APIGroup: &apiGroup,
+		}
+
+		pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
+
+		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
+
+		pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 	}
-
-	pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
-
-	pvcClone.Spec.Resources = sourcePVC.Spec.Resources
-
-	pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 
 	return nil
 }
