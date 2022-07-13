@@ -84,7 +84,10 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 			},
 		},
 	}
-	replicationSource.Spec = replicationSourceSpec
+	if replicationSource.CreationTimestamp.IsZero() {
+		replicationSource.Spec = replicationSourceSpec
+	}
+
 	return nil
 }
 
