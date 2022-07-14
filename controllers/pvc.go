@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -227,6 +228,10 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: vscInCluster.Spec.VolumeSnapshotRef.Name, Namespace: vsb.Namespace}, &vsInCluster); err != nil {
 		return nil, errors.New("cannot obtain source volumesnapshot")
+	}
+
+	if vsInCluster.Spec.Source.PersistentVolumeClaimName == nil {
+		return nil, errors.New("PVC name not set on volume snapshot, cannot run VSB")
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{}
