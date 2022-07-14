@@ -28,6 +28,7 @@ type VolumeSnapshotBackupSpec struct {
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 }
 
+//TODO: Club Status into a new struct
 // VolumeSnapshotBackupStatus defines the observed state of VolumeSnapshotBackup
 type VolumeSnapshotBackupStatus struct {
 	Completed bool `json:"completed,omitempty"`
