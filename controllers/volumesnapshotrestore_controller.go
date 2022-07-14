@@ -137,7 +137,6 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
 	vsr = volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &vsr); err != nil {
-		// ignore is not found error
 		if k8serrors.IsNotFound(err) {
 			return result, nil
 		}
