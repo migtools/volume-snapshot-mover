@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -38,15 +39,14 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	}
 
 	// get restic secret name
-	rs := dmresticSecretName
-	cred := vsb.Spec.ResticSecretRef
-	if cred.Name != "" {
-		rs = cred.Name
+	credName := vsb.Spec.ResticSecretRef.Name
+	if credName == "" {
+		return false, errors.New("restic secret name cannot be empty")
 	}
 
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: rs}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: credName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return false, err
 	}
@@ -110,14 +110,14 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	}
 
 	// get restic secret name
-	rs := dmresticSecretName
-	cred := vsr.Spec.ResticSecretRef
-	if cred.Name != "" {
-		rs = cred.Name
+	// get restic secret name
+	credName := vsr.Spec.ResticSecretRef.Name
+	if credName == "" {
+		return false, errors.New("restic secret name cannot be empty")
 	}
 	// get restic secret from user
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: rs}, &resticSecret); err != nil {
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: credName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
 		return false, err
 	}
