@@ -82,7 +82,10 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 			},
 		},
 	}
-	replicationDestination.Spec = replicationDestinationSpec
+	if replicationDestination.CreationTimestamp.IsZero() {
+		replicationDestination.Spec = replicationDestinationSpec
+	}
+
 	return nil
 }
 

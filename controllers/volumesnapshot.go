@@ -142,7 +142,10 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClon
 		},
 	}
 
-	vscClone.Spec = newSpec
+	if vscClone.CreationTimestamp.IsZero() {
+		vscClone.Spec = newSpec
+	}
+
 	return nil
 }
 
@@ -154,7 +157,10 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotClone(vsClone *snapv
 		},
 	}
 
-	vsClone.Spec = vsSpec
+	if vsClone.CreationTimestamp.IsZero() {
+		vsClone.Spec = vsSpec
+	}
+
 	return nil
 }
 
