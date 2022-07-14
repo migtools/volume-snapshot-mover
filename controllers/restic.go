@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -27,7 +27,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
@@ -103,7 +103,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -20,7 +20,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
@@ -107,7 +107,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
@@ -265,7 +265,7 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"errors"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"strconv"
 
 	"github.com/go-logr/logr"
@@ -17,7 +17,7 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
@@ -56,7 +56,7 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")

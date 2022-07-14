@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -79,7 +79,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(ctx, req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return result, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
@@ -170,7 +170,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	vsb = volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
-		if errors2.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return result, nil
 		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
