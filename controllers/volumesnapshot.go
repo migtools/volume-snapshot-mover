@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -20,6 +21,10 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 	// TODO: handle multiple VSBs
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
@@ -69,6 +74,10 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 	// TODO: handle multiple VSBs
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
@@ -168,6 +177,10 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 	// Get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
@@ -204,6 +217,10 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 	// fetch clone vsc and skip waiting if its ready
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
@@ -235,6 +252,10 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}

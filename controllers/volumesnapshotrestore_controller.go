@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -71,6 +72,10 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	// Get VSR CR from cluster
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(ctx, req.NamespacedName, &vsr); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return result, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return result, err
 	}
@@ -132,6 +137,9 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
 	vsr = volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &vsr); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return result, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return result, err
 	}
