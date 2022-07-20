@@ -30,6 +30,7 @@ type VolumeSnapshotBackupSpec struct {
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
 }
 
+//TODO: Club Status into a new struct
 // VolumeSnapshotBackupStatus defines the observed state of VolumeSnapshotBackup
 type VolumeSnapshotBackupStatus struct {
 	Completed bool `json:"completed,omitempty"`
@@ -42,6 +43,8 @@ type VolumeSnapshotBackupStatus struct {
 	ResticRepository string `json:"resticrepository,omitempty"`
 	// volumesnapshot backup phase status
 	Phase VolumeSnapshotBackupPhase `json:"phase,omitempty"`
+	// name of the VolumeSnapshotClass
+	VolumeSnapshotClassName string `json:"volumeSnapshotClassName,omitempty"`
 }
 
 type PVCData struct {
@@ -49,6 +52,8 @@ type PVCData struct {
 	Name string `json:"name,omitempty"`
 	// size of the PersistentVolumeClaim
 	Size string `json:"size,omitempty"`
+	// name of the StorageClass
+	StorageClassName string `json:"storageClassName,omitempty"`
 }
 
 type VolumeSnapshotBackupPhase string

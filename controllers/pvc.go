@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -18,6 +19,10 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	// Get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
@@ -81,18 +86,20 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		return err
 	}
 
-	apiGroup := "snapshot.storage.k8s.io"
-	pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
-		Name:     vsClone.Name,
-		Kind:     vsClone.Kind,
-		APIGroup: &apiGroup,
+	if pvcClone.CreationTimestamp.IsZero() {
+		apiGroup := "snapshot.storage.k8s.io"
+		pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
+			Name:     vsClone.Name,
+			Kind:     vsClone.Kind,
+			APIGroup: &apiGroup,
+		}
+
+		pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
+
+		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
+
+		pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 	}
-
-	pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
-
-	pvcClone.Spec.Resources = sourcePVC.Spec.Resources
-
-	pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 
 	return nil
 }
@@ -101,6 +108,10 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 	// Get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}
@@ -228,6 +239,10 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 		return nil, errors.New("cannot obtain source volumesnapshot")
 	}
 
+	if vsInCluster.Spec.Source.PersistentVolumeClaimName == nil {
+		return nil, errors.New("PVC name not set on volume snapshot, cannot run VSB")
+	}
+
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsb.Namespace}, pvc); err != nil {
@@ -255,6 +270,10 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 	// get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
 		return false, err
 	}

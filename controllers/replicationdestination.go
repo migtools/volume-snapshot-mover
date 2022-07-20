@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -19,6 +20,10 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 	// get volumesnapshotrestore from cluster
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}
@@ -82,7 +87,10 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 			},
 		},
 	}
-	replicationDestination.Spec = replicationDestinationSpec
+	if replicationDestination.CreationTimestamp.IsZero() {
+		replicationDestination.Spec = replicationDestinationSpec
+	}
+
 	return nil
 }
 
@@ -90,6 +98,10 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
 		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
 		return false, err
 	}

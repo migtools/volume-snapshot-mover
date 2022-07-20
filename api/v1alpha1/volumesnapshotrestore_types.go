@@ -43,6 +43,8 @@ type VSBRef struct {
 	BackedUpPVCData PVCData `json:"sourcePVCData,omitempty"`
 	// Includes restic repository path
 	ResticRepository string `json:"resticrepository,omitempty"`
+	// name of the VolumeSnapshotClass
+	VolumeSnapshotClassName string `json:"volumeSnapshotClassName,omitempty"`
 }
 
 type VolumeSnapshotRestorePhase string
