@@ -146,6 +146,18 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClon
 		vscClone.Spec = newSpec
 	}
 
+	if vsb.Status.VolumeSnapshotClassName == "" {
+		// update VSB status to add volumesnapshotclassname
+		// set source PVC name in VSB status
+		vsb.Status.VolumeSnapshotClassName = *vscClone.Spec.VolumeSnapshotClassName
+
+		// Update VSB status
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
