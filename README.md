@@ -23,7 +23,7 @@ in instances such as cluster deletion or disaster.
 
 - Have a stateful application running in a separate namespace. 
 
-- Have an appropriate StorageClass and VolumeShapshotClass:
+- Have an appropriate StorageClass and VolumeShapshotClass. **Make sure there is only one default of each.**
   - Include the label `velero.io/csi-volumesnapshot-class: 'true'` in your `VolumeSnapshotClass` 
   to let Velero know which to use.
 
@@ -45,18 +45,15 @@ metadata:
   name: <secret-name>
 type: Opaque
 stringData:
-  # The repository url (if using AWS s3)
-  RESTIC_REPOSITORY: s3:s3.amazonaws.com/<bucket>/<prefix>
   # The repository encryption key
   RESTIC_PASSWORD: my-secure-restic-password
-  AWS_ACCESS_KEY_ID: <bucket_access_key_id>
-  AWS_SECRET_ACCESS_KEY: <bucket_secret_access_key>
 EOF
 ```
 
 
 - Create a DPA similar to below:
-  - Add the restic secret name from the previous step to your DPA CR in `spec.features.dataMoverCredential`
+  - Add the restic secret name from the previous step to your DPA CR in `spec.features.dataMoverCredential`.  
+    If this step is not completed then it will default to the secret name `dm-credential`.
   - Note the CSI `defaultPlugin` and `enableDataMover` flag.
 
 
@@ -109,8 +106,8 @@ spec:
   volumeSnapshotContent:
     name: <snapcontent-name>
   protectedNamespace: <adp-namespace>
-  resticSecretRef: <your-restic-secret>
-
+  resticSecretRef: 
+    name: <restic-secret-name>
 ```
 
 ```
@@ -121,7 +118,7 @@ metadata:
 spec:
   protectedNamespace: <protected-ns>
   resticSecretRef: 
-    name: restic-secret
+    name: <restic-secret-name>
   volumeSnapshotMoverBackupRef:
     sourcePVCData: 
       name: <source-pvc-name>
