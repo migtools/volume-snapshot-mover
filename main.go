@@ -18,12 +18,10 @@ package main
 
 import (
 	"flag"
-	zaplogfmt "github.com/sykesm/zap-logfmt"
-	uzap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
@@ -62,19 +60,15 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{}
+	opts := zap.Options{
+		Development: true,
+		TimeEncoder: func(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
+			encoder.AppendString(t.UTC().Format(time.RFC3339))
+		},
+	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-	configLog := uzap.NewProductionEncoderConfig()
-	configLog.EncodeTime = func(ts time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(ts.UTC().Format(time.RFC3339Nano))
-	}
-	logfmtEncoder := zaplogfmt.NewEncoder(configLog)
-
-	// Construct a new logr.logger.
-	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout), zap.Encoder(logfmtEncoder))
-	logf.SetLogger(logger)
-	//ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
