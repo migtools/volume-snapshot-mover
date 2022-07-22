@@ -257,6 +257,12 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 	sizeString := size.String()
 	vsb.Status.SourcePVCData.Size = sizeString
 
+	// set source PVC storageclass in VSB status
+	if pvc.Spec.StorageClassName != nil {
+		storageClass := pvc.Spec.StorageClassName
+		vsb.Status.SourcePVCData.StorageClassName = *storageClass
+	}
+
 	// Update VSB status
 	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
