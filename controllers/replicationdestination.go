@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -61,7 +62,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore) error {
 
 	// get restic secret created by controller
-	dmresticSecretName := vsr.Spec.ResticSecretRef.Name
+	dmresticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
 	resticSecret := corev1.Secret{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: dmresticSecretName}, &resticSecret); err != nil {
 		r.Log.Error(err, "unable to fetch Restic Secret")
