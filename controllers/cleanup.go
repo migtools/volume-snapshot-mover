@@ -33,6 +33,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	// get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -51,7 +52,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	for _, obj := range cleanupVSBTypes {
 		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
 		if err != nil {
-			r.Log.Error(err, "unable to delete VSB resource")
+			r.Log.Error(err, "unable to delete volumesnapshotbackup resources")
 			return false, err
 		}
 	}
@@ -69,7 +70,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	if err != nil {
 		return false, err
 	}
-	r.Log.Info("returning from cleaning VSB resources as completed")
+	r.Log.Info("returning from cleaning volumesnapshotbackup resources as completed")
 	return true, nil
 }
 
@@ -81,7 +82,7 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 		// we expect resource to not be found
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("cloned volumesnapshot has been deleted")
+			r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s/%s has been deleted", vsb.Spec.ProtectedNamespace, fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)))
 		}
 		// other error
 		return false, err
@@ -93,7 +94,7 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 		// we expect resource to not be found
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("dummy pod has been deleted")
+			r.Log.Info(fmt.Sprintf("dummy pod %s/%s has been deleted", fmt.Sprintf("%s-pod", vsb.Name), vsb.Spec.ProtectedNamespace))
 		}
 		// other error
 		return false, err
@@ -105,7 +106,7 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 		// we expect resource to not be found
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("cloned volumesnapshotcontent has been deleted")
+			r.Log.Info(fmt.Sprintf("cloned volumesnapshotcontent %s has been deleted", fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)))
 		}
 		// other error
 		return false, err
@@ -117,7 +118,7 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 		// we expect resource to not be found
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("cloned volumesnapshot has been deleted")
+			r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s/%s has been deleted", vsb.Spec.ProtectedNamespace, fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name)))
 		}
 		// other error
 		return false, err
@@ -129,7 +130,7 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 		// we expect resource to not be found
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("restic secret has been deleted")
+			r.Log.Info(fmt.Sprintf("restic secret %s/%s has been deleted", vsb.Spec.ProtectedNamespace, fmt.Sprintf("%s-secret", vsb.Name)))
 		}
 		// other error
 		return false, err
@@ -141,14 +142,14 @@ func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger,
 
 		// we expect resource to not be found
 		if k8serror.IsNotFound(err) {
-			r.Log.Info("replicationSource has been deleted")
+			r.Log.Info(fmt.Sprintf("replicationsource %s/%s has been deleted", vsb.Spec.ProtectedNamespace, fmt.Sprintf("%s-rep-src", vsb.Name)))
 		}
 		// other error
 		return false, err
 	}
 
 	//all resources have been deleted
-	r.Log.Info("all VSB resources have been deleted")
+	r.Log.Info("all volumesnapshotbackup resources have been deleted")
 	return true, nil
 }
 
@@ -157,12 +158,13 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	// get volumesnapshotrestore from cluster
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	// make sure VSR is completed before deleting resources
 	if vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
-		r.Log.Info("waiting for volSync to complete before deleting vsr resources")
+		r.Log.Info("waiting for volSync to complete before deleting volumesnapshotrestore resources")
 		return false, nil
 	}
 
@@ -175,7 +177,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	for _, obj := range cleanupVSRTypes {
 		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
 		if err != nil {
-			r.Log.Error(err, "unable to delete VSR resource")
+			r.Log.Error(err, "unable to delete volumesnapshotrestore resource")
 			return false, err
 		}
 	}
@@ -186,6 +188,6 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	if err != nil {
 		return false, err
 	}
-	r.Log.Info("returning from cleaning VSR resources as completed")
+	r.Log.Info("returning from cleaning volumesnapshotrestore resources as completed")
 	return true, nil
 }
