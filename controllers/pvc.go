@@ -23,14 +23,15 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	// Get the clone VSC
 	vscClone := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
-		r.Log.Error(err, "cloned volumesnapshotcontent not found")
+	vscCloneName := fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)
+	if err := r.Get(r.Context, types.NamespacedName{Name: vscCloneName}, &vscClone); err != nil {
+		r.Log.Error(err, fmt.Sprintf("cloned volumesnapshotcontent %s not found", vscCloneName))
 		return false, err
 	}
 
@@ -38,13 +39,13 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	vsClone := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name), Namespace: vsb.Spec.ProtectedNamespace}, &vsClone); err != nil {
-		r.Log.Info("cloned volumesnapshot not available in the protected namespace")
+		r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s/%s not available in the protected namespace", vsb.Spec.ProtectedNamespace, fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name)))
 		return false, nil
 	}
 
 	// check if vsClone is ready to use
 	if vsClone.Status == nil || vsClone.Status.ReadyToUse == nil || *vsClone.Status.ReadyToUse != true {
-		r.Log.Info("cloned volumesnapshot is not ready to use in the protected namespace")
+		r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s/%s is not ready to use in the protected namespace", vsb.Spec.ProtectedNamespace, fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name)))
 		return false, nil
 	}
 
@@ -65,7 +66,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 		return r.buildPVCClone(pvcClone, &vsClone)
 	})
 	if err != nil {
-		r.Log.Info(fmt.Sprintf("err: %v", err))
+		r.Log.Info(fmt.Sprintf("err building pvc clone: %v", err))
 		return false, err
 	}
 	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
@@ -112,7 +113,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -121,7 +122,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 	err := r.Get(r.Context,
 		types.NamespacedName{Name: fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name), Namespace: vsb.Spec.ProtectedNamespace}, &clonedPVC)
 	if err != nil {
-		r.Log.Error(err, "unable to fetch cloned PVC")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch cloned PVC %s/%s", vsb.Spec.ProtectedNamespace, fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)))
 		return false, err
 	}
 
@@ -226,27 +227,32 @@ func (r *VolumeSnapshotBackupReconciler) getSourcePVC() (*corev1.PersistentVolum
 	// Get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return nil, nil
+		}
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return nil, err
 	}
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		return nil, errors.New("cannot obtain source volumesnapshotcontent")
+		return nil, errors.New(fmt.Sprintf("cannot obtain source volumesnapshotcontent %s", vsb.Spec.VolumeSnapshotContent.Name))
 	}
 
 	vsInCluster := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: vscInCluster.Spec.VolumeSnapshotRef.Name, Namespace: vsb.Namespace}, &vsInCluster); err != nil {
-		return nil, errors.New("cannot obtain source volumesnapshot")
+		return nil, errors.New(fmt.Sprintf("cannot obtain source volumesnapshot %s/%s", vsb.Namespace, vscInCluster.Spec.VolumeSnapshotRef.Name))
 	}
 
 	if vsInCluster.Spec.Source.PersistentVolumeClaimName == nil {
-		return nil, errors.New("PVC name not set on volume snapshot, cannot run VSB")
+		return nil, errors.New(fmt.Sprintf("PVC name not set on volume snapshot %s/%s, cannot run VSB", vsb.Namespace, vscInCluster.Spec.VolumeSnapshotRef.Name))
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: *vsInCluster.Spec.Source.PersistentVolumeClaimName, Namespace: vsb.Namespace}, pvc); err != nil {
-		return nil, errors.New("cannot obtain source PVC")
+		return nil, errors.New(fmt.Sprintf("cannot obtain source PVC %s/%s", vsb.Namespace, *vsInCluster.Spec.Source.PersistentVolumeClaimName))
 	}
 
 	// set source PVC name in VSB status
@@ -280,7 +286,7 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -288,13 +294,13 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
 	clonedPVC := corev1.PersistentVolumeClaim{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: pvcName}, &clonedPVC); err != nil {
-		r.Log.Error(err, "unable to fetch cloned PVC")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch cloned PVC %s/%s", vsb.Spec.ProtectedNamespace, pvcName))
 		return false, err
 	}
 
 	// move forward to create replication source only when the PVC is bound
 	if clonedPVC.Status.Phase != corev1.ClaimBound {
-		r.Log.Info("cloned PVC is not in bound state")
+		r.Log.Info(fmt.Sprintf("cloned PVC %s/%s is not in bound state", vsb.Spec.ProtectedNamespace, pvcName))
 		return false, nil
 	}
 
