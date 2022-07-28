@@ -23,7 +23,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -31,7 +31,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
 	clonedPVC := corev1.PersistentVolumeClaim{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: pvcName}, &clonedPVC); err != nil {
-		r.Log.Error(err, "unable to fetch cloned PVC")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch cloned PVC %s/%s", vsb.Spec.ProtectedNamespace, pvcName))
 		return false, err
 	}
 
@@ -71,7 +71,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
 	resticSecret := corev1.Secret{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: resticSecretName}, &resticSecret); err != nil {
-		r.Log.Error(err, "unable to fetch Restic Secret")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch restic secret %s/%s", vsb.Spec.ProtectedNamespace, resticSecretName))
 		return err
 	}
 
@@ -105,7 +105,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -119,7 +119,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 	}
 
 	if repSource.Status == nil {
-		r.Log.Info("replication source is yet to have a status")
+		r.Log.Info(fmt.Sprintf("replication source %s/%s is yet to have a status", vsb.Spec.ProtectedNamespace, repSourceName))
 		return false, nil
 	}
 
@@ -149,7 +149,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 			if err != nil {
 				return false, err
 			}
-			r.Log.Info("marking volumesnapshotbackup VolSync phase as complete")
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s VolSync phase as complete", r.req.NamespacedName))
 			return true, nil
 
 			// ReplicationSource phase is still in progress
@@ -161,7 +161,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 			if err != nil {
 				return false, err
 			}
-			r.Log.Info("marking volumesnapshotbackup as in progress, vsb recon as false")
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as in progress, vsb recon as false", r.req.NamespacedName))
 			return false, nil
 
 			//if not in progress or completed, phase failed
@@ -173,7 +173,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 			if err != nil {
 				return false, err
 			}
-			r.Log.Info("marking volumesnapshotbackup as failed, vsb recon as false")
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed, vsb recon as false", r.req.NamespacedName))
 			return false, nil
 		}
 	}
@@ -186,7 +186,7 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
-		r.Log.Info("error here isRepSourceCompleted")
+		r.Log.Info(fmt.Sprintf("unable to fetch replicationsource %s/%s", vsb.Spec.ProtectedNamespace, repSourceName))
 		return false, err
 	}
 
