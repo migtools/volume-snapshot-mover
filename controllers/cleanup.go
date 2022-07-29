@@ -39,7 +39,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 
 	// make sure VSB is completed before deleting resources
 	if vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
-		r.Log.Info("waiting for volSync to complete before deleting vsb resources")
+		r.Log.Info(fmt.Sprintf("waiting for volsync to complete before deleting volumesnapshotbackup %s resources", r.req.NamespacedName))
 		return false, nil
 	}
 
@@ -52,7 +52,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	for _, obj := range cleanupVSBTypes {
 		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
 		if err != nil {
-			r.Log.Error(err, "unable to delete volumesnapshotbackup resources")
+			r.Log.Error(err, fmt.Sprintf("unable to delete volumesnapshotbackup %s resources", r.req.NamespacedName))
 			return false, err
 		}
 	}
@@ -70,7 +70,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	if err != nil {
 		return false, err
 	}
-	r.Log.Info("returning from cleaning volumesnapshotbackup resources as completed")
+	r.Log.Info(fmt.Sprintf("returning from cleaning volumesnapshotbackup %s resources as completed", r.req.NamespacedName))
 	return true, nil
 }
 
@@ -164,7 +164,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 
 	// make sure VSR is completed before deleting resources
 	if vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
-		r.Log.Info("waiting for volSync to complete before deleting volumesnapshotrestore resources")
+		r.Log.Info(fmt.Sprintf("waiting for volsync to complete before deleting volumesnapshotrestore %s resources", r.req.NamespacedName))
 		return false, nil
 	}
 
@@ -177,7 +177,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	for _, obj := range cleanupVSRTypes {
 		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
 		if err != nil {
-			r.Log.Error(err, "unable to delete volumesnapshotrestore resource")
+			r.Log.Error(err, fmt.Sprintf("unable to delete volumesnapshotrestore %s resources", r.req.NamespacedName))
 			return false, err
 		}
 	}
@@ -188,6 +188,6 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	if err != nil {
 		return false, err
 	}
-	r.Log.Info("returning from cleaning volumesnapshotrestore resources as completed")
+	r.Log.Info(fmt.Sprintf("returning from cleaning volumesnapshotrestore %s resources as completed", r.req.NamespacedName))
 	return true, nil
 }
