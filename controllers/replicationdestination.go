@@ -85,7 +85,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 				// let replicationDestination create PVC
 				Capacity:                &capacity,
 				StorageClassName:        &vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName,
-				VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName,
+				VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
 			},
 		},
 	}
