@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -20,21 +21,21 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 	// Check if VolumeSnapshotContent is nil
 	if vsb.Spec.VolumeSnapshotContent.Name == "" {
-		return false, errors.New("VolumeSnapshotBackup CR snapshot name cannot be nil")
+		return false, errors.New(fmt.Sprintf("snapshot name cannot be nil for volumesnapshotbackup %s", r.req.NamespacedName))
 	}
 
 	if len(vsb.Spec.ProtectedNamespace) == 0 {
-		return false, errors.New("VolumeSnapshotBackup CR protected ns cannot be empty")
+		return false, errors.New(fmt.Sprintf("protected ns cannot be empty for volumesnapshotbackup %s", r.req.NamespacedName))
 	}
 
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		r.Log.Error(err, "volumesnapshotcontent not found")
+		r.Log.Error(err, fmt.Sprintf("volumesnapshotcontent %s not found", vsb.Spec.VolumeSnapshotContent.Name))
 		return false, err
 	}
 
@@ -48,7 +49,6 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 		return false, err
 	}
 
-	r.Log.Info("returning true In function ValidateVolumeSnapshotMoverBackup")
 	return true, nil
 }
 
@@ -59,30 +59,30 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	// Check if restic secret ref is empty
 	if len(vsr.Spec.ResticSecretRef.Name) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR ResticSecretRef name cannot be empty")
+		return false, errors.New(fmt.Sprintf("ResticSecretRef name cannot be empty for volumesnapshotrestore %s", r.req.NamespacedName))
 	}
 
 	// Check if VolumeSnapshotMoverbackuRef attributes are empty
 	if len(vsr.Spec.VolumeSnapshotMoverBackupref.ResticRepository) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR volumeSnapshotMoverBackupref ResticRepository cannot be empty")
+		return false, errors.New(fmt.Sprintf("volumeSnapshotMoverBackupref ResticRepository cannot be empty for volumesnapshotrestore %s", r.req.NamespacedName))
 	}
 
 	if len(vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Name) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR volumeSnapshotMoverBackupref BackedUpPVCData name cannot be empty")
+		return false, errors.New(fmt.Sprintf("volumeSnapshotMoverBackupref BackedUpPVCData name cannot be empty cannot be empty for volumesnapshotrestore %s", r.req.NamespacedName))
 	}
 
 	if len(vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR volumeSnapshotMoverBackupref BackedUpPVCData size cannot be empty")
+		return false, errors.New(fmt.Sprintf("volumeSnapshotMoverBackupref BackedUpPVCData size cannot be empty for volumesnapshotrestore %s", r.req.NamespacedName))
 	}
 
 	if len(vsr.Spec.ProtectedNamespace) == 0 {
-		return false, errors.New("VolumeSnapshotRestore CR protected ns cannot be empty")
+		return false, errors.New(fmt.Sprintf("protected ns cannot be empty for volumesnapshotrestore %s", r.req.NamespacedName))
 	}
 
 	hasOneDefaultVSClass, err := r.checkForOneDefaultVSRSnapClass(log)
@@ -159,7 +159,7 @@ func (r *VolumeSnapshotRestoreReconciler) checkForOneDefaultVSRStorageClass(log 
 	storageClassList := storagev1.StorageClassList{}
 	storageClassOptions := []client.ListOption{}
 
-	// get all volumeSnapshotClasses in cluster
+	// get all storageClasses in cluster
 	if err := r.List(r.Context, &storageClassList, storageClassOptions...); err != nil {
 		return false, err
 	}

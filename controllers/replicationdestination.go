@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -24,7 +25,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -61,16 +62,15 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore) error {
 
 	// get restic secret created by controller
-	resticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
+	dmresticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
 	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: resticSecretName}, &resticSecret); err != nil {
-		r.Log.Error(err, "unable to fetch Restic Secret")
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: dmresticSecretName}, &resticSecret); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch restic secret %s/%s", r.NamespacedName.Namespace, dmresticSecretName))
 		return err
 	}
 
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
-
 	// build ReplicationDestination
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
@@ -83,7 +83,9 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				CopyMethod:  volsyncv1alpha1.CopyMethodSnapshot,
 				// let replicationDestination create PVC
-				Capacity: &capacity,
+				Capacity:                &capacity,
+				StorageClassName:        &vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName,
+				VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
 			},
 		},
 	}
@@ -102,14 +104,14 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
 	repDest := volsyncv1alpha1.ReplicationDestination{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
-		r.Log.Info("error getting replicationDestination")
+		r.Log.Info(fmt.Sprintf("error getting replicationdestination %s/%s", vsr.Spec.ProtectedNamespace, repDestName))
 		return false, err
 	}
 
@@ -128,12 +130,12 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 					return false, err
 				}
 
-				r.Log.Info("replicationDestination has completed")
+				r.Log.Info(fmt.Sprintf("replicationdestination %s/%s has completed", vsr.Spec.ProtectedNamespace, repDestName))
 				return true, nil
 			}
 		}
 	}
 
-	r.Log.Info("waiting for replicationDestination to complete")
+	r.Log.Info(fmt.Sprintf("waiting for replicationdestination %s/%s to complete", vsr.Spec.ProtectedNamespace, repDestName))
 	return false, nil
 }
