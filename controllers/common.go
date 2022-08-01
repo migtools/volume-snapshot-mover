@@ -155,7 +155,7 @@ func checkByteArrayIsEmpty(val []byte) bool {
 
 func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList, log logr.Logger) (bool, error) {
 
-	numDefaultClasses := 0
+	foundDefaultClass := false
 	for _, vsClass := range vsClassList.Items {
 
 		isDefaultClass, _ := vsClass.Annotations[volumeSnapshotClassDefaultKey]
@@ -163,11 +163,12 @@ func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList, lo
 
 		// found a default volumeSnapshotClass
 		if boolIsDefault {
-			numDefaultClasses++
-		}
 
-		if numDefaultClasses > 1 {
-			return false, errors.New("cannot have more than one default volumeSnapshotClass")
+			if foundDefaultClass {
+				return false, errors.New("cannot have more than one default volumeSnapshotClass")
+			}
+
+			foundDefaultClass = true
 		}
 	}
 
@@ -176,7 +177,7 @@ func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList, lo
 
 func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList, log logr.Logger) (bool, error) {
 
-	numDefaultClasses := 0
+	foundDefaultClass := false
 	for _, storageClass := range storageClassList.Items {
 
 		isDefaultClass, _ := storageClass.Annotations[storageClassDefaultKey]
@@ -184,11 +185,12 @@ func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList
 
 		// found a default storageClass
 		if boolIsDefault {
-			numDefaultClasses++
-		}
 
-		if numDefaultClasses > 1 {
-			return false, errors.New("cannot have more than one default storageClass")
+			if foundDefaultClass {
+				return false, errors.New("cannot have more than one default storageClass")
+			}
+
+			foundDefaultClass = true
 		}
 	}
 
