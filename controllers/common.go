@@ -153,7 +153,7 @@ func checkByteArrayIsEmpty(val []byte) bool {
 	return len(val) != 0
 }
 
-func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList, log logr.Logger) (bool, error) {
+func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList) (bool, error) {
 
 	foundDefaultClass := false
 	for _, vsClass := range vsClassList.Items {
@@ -175,7 +175,7 @@ func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList, lo
 	return true, nil
 }
 
-func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList, log logr.Logger) (bool, error) {
+func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList) (bool, error) {
 
 	foundDefaultClass := false
 	for _, storageClass := range storageClassList.Items {
