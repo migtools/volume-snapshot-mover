@@ -25,7 +25,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -33,7 +33,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 	time.Sleep(time.Second * 10)
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		r.Log.Error(err, "original volumesnapshotcontent not found")
+		r.Log.Error(err, fmt.Sprintf("original volumesnapshotcontent %s not found", vsb.Spec.VolumeSnapshotContent.Name))
 		return false, err
 	}
 
@@ -78,20 +78,21 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	// fetch vsc clone
 	vscClone := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
-		r.Log.Error(err, "volumesnapshotcontent clone not found")
+	vscCloneName := fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)
+	if err := r.Get(r.Context, types.NamespacedName{Name: vscCloneName}, &vscClone); err != nil {
+		r.Log.Error(err, fmt.Sprintf("volumesnapshotcontent clone %s not found", vscCloneName))
 		return false, err
 	}
 
 	// check if vsc clone is ready to use before going ahead with vs clone creation
 	if vscClone.Status == nil || vscClone.Status.ReadyToUse == nil || *vscClone.Status.ReadyToUse != true {
-		r.Log.Info("volumesnapshotcontent clone is not ready to use")
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent clone %s is not ready to use", vscCloneName))
 		return false, nil
 	}
 
@@ -131,7 +132,7 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClon
 	// Get VSC that is defined in spec
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
-		r.Log.Error(err, "unable to fetch original volumesnapshotcontent in cluster")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch original volumesnapshotcontent %s in cluster", vsb.Spec.VolumeSnapshotContent.Name))
 		return err
 	}
 
@@ -153,6 +154,18 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClon
 
 	if vscClone.CreationTimestamp.IsZero() {
 		vscClone.Spec = newSpec
+	}
+
+	if vsb.Status.VolumeSnapshotClassName == "" {
+		// update VSB status to add volumesnapshotclassname
+		// set source PVC name in VSB status
+		vsb.Status.VolumeSnapshotClassName = *vscClone.Spec.VolumeSnapshotClassName
+
+		// Update VSB status
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -181,14 +194,15 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	// Get the clone VSC
 	vscClone := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
-		r.Log.Error(err, "cloned volumesnapshotcontent not found")
+	vscCloneName := fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)
+	if err := r.Get(r.Context, types.NamespacedName{Name: vscCloneName}, &vscClone); err != nil {
+		r.Log.Error(err, fmt.Sprintf("cloned volumesnapshotcontent %s not found", vscCloneName))
 		return false, err
 	}
 
@@ -196,20 +210,18 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 	vsClone := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
 		types.NamespacedName{Name: fmt.Sprintf(vscClone.Spec.VolumeSnapshotRef.Name), Namespace: vsb.Spec.ProtectedNamespace}, &vsClone); err != nil {
-		r.Log.Info("cloned volumesnapshot not available in the protected namespace")
+		r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s not available in the protected namespace", vscClone.Spec.VolumeSnapshotRef.Name))
 		return false, nil
 	}
 
 	//skip waiting if vs is ready
 	if vsClone.Status != nil && *vsClone.Status.ReadyToUse == true && *vsClone.Status.BoundVolumeSnapshotContentName == vscClone.Name {
-		r.Log.Info("cloned volumesnapshot is in ready status and has a bound volumesnapshotcontent, skipping wait step")
+		r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s is in ready status and has a bound volumesnapshotcontent, skipping wait step", vscClone.Spec.VolumeSnapshotRef.Name))
 		time.Sleep(time.Second * 10)
 		return true, nil
 	}
 
-	r.Log.Info("waiting for volumesnapshot to be ready")
 	time.Sleep(time.Second * 30)
-	r.Log.Info("volumesnapshot wait period done")
 	return true, nil
 }
 
@@ -221,20 +233,21 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
 	}
 
 	// fetch vsc clone
 	vscClone := snapv1.VolumeSnapshotContent{}
-	if err := r.Get(r.Context, types.NamespacedName{Name: fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)}, &vscClone); err != nil {
-		r.Log.Error(err, "volumesnapshotcontent clone not found")
+	vscCloneName := fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)
+	if err := r.Get(r.Context, types.NamespacedName{Name: vscCloneName}, &vscClone); err != nil {
+		r.Log.Error(err, fmt.Sprintf("volumesnapshotcontent clone %s not found", vscCloneName))
 		return false, err
 	}
 
 	//skip waiting if vsc is ready
 	if vscClone.Status != nil && *vscClone.Status.ReadyToUse == true {
-		r.Log.Info("cloned volumesnapshotcontent is in ready status, skipping wait step")
+		r.Log.Info(fmt.Sprintf("cloned volumesnapshotcontent %s is in ready status, skipping wait step", vscCloneName))
 		// TODO: handle better
 		// this prevents the cloned VS being created too quickly after cloned VSC is created
 		// which causes long pending time for the cloned PVC
@@ -242,9 +255,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 		return true, nil
 	}
 
-	r.Log.Info("waiting for volumesnapshotcontent to be ready")
 	time.Sleep(time.Second * 30)
-	r.Log.Info("volumesnapshotcontent wait period done")
 	return true, nil
 }
 
@@ -256,7 +267,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
 		return false, err
 	}
 
@@ -266,12 +277,11 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 	}
 
 	if vsc.Status == nil {
-		r.Log.Info("VolumeSnapshotContent status is not set, requeueing...")
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent %s status is not set, requeueing...", vsc.Name))
 		return false, nil
 	}
 
 	if *vsc.Status.ReadyToUse == true && vsc.Status.SnapshotHandle != nil {
-		r.Log.Info("volSync volumesnapshotcontent is ready")
 		vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
 
 		// Update VSR status
@@ -281,7 +291,6 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 		}
 		return true, nil
 	}
-	r.Log.Info("VolSync volumesnapshotcontent is not yet in ready status, requeuing...")
 	return false, nil
 }
 
@@ -292,7 +301,7 @@ func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *volsnap
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
 	repDest := volsyncv1alpha1.ReplicationDestination{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
-		r.Log.Error(err, "error getting replicationDestination")
+		r.Log.Error(err, fmt.Sprintf("unable to fetch replicationdestination %s/%s", vsr.Spec.ProtectedNamespace, repDestName))
 		return nil, err
 	}
 
@@ -302,7 +311,7 @@ func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *volsnap
 
 		// fetch vs from replicationDestination
 		if err := r.Get(r.Context, types.NamespacedName{Name: volSyncSnapName, Namespace: vsr.Spec.ProtectedNamespace}, &vs); err != nil {
-			r.Log.Error(err, "volumesnapshot from VolSync not found")
+			r.Log.Error(err, fmt.Sprintf("volumesnapshot %s/%s from VolSync not found", vsr.Spec.ProtectedNamespace, volSyncSnapName))
 			return nil, err
 		}
 
@@ -310,12 +319,11 @@ func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *volsnap
 
 		// fetch vsc from replicationDestination
 		if err := r.Get(r.Context, types.NamespacedName{Name: volSyncSnapContentName}, &vsc); err != nil {
-			r.Log.Error(err, "volumesnapshotcontent clone not found")
+			r.Log.Error(err, fmt.Sprintf("volumesnapshotcontent clone %s not found", volSyncSnapContentName))
 			return nil, err
 		}
 
 	}
 
-	r.Log.Info("fetched volumesnapshotcontent from replicationDestination")
 	return &vsc, nil
 }

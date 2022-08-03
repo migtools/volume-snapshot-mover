@@ -26,6 +26,35 @@ in instances such as cluster deletion or disaster.
 - Have an appropriate StorageClass and VolumeShapshotClass. **Make sure there is only one default of each.**
   - Include the label `velero.io/csi-volumesnapshot-class: 'true'` in your `VolumeSnapshotClass` 
   to let Velero know which to use.
+  - `deletionPolicy` must be set to `Retain`
+
+```
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: example-snapclass
+  labels:
+    velero.io/csi-volumesnapshot-class: 'true'
+  annotations:
+    snapshot.storage.kubernetes.io/is-default-class: 'true'
+driver: ebs.csi.aws.com
+deletionPolicy: Retain
+```
+
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2-csi
+  annotations:
+    storageclass.kubernetes.io/is-default-class: 'true'
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp2
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+```
 
 - Install the [OADP Operator](https://github.com/openshift/oadp-operator/blob/master/docs/install_olm.md) using OLM.
 
@@ -52,9 +81,9 @@ EOF
 
 
 - Create a DPA similar to below:
-  - Add the restic secret name from the previous step to your DPA CR in `spec.features.dataMoverCredential`.  
+  - Add the restic secret name from the previous step to your DPA CR in `spec.features.dataMover.credentialName`.  
     If this step is not completed then it will default to the secret name `dm-credential`.
-  - Note the CSI `defaultPlugin` and `enableDataMover` flag.
+  - Note the CSI `defaultPlugin` and `dataMover.enable` flag.
 
 
 ```
@@ -65,8 +94,9 @@ metadata:
   namespace: openshift-adp
 spec:
   features:
-    enableDataMover: true
-    dataMoverCredential: <secret-name>
+    dataMover: 
+      enable: true
+      credentialName: <secret-name>
   backupLocations:
     - velero:
         config:
@@ -93,8 +123,8 @@ spec:
 ```
 
 
-- The OADP operator will install VolumeSnapshotMover CRDs `VolumeSnapshotBackup` and `VolumeSnapshotRestore` if `enableDataMover`.
-  - Example data mover CRs:
+- The OADP operator will install VolumeSnapshotMover CRDs `VolumeSnapshotBackup` and `VolumeSnapshotRestore` if `dataMover.enable`.
+  - Example CRs:
 
 
 ```
