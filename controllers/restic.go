@@ -71,6 +71,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 			ResticRepoValue = stringVal
 		}
 	}
+
 	resticrepo := fmt.Sprintf("%s/%s/%s", ResticRepoValue, pvc.Namespace, pvc.Name)
 
 	rsecret, err := PopulateResticSecret(vsb.Name, vsb.Spec.ProtectedNamespace, VSBLabel)
