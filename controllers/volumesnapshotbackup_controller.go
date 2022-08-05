@@ -19,8 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -53,6 +55,10 @@ type VolumeSnapshotBackupReconciler struct {
 	EventRecorder  record.EventRecorder
 	req            ctrl.Request
 }
+
+const (
+	dmFinalizer = "oadp.openshift.io/oadp-datamover"
+)
 
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/status,verbs=get;update;patch
@@ -130,7 +136,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CreateVSBResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
-		r.CleanBackupResources,
+		//r.CleanBackupResources,
 	)
 
 	VSBComplete, err := r.setVSBRepSourceStatus(r.Log)
@@ -182,6 +188,30 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		err = statusErr
 	}
 
+	// Add Finalizer to VSB
+	if !controllerutil.ContainsFinalizer(&vsb, dmFinalizer) {
+		controllerutil.AddFinalizer(&vsb, dmFinalizer)
+		err := r.Update(ctx, &vsb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if vsb.DeletionTimestamp != nil {
+		_, err := r.CleanBackupResources(r.Log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		controllerutil.RemoveFinalizer(&vsb, dmFinalizer)
+		err = r.Update(ctx, &vsb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		r.Log.Info("Clean up successful")
+		return ctrl.Result{}, nil
+	}
 	return ctrl.Result{}, err
 }
 
