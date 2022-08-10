@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -161,7 +162,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 			if err != nil {
 				return false, err
 			}
-			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as in progress, vsb recon as false", r.req.NamespacedName))
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as in progress", r.req.NamespacedName))
 			return false, nil
 
 			//if not in progress or completed, phase failed
@@ -173,7 +174,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 			if err != nil {
 				return false, err
 			}
-			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed, vsb recon as false", r.req.NamespacedName))
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed", r.req.NamespacedName))
 			return false, nil
 		}
 	}

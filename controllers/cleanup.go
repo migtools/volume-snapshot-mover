@@ -70,7 +70,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	if err != nil {
 		return false, err
 	}
-	r.Log.Info(fmt.Sprintf("returning from cleaning volumesnapshotbackup %s resources as completed", r.req.NamespacedName))
+
 	return true, nil
 }
 
@@ -188,6 +188,6 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	if err != nil {
 		return false, err
 	}
-	r.Log.Info(fmt.Sprintf("returning from cleaning volumesnapshotrestore %s resources as completed", r.req.NamespacedName))
+
 	return true, nil
 }

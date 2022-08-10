@@ -95,7 +95,6 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 		return false, err
 	}
 
-	r.Log.Info("returning true In function ValidateVolumeSnapshotMoverRestore")
 	return true, nil
 }
 
@@ -111,7 +110,6 @@ func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultVSBSnapClass(log logr
 
 	_, err := checkForOneDefaultSnapClass(&vsClassList)
 	if err != nil {
-		r.Log.Error(err, "error checking for one default volumeSnapshotClass")
 		return false, err
 	}
 
@@ -129,7 +127,6 @@ func (r *VolumeSnapshotBackupReconciler) checkForOneDefaultVSBStorageClass(log l
 
 	_, err := checkForOneDefaultStorageClass(&storageClassList)
 	if err != nil {
-		r.Log.Error(err, "error checking for one default storageClass")
 		return false, err
 	}
 
@@ -148,7 +145,6 @@ func (r *VolumeSnapshotRestoreReconciler) checkForOneDefaultVSRSnapClass(log log
 
 	_, err := checkForOneDefaultSnapClass(&vsClassList)
 	if err != nil {
-		r.Log.Error(err, "error checking for one default volumeSnapshotClass")
 		return false, err
 	}
 
@@ -166,7 +162,6 @@ func (r *VolumeSnapshotRestoreReconciler) checkForOneDefaultVSRStorageClass(log 
 
 	_, err := checkForOneDefaultStorageClass(&storageClassList)
 	if err != nil {
-		r.Log.Error(err, "error checking for one default storageClass")
 		return false, err
 	}
 
