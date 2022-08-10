@@ -130,7 +130,6 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 					return false, err
 				}
 
-				r.Log.Info(fmt.Sprintf("replicationdestination %s/%s has completed", vsr.Spec.ProtectedNamespace, repDestName))
 				return true, nil
 			}
 		}

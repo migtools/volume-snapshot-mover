@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -119,7 +120,6 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 		return false, err
 	}
 
-	// get restic secret name
 	// get restic secret name
 	credName := vsr.Spec.ResticSecretRef.Name
 	if credName == "" {

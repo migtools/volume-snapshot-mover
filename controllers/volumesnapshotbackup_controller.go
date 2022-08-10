@@ -19,8 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,7 +107,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// stop reconciling on this resource when completed
 	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
-		r.Log.Info("stopping reconciliation of volumesnapshotbackup")
 		return ctrl.Result{
 			Requeue: false,
 		}, nil

@@ -3,8 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -216,7 +217,6 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 
 	//skip waiting if vs is ready
 	if vsClone.Status != nil && *vsClone.Status.ReadyToUse == true && *vsClone.Status.BoundVolumeSnapshotContentName == vscClone.Name {
-		r.Log.Info(fmt.Sprintf("cloned volumesnapshot %s is in ready status and has a bound volumesnapshotcontent, skipping wait step", vscClone.Spec.VolumeSnapshotRef.Name))
 		time.Sleep(time.Second * 10)
 		return true, nil
 	}
@@ -247,7 +247,6 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 
 	//skip waiting if vsc is ready
 	if vscClone.Status != nil && *vscClone.Status.ReadyToUse == true {
-		r.Log.Info(fmt.Sprintf("cloned volumesnapshotcontent %s is in ready status, skipping wait step", vscCloneName))
 		// TODO: handle better
 		// this prevents the cloned VS being created too quickly after cloned VSC is created
 		// which causes long pending time for the cloned PVC
