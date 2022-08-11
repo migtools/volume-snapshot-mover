@@ -93,17 +93,17 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		Name:      vsb.Name,
 	}
 
-	if vsb.Status.Conditions != nil {
-		for i := range vsb.Status.Conditions {
-			if vsb.Status.Conditions[i].Type == ConditionReconciled && vsb.Status.Conditions[i].Status == metav1.ConditionTrue {
-				// stop reconciling on this resource
-				r.Log.Info("stopping reconciliation of volumesnapshotbackup %v", vsb.Name)
-				return ctrl.Result{
-					Requeue: false,
-				}, nil
-			}
-		}
-	}
+	// if vsb.Status.Conditions != nil {
+	// 	for i := range vsb.Status.Conditions {
+	// 		if vsb.Status.Conditions[i].Type == ConditionReconciled && vsb.Status.Conditions[i].Status == metav1.ConditionTrue {
+	// 			// stop reconciling on this resource
+	// 			r.Log.Info("stopping reconciliation of volumesnapshotbackup %v", vsb.Name)
+	// 			return ctrl.Result{
+	// 				Requeue: false,
+	// 			}, nil
+	// 		}
+	// 	}
+	// }
 
 	// stop reconciling on this resource when completed
 	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
@@ -111,10 +111,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 			Requeue: false,
 		}, nil
 	}
-
-	/*if vsb.Status.VolumeSnapshotBackupStarted {
-		// wait for it to complete... poll every 5 seconds
-	}*/
 
 	// Run through all reconcilers associated with VSB needs
 	// Reconciliation logic
@@ -133,15 +129,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CleanBackupResources,
 	)
 
-	VSBComplete, err := r.setVSBRepSourceStatus(r.Log)
-	if !VSBComplete {
-		return ctrl.Result{Requeue: true}, err
-	}
-
-	if !reconFlag {
-		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
-	}
-
 	// Update the status with any errors, or set completed condition
 	if err != nil {
 		r.Log.Info(fmt.Sprintf("Error from batch reconcile: %v", err))
@@ -152,7 +139,9 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 				Status:  metav1.ConditionFalse,
 				Reason:  ReconciledReasonError,
 				Message: err.Error(),
-			})
+			},
+		)
+
 	} else {
 		// Set complete status condition
 		apimeta.SetStatusCondition(&vsb.Status.Conditions,
@@ -164,22 +153,18 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 			})
 	}
 
-	// get VSB again before updating status here
-	// since it has been updated in reconcile batch, resourceVersion has changed
-	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
-	vsb = volsnapmoverv1alpha1.VolumeSnapshotBackup{}
-	if err := r.Client.Get(ctx, req.NamespacedName, &vsb); err != nil {
-		// ignore is not found error
-		if k8serrors.IsNotFound(err) {
-			return result, nil
-		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotBackup CR")
-		return result, err
-	}
-
 	statusErr := r.Client.Status().Update(ctx, &vsb)
 	if err == nil { // Don't mask previous error
 		err = statusErr
+	}
+
+	VSBComplete, err := r.setVSBRepSourceStatus(r.Log)
+	if !VSBComplete {
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	if !reconFlag {
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	return ctrl.Result{}, err
