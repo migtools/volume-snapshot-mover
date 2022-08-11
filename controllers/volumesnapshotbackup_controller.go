@@ -93,18 +93,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		Name:      vsb.Name,
 	}
 
-	// if vsb.Status.Conditions != nil {
-	// 	for i := range vsb.Status.Conditions {
-	// 		if vsb.Status.Conditions[i].Type == ConditionReconciled && vsb.Status.Conditions[i].Status == metav1.ConditionTrue {
-	// 			// stop reconciling on this resource
-	// 			r.Log.Info("stopping reconciliation of volumesnapshotbackup %v", vsb.Name)
-	// 			return ctrl.Result{
-	// 				Requeue: false,
-	// 			}, nil
-	// 		}
-	// 	}
-	// }
-
 	// stop reconciling on this resource when completed
 	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info("stopping reconciliation of volumesnapshotbackup")
