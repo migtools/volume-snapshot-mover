@@ -131,18 +131,11 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 		if err != nil {
 			return false, err
 		}
-		reconCondition := metav1.Condition{}
-		reconConditionProgress := metav1.Condition{}
-		for i := range repSource.Status.Conditions {
-			if repSource.Status.Conditions[i].Type == "Reconciled" {
-				reconCondition = repSource.Status.Conditions[i]
-			}
-			if repSource.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
-				reconConditionProgress = repSource.Status.Conditions[i]
-			}
-		}
 
-		if repSourceCompleted && reconCondition.Status == metav1.ConditionTrue {
+		reconConditionStatus := repSource.Status.Conditions[0].Status
+		reconConditionReason := repSource.Status.Conditions[0].Reason
+
+		if repSourceCompleted && reconConditionStatus == metav1.ConditionFalse {
 
 			// Update VSB status as completed
 			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted
@@ -154,7 +147,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 			return true, nil
 
 			// ReplicationSource phase is still in progress
-		} else if !repSourceCompleted && reconConditionProgress.Type == volsyncv1alpha1.ConditionSynchronizing {
+		} else if !repSourceCompleted && reconConditionReason == volsyncv1alpha1.SynchronizingReasonSync {
 			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseInProgress
 
 			// Update VSB status as in progress
