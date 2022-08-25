@@ -92,7 +92,7 @@ If the issue still persists, [create a new issue](https://github.com/konveyor/vo
 
 <h3>GCP object storage is not supported<a id="gcp"></a></h3>
 
-- Currently, volumeSnapshotMover only supports AWS and Azure object storage locations. 
+- Currently, volumeSnapshotMover only supports Azure, AWS, and AWS compatible (Minio, Noobaa, etc..) object storage locations. 
 
 
 <h3>Error with multiple default volumeSnapshotClasses and/or storageClasses<a id="classes"></a></h3>
