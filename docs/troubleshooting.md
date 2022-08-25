@@ -4,9 +4,10 @@
 2. [Debugging Failed VolumeSnapshotMover Restores](#restore)
 3. Known Issues 
     1. [Restore can take a long period of time to complete](#restoretime)
-    2. [Error with multiple default volumeSnapshotClasses and/or storageClasses](#classes)
-    3. [volumeSnapshotBackup/volumeSnapshotRestore CRs do not have a status field](#status)
-    4. [Backup partially fails but volumeSnapshotBackup completes](#partiallyfail)
+    2. [GCP object storage is not supported](#gcp)
+    3. [Error with multiple default volumeSnapshotClasses and/or storageClasses](#classes)
+    4. [volumeSnapshotBackup/volumeSnapshotRestore CRs do not have a status field](#status)
+    5. [Backup partially fails but volumeSnapshotBackup completes](#partiallyfail)
 
 <hr style="height:1px;border:none;color:#333;">
 
@@ -89,13 +90,17 @@ If the issue still persists, [create a new issue](https://github.com/konveyor/vo
     - This can create long restore times, so we are working on possible solutions, and should be resolved in OADP 1.1.1
     
 
+<h3>GCP object storage is not supported<a id="gcp"></a></h3>
+
+- Currently, volumeSnapshotMover only supports AWS and Azure object storage locations. 
+
+
 <h3>Error with multiple default volumeSnapshotClasses and/or storageClasses<a id="classes"></a></h3>
 
 - If there are multiple volumeSnapshotClasses and/or storageClasses, the volumeSnapshotMover controller
     will not progress. 
 - If this is the case, VSB or VSR will be created, but not reconciled on.
 - Use `oc get volumesnapshotclass` or `oc get storageclass` to check.
-
 
 
 <h3>volumeSnapshotBackup/volumeSnapshotRestore CRs do not have a status field<a id="status"></a></h3>
