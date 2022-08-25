@@ -13,8 +13,9 @@
 
 | Property             | Type                        | Description                                 |
 |----------------------|-------------------------------------------------|------------------------------------------------------|
-| Completed     | bool                                                    | Completed is whether or not VolumeSnapshotRestore has completed reconciling.    |
+| Phase     | VolumeSnapshotRestorePhase                                                    | volumesnapshot restore phase status    |
 | SnapshotHandle     | string                                             | SnapshotHandle is the snaphandle from the volumeSnapshotContent created by VolSync.      |
+| Conditions     | []metav1.Condition                                                 | Include references to the volsync CRs and their state as they are running     |
 
 
 ### VSBRef
@@ -23,7 +24,8 @@
 |----------------------|---------------------------------------|---------------------------------------------|
 | BackedUpPVCData    | PVCData                                    | BackedUpPVCData  is a reference to the source PVC from backup.   |
 | ResticRepository     | string                                     | ResticRepository is the location in which the snapshot will be retrieved.        |
-  
+| VolumeSnapshotClassName     | string                                     | name of the VolumeSnapshotClass      |
+
 
 ### PVCData
 
@@ -31,6 +33,7 @@
 |----------------------|---------------------------------------|---------------------------------------------|
 | Name    | string                                      | Name is the name of the application's source PVC.   |
 | Size     | string                                     | Size is the size of the source PVC.           |
+| StorageClassName     | string                                     | Name of the StorageClass                          |
 
 
 ### VolumeSnapshotRestorePhase
