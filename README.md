@@ -67,7 +67,7 @@ allowVolumeExpansion: true
 
   
 ```
-$ cat << EOF > ./restic-secret.yaml
+cat << EOF > ./restic-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
