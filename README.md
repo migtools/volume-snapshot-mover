@@ -67,7 +67,7 @@ allowVolumeExpansion: true
 
   
 ```
-$ cat << EOF > ./restic-secret.yaml
+cat << EOF > ./restic-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -123,40 +123,6 @@ spec:
 ```
 
 
-- The OADP operator will install VolumeSnapshotMover CRDs `VolumeSnapshotBackup` and `VolumeSnapshotRestore` if `dataMover.enable`.
-  - Example CRs:
-
-
-```
-apiVersion: datamover.oadp.openshift.io/v1alpha1
-kind: VolumeSnapshotBackup
-metadata:
-  name: <vsb-name>
-spec:
-  volumeSnapshotContent:
-    name: <snapcontent-name>
-  protectedNamespace: <adp-namespace>
-  resticSecretRef: 
-    name: <restic-secret-name>
-```
-
-```
-apiVersion: datamover.oadp.openshift.io/v1alpha1
-kind: VolumeSnapshotRestore
-metadata:
-  name: <vsr-name>
-spec:
-  protectedNamespace: <protected-ns>
-  resticSecretRef: 
-    name: <restic-secret-name>
-  volumeSnapshotMoverBackupRef:
-    sourcePVCData: 
-      name: <source-pvc-name>
-      size: <source-pvc-size>
-    resticrepository: <your-restic-repo>
-    volumeSnapshotClassName: <vsclass-name>
-```
-
 <hr style="height:1px;border:none;color:#333;">
 
 <h4> For backup <a id="backup"></a></h4>
@@ -177,9 +143,17 @@ spec:
 
 - Wait several minutes and check the VolumeSnapshotBackup CR status for completed: 
 
+VolumeSnapshotBackup status:
+
 `oc get vsb -n <app-ns>`
 
-`oc get vsb <vsb-name> -n <app-ns> -ojsonpath="{.status.phase}` 
+`oc get vsb <vsb-name> -n <app-ns> -ojsonpath="{.status.phase}"` 
+
+Alternatively one can use Velero / OADP status:
+
+`oc get backup`
+
+`oc get backup <name> -ojsonpath="{.status.phase}"`
 
 - There should now be a snapshot in the object store that was given in the restic secret.
 
