@@ -143,6 +143,14 @@ spec:
 
 - Wait several minutes and check the VolumeSnapshotBackup CR status for completed: 
 
+VolumeSnapshotBackup status:
+
+`oc get vsb -n <app-ns>`
+
+`oc get vsb <vsb-name> -n <app-ns> -ojsonpath="{.status.phase}"` 
+
+Alternatively one can use Velero / OADP status:
+
 `oc get backup`
 
 `oc get backup <name> -ojsonpath="{.status.phase}"`
