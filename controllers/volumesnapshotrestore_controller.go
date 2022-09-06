@@ -106,10 +106,6 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		r.CleanRestoreResources,
 	)
 
-	if !reconFlag {
-		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
-	}
-
 	// Update the status with any errors, or set completed condition
 	if err != nil {
 		r.Log.Info(fmt.Sprintf("Error from batch reconcile: %v", err))
@@ -132,21 +128,13 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 			})
 	}
 
-	// get VSR again before updating status here
-	// since it has been updated in reconcile batch, resourceVersion has changed
-	// prevents "the object has been modified; please apply your changes to the latest version and try again" err
-	vsr = volsnapmoverv1alpha1.VolumeSnapshotRestore{}
-	if err := r.Client.Get(ctx, req.NamespacedName, &vsr); err != nil {
-		if k8serrors.IsNotFound(err) {
-			return result, nil
-		}
-		r.Log.Error(err, "unable to fetch VolumeSnapshotRestore CR")
-		return result, err
-	}
-
 	statusErr := r.Client.Status().Update(ctx, &vsr)
 	if err == nil { // Don't mask previous error
 		err = statusErr
+	}
+
+	if !reconFlag {
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	return ctrl.Result{}, err
