@@ -110,6 +110,10 @@ func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) 
 		return false, err
 	}
 
+	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed {
+		return false, errors.New("vsb status is failed")
+	}
+
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
 	repSource := volsyncv1alpha1.ReplicationSource{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {

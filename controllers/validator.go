@@ -167,3 +167,43 @@ func (r *VolumeSnapshotRestoreReconciler) checkForOneDefaultVSRStorageClass(log 
 
 	return true, nil
 }
+
+func (r *VolumeSnapshotBackupReconciler) CheckBackupStatus(log logr.Logger) (bool, error) {
+
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
+		return false, err
+	}
+
+	err := GetBackupStatus(&vsb, r.Client, log)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) CheckRestoreStatus(log logr.Logger) (bool, error) {
+
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		// ignore is not found error
+		if k8serrors.IsNotFound(err) {
+			return true, nil
+		}
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
+		return false, err
+	}
+
+	err := GetRestoreStatus(&vsr, r.Client, log)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}

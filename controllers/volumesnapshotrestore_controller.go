@@ -87,8 +87,8 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		Name:      vsr.Name,
 	}
 
-	// stop reconciling on this resource when completed
-	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted {
+	// stop reconciling on this resource when completed or failed
+	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted || vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed {
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
@@ -99,6 +99,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 
 	reconFlag, err := ReconcileBatch(r.Log,
 		r.ValidateVolumeSnapshotMoverRestore,
+		r.CheckRestoreStatus,
 		r.CreateVSRResticSecret,
 		r.CreateReplicationDestination,
 		r.WaitForReplicationDestinationToBeReady,

@@ -1,20 +1,27 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/go-logr/logr"
+	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	VSBLabel                      = "datamover.oadp.openshift.io/vsb"
 	VSRLabel                      = "datamover.oadp.openshift.io/vsr"
+	backupLabel                   = "velero.io/backup-name"
+	restoreLabel                  = "velero.io/restore-name"
 	DummyPodImage                 = "quay.io/konveyor/rsync-transfer:latest"
 	volumeSnapshotClassDefaultKey = "snapshot.storage.kubernetes.io/is-default-class"
 	storageClassDefaultKey        = "storageclass.kubernetes.io/is-default-class"
@@ -267,4 +274,42 @@ func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList
 	}
 
 	return true, nil
+}
+
+func GetBackupStatus(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, client client.Client, log logr.Logger) error {
+
+	backupName := vsb.Labels[backupLabel]
+	backup := velero.Backup{}
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: backupName}, &backup); err != nil {
+		return err
+	}
+
+	if backup.Status.Phase == velero.BackupPhaseFailed || backup.Status.Phase == velero.BackupPhasePartiallyFailed {
+		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed
+		err := client.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return err
+		}
+		return errors.New("backup failed. Marking volumesnapshotbackup as failed")
+	}
+	return nil
+}
+
+func GetRestoreStatus(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, client client.Client, log logr.Logger) error {
+
+	restoreName := vsr.Labels[restoreLabel]
+	restore := velero.Restore{}
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: restoreName}, &restore); err != nil {
+		return err
+	}
+
+	if restore.Status.Phase == velero.RestorePhaseFailed || restore.Status.Phase == velero.RestorePhasePartiallyFailed {
+		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
+		err := client.Status().Update(context.Background(), vsr)
+		if err != nil {
+			return err
+		}
+		return errors.New("restore failed. Marking volumesnapshotrestore as failed")
+	}
+	return nil
 }
