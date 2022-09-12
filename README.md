@@ -26,7 +26,7 @@ in instances such as cluster deletion or disaster.
 - Have an appropriate StorageClass and VolumeShapshotClass. **Make sure there is only one default of each.**
   - Include the label `velero.io/csi-volumesnapshot-class: 'true'` in your `VolumeSnapshotClass` 
   to let Velero know which to use.
-  - `deletionPolicy` must be set to `Retain`
+  - `deletionPolicy` must be set to `Retain` for the `VolumeSnapshotClass`.
 
 ```
 apiVersion: snapshot.storage.k8s.io/v1
