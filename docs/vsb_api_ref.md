@@ -35,4 +35,5 @@
 | SnapMoverVolSyncPhaseCompleted                          | VolumeSnapshotBackupPhase     |  VolumeSnapshotBackup VolSync ReplicationSource has completed.   |
 | SnapMoverBackupPhaseCompleted                                 | VolumeSnapshotBackupPhase  |  VolumeSnapshotBackup has completed.   |
 | SnapMoverBackupPhaseInProgress                             | VolumeSnapshotBackupPhase        |   VolumeSnapshotBackup is still in progress. |
+| SnapMoverBackupPhasePartiallyFailed                         | VolumeSnapshotBackupPhase    |    VolumeSnapshotBackup has partially failed.   |
 | SnapMoverBackupPhaseFailed                                | VolumeSnapshotBackupPhase    |    VolumeSnapshotBackup has failed.   |

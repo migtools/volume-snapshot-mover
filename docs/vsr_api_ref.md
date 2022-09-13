@@ -43,4 +43,5 @@
 | SnapMoverRestoreVolSyncPhaseCompleted                          | VolumeSnapshotRestorePhase     |  VolumeSnapshotRestore VolSync ReplicationDestination has completed.   |
 | SnapMoverRestorePhaseCompleted                                 | VolumeSnapshotRestorePhase  |  VolumeSnapshotRestore has completed.   |
 | SnapMoverRestorePhaseInProgress                             | VolumeSnapshotRestorePhase        |   VolumeSnapshotRestore is still in progress. |
+| SnapMoverRestorePhasePartiallyFailed                    | VolumeSnapshotRestorePhase    |    VolumeSnapshotRestore has partially failed.   |
 | SnapMoverRestorePhaseFailed                                | VolumeSnapshotRestorePhase    |    VolumeSnapshotRestore has failed.   |

@@ -2,14 +2,12 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -98,93 +96,60 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	return nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) setVSBRepSourceStatus(log logr.Logger) (bool, error) {
-
-	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
-	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
-		// ignore is not found error
-		if k8serrors.IsNotFound(err) {
-			return true, nil
-		}
-		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
+func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, repSource *volsyncv1alpha1.ReplicationSource) (bool, error) {
+	// check for ReplicationSource phase
+	repSourceCompleted, err := r.isRepSourceCompleted(vsb)
+	if err != nil {
 		return false, err
 	}
 
-	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed {
-		return false, errors.New("vsb status is failed")
-	}
+	reconConditionCompleted := metav1.Condition{}
+	reconConditionProgress := metav1.Condition{}
 
-	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
-	repSource := volsyncv1alpha1.ReplicationSource{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: repSourceName}, &repSource); err != nil {
-		if k8serror.IsNotFound(err) {
-			return false, nil
+	for i := range repSource.Status.Conditions {
+		if repSource.Status.Conditions[i].Status == metav1.ConditionFalse {
+			reconConditionCompleted = repSource.Status.Conditions[i]
 		}
-		return false, err
+		if repSource.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
+			reconConditionProgress = repSource.Status.Conditions[i]
+		}
 	}
 
-	if repSource.Status == nil {
-		r.Log.Info(fmt.Sprintf("replication source %s/%s is yet to have a status", vsb.Spec.ProtectedNamespace, repSourceName))
-		return false, nil
-	}
+	if repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing {
 
-	if repSource.Status != nil {
-
-		// check for ReplicationSource phase
-		repSourceCompleted, err := r.isRepSourceCompleted(&vsb)
+		// Update VSB status as completed
+		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted
+		err := r.Status().Update(context.Background(), vsb)
 		if err != nil {
 			return false, err
 		}
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s VolSync phase as complete", r.req.NamespacedName))
+		return true, nil
 
-		reconConditionCompleted := metav1.Condition{}
-		reconConditionProgress := metav1.Condition{}
+		// ReplicationSource phase is still in progress
+	} else if !repSourceCompleted && reconConditionProgress.Status == metav1.ConditionTrue {
+		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseInProgress
 
-		for i := range repSource.Status.Conditions {
-			if repSource.Status.Conditions[i].Status == metav1.ConditionFalse {
-				reconConditionCompleted = repSource.Status.Conditions[i]
-			}
-			if repSource.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
-				reconConditionProgress = repSource.Status.Conditions[i]
-			}
+		// Update VSB status as in progress
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
 		}
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as in progress", r.req.NamespacedName))
+		return false, nil
 
-		if repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing {
+		//if not in progress or completed, phase failed
+	} else {
+		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed
 
-			// Update VSB status as completed
-			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted
-			err := r.Status().Update(context.Background(), &vsb)
-			if err != nil {
-				return false, err
-			}
-			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s VolSync phase as complete", r.req.NamespacedName))
-			return true, nil
-
-			// ReplicationSource phase is still in progress
-		} else if !repSourceCompleted && reconConditionProgress.Status == metav1.ConditionTrue {
-			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseInProgress
-
-			// Update VSB status as in progress
-			err := r.Status().Update(context.Background(), &vsb)
-			if err != nil {
-				return false, err
-			}
-			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as in progress", r.req.NamespacedName))
-			return false, nil
-
-			//if not in progress or completed, phase failed
-		} else {
-			vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed
-
-			// Update VSB status
-			err := r.Status().Update(context.Background(), &vsb)
-			if err != nil {
-				return false, err
-			}
-			r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed", r.req.NamespacedName))
-			return false, nil
+		// Update VSB status
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
 		}
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed", r.req.NamespacedName))
+		return false, nil
 	}
-	return false, errors.New("replication source status not ready")
 }
 
 func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
