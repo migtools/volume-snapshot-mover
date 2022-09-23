@@ -182,7 +182,13 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 		}
 	}
 
-	// Update VSR status as completed
+	// get VSR again here due to resourceVersion changes prior to delete
+	vsr = volsnapmoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
+		return false, err
+	}
+
 	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted
 	err := r.Status().Update(context.Background(), &vsr)
 	if err != nil {
