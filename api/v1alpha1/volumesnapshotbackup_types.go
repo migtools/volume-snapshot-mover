@@ -65,6 +65,8 @@ const (
 	SnapMoverBackupPhaseInProgress VolumeSnapshotBackupPhase = "InProgress"
 
 	SnapMoverBackupPhaseFailed VolumeSnapshotBackupPhase = "Failed"
+
+	SnapMoverBackupPhasePartiallyFailed VolumeSnapshotBackupPhase = "PartiallyFailed"
 )
 
 //+kubebuilder:object:root=true

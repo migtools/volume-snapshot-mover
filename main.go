@@ -18,9 +18,10 @@ package main
 
 import (
 	"flag"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"time"
+
+	"go.uber.org/zap/zapcore"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -29,6 +30,7 @@ import (
 	pvcv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	"github.com/konveyor/volume-snapshot-mover/controllers"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -88,6 +90,10 @@ func main() {
 	}
 	if err := volsyncv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 		setupLog.Error(err, "unable to add v1alpha1.Volsync APIs to scheme")
+		os.Exit(1)
+	}
+	if err := velero.AddToScheme(mgr.GetScheme()); err != nil {
+		setupLog.Error(err, "unable to add v1.Velero APIs to scheme")
 		os.Exit(1)
 	}
 	if err = (&controllers.VolumeSnapshotBackupReconciler{
