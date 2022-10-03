@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM quay.io/konveyor/builder:latest AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
