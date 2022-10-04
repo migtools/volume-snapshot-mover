@@ -103,7 +103,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		r.ValidateVolumeSnapshotMoverRestore,
 		r.CreateVSRResticSecret,
 		r.CreateReplicationDestination,
-		r.WaitForReplicationDestinationToBeReady,
+		r.GetReplicationDestinationStatus,
 		r.WaitForVolSyncSnapshotContentToBeReady,
 		r.CleanRestoreResources,
 	)

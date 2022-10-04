@@ -96,7 +96,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 	return nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotRestoreReconciler) GetReplicationDestinationStatus(log logr.Logger) (bool, error) {
 
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
@@ -116,7 +116,17 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 	}
 
 	if repDest.Status != nil {
+		reconConditionProgress := metav1.Condition{}
+
+		// save replicationDestination status conditions
+		for i := range repDest.Status.Conditions {
+			if repDest.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
+				reconConditionProgress = repDest.Status.Conditions[i]
+			}
+		}
+
 		// for manual trigger, if spec.trigger.manual == status.lastManualSync, sync has completed
+		// VSR is completed
 		if len(repDest.Status.LastManualSync) > 0 && len(repDest.Spec.Trigger.Manual) > 0 {
 			sourceStatus := repDest.Status.LastManualSync
 			sourceSpec := repDest.Spec.Trigger.Manual
@@ -129,9 +139,31 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForReplicationDestinationToBeReady
 				if err != nil {
 					return false, err
 				}
-
+				r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as completed", r.req.NamespacedName))
 				return true, nil
 			}
+
+			// VSR is in progress
+		} else if reconConditionProgress.Status == metav1.ConditionTrue && reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonSync {
+
+			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseInProgress
+			err := r.Status().Update(context.Background(), &vsr)
+			if err != nil {
+				return false, err
+			}
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as in progress", r.req.NamespacedName))
+			return false, nil
+
+			// if not in progress or completed, phase failed
+		} else {
+			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
+
+			err := r.Status().Update(context.Background(), &vsr)
+			if err != nil {
+				return false, err
+			}
+			r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as failed", r.req.NamespacedName))
+			return false, nil
 		}
 	}
 
