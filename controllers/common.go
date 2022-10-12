@@ -42,6 +42,9 @@ const (
 	AzureAccountName = "AZURE_ACCOUNT_NAME"
 	AzureAccountKey  = "AZURE_ACCOUNT_KEY"
 
+	// GCP vars
+	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
+
 	// Restic repo vars
 	ResticPassword   = "RESTIC_PASSWORD"
 	ResticRepository = "RESTIC_REPOSITORY"
@@ -65,6 +68,8 @@ var (
 
 	AzureAccountNameValue []byte
 	AzureAccountKeyValue  []byte
+
+	GoogleApplicationCredentialsValue []byte
 
 	ResticPasswordValue []byte
 	ResticRepoValue     string
@@ -157,6 +162,28 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		}
 		secret.Data = resticSecretData.Data
 		return nil
+
+	case GCPProvider:
+		// assign new restic secret values
+		for key, val := range givensecret.Data {
+			switch {
+			case key == GoogleApplicationCredentials:
+				GoogleApplicationCredentialsValue = val
+			case key == ResticPassword:
+				ResticPasswordValue = val
+			}
+		}
+
+		// build new Restic secret
+		resticSecretData := &corev1.Secret{
+			Data: map[string][]byte{
+				GoogleApplicationCredentials: GoogleApplicationCredentialsValue,
+				ResticPassword:               ResticPasswordValue,
+				ResticRepository:             []byte(resticrepo),
+			},
+		}
+		secret.Data = resticSecretData.Data
+		return nil
 	}
 
 	return nil
@@ -212,6 +239,27 @@ func ValidateResticSecret(resticsecret *corev1.Secret) error {
 				b := checkByteArrayIsEmpty(val)
 				if !b {
 					return errors.New("azure account key value cannot be empty")
+				}
+			case ResticPassword:
+				b := checkByteArrayIsEmpty(val)
+				if !b {
+					return errors.New("resticPassword value cannot be empty")
+				}
+			case ResticRepository:
+				b := checkByteArrayIsEmpty(val)
+				if !b {
+					return errors.New("resticRepository value cannot be empty")
+				}
+			}
+		}
+
+	case GCPProvider:
+		for key, val := range resticsecret.Data {
+			switch key {
+			case GoogleApplicationCredentials:
+				b := checkByteArrayIsEmpty(val)
+				if !b {
+					return errors.New("GoogleApplicationCredentials value cannot be empty")
 				}
 			case ResticPassword:
 				b := checkByteArrayIsEmpty(val)
