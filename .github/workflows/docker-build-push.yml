@@ -1,0 +1,84 @@
+name: Docker Build and Push
+on: [push, pull_request]
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || github.actor }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD || secrets.GITHUB_TOKEN }}
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'ghcr.io' }}
+  DOCKER_REPOSITORY: ${{ secrets.DOCKER_REPOSITORY || github.repository }} # org/repo (e.g. "myuser/myrepo")
+jobs:
+  build_push_arch:
+    permissions:
+      packages: write # fallback to github registry
+    name: Build and Push
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch:
+          - amd64
+          - arm64
+          - ppc64le
+          - s390x
+      fail-fast: False
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    - name: Docker login
+      run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin https://$DOCKER_REGISTRY
+      if: github.event_name != 'pull_request'
+    - name: echo branch
+      run: echo "branch=${{github.ref_name}}"
+    - name: docker qemu
+      uses: docker/setup-qemu-action@v2.1.0
+    - name: docker buildx
+      uses:
+        docker/setup-buildx-action@v2
+    - name: Build and push one arch
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-${{matrix.arch}}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/${{matrix.arch}}
+    - name: Retag sha as ref_name and push built image
+      run: |
+        docker pull ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-${{matrix.arch}}
+        docker tag ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-${{matrix.arch}} ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.ref_name}}-${{matrix.arch}}
+        docker push ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.ref_name}}-${{matrix.arch}}
+      if: github.event_name != 'pull_request'
+    # Optional, you can remove these 2 steps if you're familiar with GitHub’s Docker meta action
+  create_push_multiarch_manifests:
+    if: github.event_name != 'pull_request'
+    needs: build_push_arch
+    permissions:
+      packages: write  # fallback to github registry
+    name: Create and Push multiarch manifests
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin https://$DOCKER_REGISTRY
+    - run: |
+        for arch in amd64 arm64 ppc64le s390x; do
+            if [ $arch == 'arm64' ]; then PLATFORM='linux/arm64/v8'; else PLATFORM='linux/$arch' ; fi
+            docker pull ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-$arch
+            docker manifest create --amend ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}} ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-$arch
+        done
+        docker manifest push ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}
+        docker manifest inspect ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}
+    - name: push branch tag
+      run: |
+        for arch in amd64 arm64 ppc64le s390x; do
+          if [ $arch == 'arm64' ]; then PLATFORM='linux/arm64/v8'; else PLATFORM='linux/$arch' ; fi
+          docker manifest create --amend ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.ref_name}} ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-$arch
+          docker manifest push ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.ref_name}}
+          docker manifest inspect ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.ref_name}}
+        done
+    - name: if master then tag latest and push
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      run: |
+        for arch in amd64 arm64 ppc64le s390x; do
+          if [ $arch == 'arm64' ]; then PLATFORM='linux/arm64/v8'; else PLATFORM='linux/$arch'; fi
+          docker manifest create --amend ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:latest ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-$arch
+        done
+        docker manifest push ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:latest
+        docker manifest inspect ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:latest
