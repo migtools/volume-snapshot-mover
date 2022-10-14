@@ -39,7 +39,7 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY}}:${{github.sha}}-${{matrix.arch}}
         cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-to: type=gha,mode=max,scope=${{matrix.arch}}
         platforms: linux/${{matrix.arch}}
     - name: Retag sha as ref_name and push built image
       run: |
