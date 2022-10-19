@@ -103,7 +103,6 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		r.ValidateVolumeSnapshotMoverRestore,
 		r.CreateVSRResticSecret,
 		r.CreateReplicationDestination,
-		r.GetReplicationDestinationStatus,
 		r.WaitForVolSyncSnapshotContentToBeReady,
 		r.CleanRestoreResources,
 	)
@@ -137,7 +136,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		err = statusErr
 	}
 
-	VSRComplete, err := r.checkRestoreStatus(r.Log)
+	VSRComplete, err := r.SetVSRStatus(r.Log)
 	if !VSRComplete {
 		return ctrl.Result{Requeue: true}, err
 	}
