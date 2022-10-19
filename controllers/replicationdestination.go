@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -96,7 +97,7 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 	return nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) GetReplicationDestinationStatus(log logr.Logger) (bool, error) {
+func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, error) {
 
 	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
@@ -106,6 +107,16 @@ func (r *VolumeSnapshotRestoreReconciler) GetReplicationDestinationStatus(log lo
 		}
 		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
 		return false, err
+	}
+
+	//update vsr status from restore
+	err := updateVSRFromRestore(&vsr, r.Client, log)
+	if err != nil {
+		return false, err
+	}
+
+	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed || vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
+		return false, errors.New("vsb failed to complete")
 	}
 
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
