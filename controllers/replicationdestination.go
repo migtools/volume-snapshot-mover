@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -116,14 +117,22 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 	}
 
 	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed || vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
-		return false, errors.New("vsb failed to complete")
+		return false, errors.New("vsr failed to complete")
 	}
 
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
 	repDest := volsyncv1alpha1.ReplicationDestination{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
+		if k8serror.IsNotFound(err) {
+			return false, nil
+		}
 		r.Log.Info(fmt.Sprintf("error getting replicationdestination %s/%s", vsr.Spec.ProtectedNamespace, repDestName))
 		return false, err
+	}
+
+	if repDest.Status == nil {
+		r.Log.Info(fmt.Sprintf("replication destination %s/%s is yet to have a status", vsr.Spec.ProtectedNamespace, repDest))
+		return false, nil
 	}
 
 	if repDest.Status != nil {
