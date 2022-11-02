@@ -42,10 +42,21 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		},
 	}
 
+	// get restic secret created by controller
+	dmresticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
+	resticSecret := corev1.Secret{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: dmresticSecretName}, &resticSecret); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		r.Log.Error(err, fmt.Sprintf("unable to fetch restic secret %s/%s", r.NamespacedName.Namespace, dmresticSecretName))
+		return false, err
+	}
+
 	// Create ReplicationDestination in protected namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
-		return r.buildReplicationDestination(repDestination, &vsr)
+		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret)
 	})
 	if err != nil {
 		return false, err
@@ -61,15 +72,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 	return true, nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore) error {
-
-	// get restic secret created by controller
-	dmresticSecretName := fmt.Sprintf("%s-secret", vsr.Name)
-	resticSecret := corev1.Secret{}
-	if err := r.Get(r.Context, types.NamespacedName{Namespace: r.NamespacedName.Namespace, Name: dmresticSecretName}, &resticSecret); err != nil {
-		r.Log.Error(err, fmt.Sprintf("unable to fetch restic secret %s/%s", r.NamespacedName.Namespace, dmresticSecretName))
-		return err
-	}
+func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecret *corev1.Secret) error {
 
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
@@ -175,7 +178,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			return false, nil
 
 			// if not in progress or completed, phase failed
-		} else {
+		} else if reconConditionProgress.Reason == volsyncv1alpha1.ReconciledReasonError {
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
 
 			err := r.Status().Update(context.Background(), &vsr)
