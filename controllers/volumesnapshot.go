@@ -275,8 +275,8 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 		return false, err
 	}
 
-	if vsc.Status == nil {
-		r.Log.Info(fmt.Sprintf("volumesnapshotcontent %s status is not set, requeueing...", vsc.Name))
+	if vsc == nil || vsc.Status == nil {
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent for vsr %s is not yet ready", vsr.Name))
 		return false, nil
 	}
 
@@ -300,6 +300,9 @@ func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *volsnap
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
 	repDest := volsyncv1alpha1.ReplicationDestination{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, nil
+		}
 		r.Log.Error(err, fmt.Sprintf("unable to fetch replicationdestination %s/%s", vsr.Spec.ProtectedNamespace, repDestName))
 		return nil, err
 	}
