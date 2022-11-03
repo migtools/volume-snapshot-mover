@@ -134,7 +134,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 	}
 
 	if repDest.Status == nil {
-		r.Log.Info(fmt.Sprintf("replication destination %s/%s is yet to have a status", vsr.Spec.ProtectedNamespace, repDest))
+		r.Log.Info(fmt.Sprintf("replication destination %s/%s is yet to have a status", vsr.Spec.ProtectedNamespace, repDestName))
 		return false, nil
 	}
 
