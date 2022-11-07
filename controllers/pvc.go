@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
@@ -65,7 +66,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 
 		return r.buildPVCClone(pvcClone, &vsClone)
 	})
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
 		r.Log.Info(fmt.Sprintf("err building pvc clone: %v", err))
 		return false, err
 	}
@@ -170,7 +171,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		return err
 	})
 
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
 		return false, err
 	}
 	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {

@@ -50,7 +50,8 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 
 		return r.buildReplicationSource(repSource, &vsb, &clonedPVC)
 	})
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
+		// don't error out if create errors due to replicationSource already exists
 		return false, err
 	}
 
