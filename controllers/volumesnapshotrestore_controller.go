@@ -118,7 +118,6 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 				Reason:  ReconciledReasonError,
 				Message: err.Error(),
 			})
-		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
 
 	} else {
 		// Set complete status condition

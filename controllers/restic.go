@@ -123,6 +123,12 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	// get restic secret name
 	credName := vsr.Spec.ResticSecretRef.Name
 	if credName == "" {
+		err := updateVSRStatusPhase(&vsr, volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed, r.Client)
+		if err != nil {
+			return false, err
+		}
+
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as failed", r.req.NamespacedName))
 		return false, errors.New("restic secret name cannot be empty")
 	}
 	// get restic secret from user
