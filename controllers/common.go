@@ -446,3 +446,14 @@ func updateVSRStatusPhase(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, phase
 
 	return nil
 }
+
+func updateVSBStatusPhase(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, phase volsnapmoverv1alpha1.VolumeSnapshotBackupPhase, client client.Client) error {
+	vsb.Status.Phase = phase
+
+	err := client.Status().Update(context.Background(), vsb)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
