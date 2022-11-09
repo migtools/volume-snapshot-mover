@@ -15,6 +15,9 @@ import (
 )
 
 func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log logr.Logger) (bool, error) {
+	VSBStatusUpdateNeeded := false
+	var errString string
+
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
 		// ignore is not found error
@@ -26,11 +29,13 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 	}
 	// Check if VolumeSnapshotContent is nil
 	if vsb.Spec.VolumeSnapshotContent.Name == "" {
-		return false, errors.New(fmt.Sprintf("snapshot name cannot be nil for volumesnapshotbackup %s", r.req.NamespacedName))
+		VSBStatusUpdateNeeded = true
+		errString = fmt.Sprintf("snapshot name cannot be nil for volumesnapshotbackup %s", r.req.NamespacedName)
 	}
 
 	if len(vsb.Spec.ProtectedNamespace) == 0 {
-		return false, errors.New(fmt.Sprintf("protected ns cannot be empty for volumesnapshotbackup %s", r.req.NamespacedName))
+		VSBStatusUpdateNeeded = true
+		errString = fmt.Sprintf("protected ns cannot be empty for volumesnapshotbackup %s", r.req.NamespacedName)
 	}
 
 	vscInCluster := snapv1.VolumeSnapshotContent{}
@@ -41,12 +46,24 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 
 	hasOneDefaultVSClass, err := r.checkForOneDefaultVSBSnapClass(log)
 	if !hasOneDefaultVSClass {
-		return false, err
+		VSBStatusUpdateNeeded = true
+		errString = err.Error()
 	}
 
 	hasOneDefaultStorageClass, err := r.checkForOneDefaultVSBStorageClass(log)
 	if !hasOneDefaultStorageClass {
-		return false, err
+		VSBStatusUpdateNeeded = true
+		errString = err.Error()
+	}
+
+	if VSBStatusUpdateNeeded {
+		err := updateVSBStatusPhase(&vsb, volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed, r.Client)
+		if err != nil {
+			return false, err
+		}
+
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed", r.req.NamespacedName))
+		return false, errors.New(errString)
 	}
 
 	return true, nil
