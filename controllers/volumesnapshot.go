@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -294,6 +295,10 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 }
 
 func (r *VolumeSnapshotRestoreReconciler) getVolSyncSnapshotContent(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore) (*snapv1.VolumeSnapshotContent, error) {
+	if vsr == nil {
+		return nil, errors.New("nil vsr in getVolSyncSnapshotContent")
+	}
+
 	vsc := snapv1.VolumeSnapshotContent{}
 	vs := snapv1.VolumeSnapshot{}
 
