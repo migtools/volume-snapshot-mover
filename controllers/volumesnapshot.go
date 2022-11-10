@@ -38,7 +38,12 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 		return false, err
 	}
 
-	if vscInCluster.Status == nil || vscInCluster.Status.ReadyToUse == nil || *vscInCluster.Status.ReadyToUse != true {
+	if vscInCluster.Status == nil {
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent in-cluster %s status is not set", vscInCluster.Name))
+		return false, nil
+	}
+
+	if vscInCluster.Status.ReadyToUse != nil && *vscInCluster.Status.ReadyToUse != true {
 		r.Log.Info(fmt.Sprintf("volumesnapshotcontent in-cluster %s is not ready to use", vscInCluster.Name))
 		return false, nil
 	}
@@ -162,7 +167,7 @@ func (r *VolumeSnapshotBackupReconciler) buildVolumeSnapshotContentClone(vscClon
 		vscClone.Spec = newSpec
 	}
 
-	if vsb.Status.VolumeSnapshotClassName == "" && vscClone != nil && len(*vscClone.Spec.VolumeSnapshotClassName) > 0 {
+	if vsb.Status.VolumeSnapshotClassName == "" {
 		// update VSB status to add volumesnapshotclassname
 		// set source PVC name in VSB status
 		vsb.Status.VolumeSnapshotClassName = *vscClone.Spec.VolumeSnapshotClassName
