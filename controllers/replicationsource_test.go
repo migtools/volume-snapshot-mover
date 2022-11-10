@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"context"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"testing"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -187,6 +189,121 @@ func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T
 			if (err != nil) != tt.wantErr {
 				t.Errorf("VolumeSnapshotMoverBackupReconciler.buildReplicationSource() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+		})
+	}
+}
+
+func TestVolumeSnapshotBackupReconciler_setStatusFromRepSource(t *testing.T) {
+
+	tests := []struct {
+		name           string
+		vsb            *volsnapmoverv1alpha1.VolumeSnapshotBackup
+		repSource      *volsyncv1alpha1.ReplicationSource
+		Client         client.Client
+		Log            logr.Logger
+		Context        context.Context
+		NamespacedName types.NamespacedName
+		EventRecorder  record.EventRecorder
+		req            controllerruntime.Request
+		Scheme         *runtime.Scheme
+		want           bool
+		wantErr        bool
+	}{
+		{
+			name: "Given nil VSB CR, should error out",
+			vsb:  nil,
+			repSource: &volsyncv1alpha1.ReplicationSource{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-vsb-rep-src",
+					Namespace: namespace,
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "Given nil repsrc CR, should error out",
+			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-vsb",
+					Namespace: "bar",
+				},
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
+					VolumeSnapshotContent: corev1.ObjectReference{
+						Name: "sample-snapshot",
+					},
+					ProtectedNamespace: namespace,
+				},
+			},
+			repSource: nil,
+			want:      false,
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &VolumeSnapshotBackupReconciler{
+				Client:         tt.Client,
+				Scheme:         tt.Scheme,
+				Log:            tt.Log,
+				Context:        tt.Context,
+				NamespacedName: tt.NamespacedName,
+				EventRecorder:  tt.EventRecorder,
+				req:            tt.req,
+			}
+			got, err := r.setStatusFromRepSource(tt.vsb, tt.repSource)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("setStatusFromRepSource() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("setStatusFromRepSource() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestVolumeSnapshotBackupReconciler_isRepSourceCompleted(t *testing.T) {
+	tests := []struct {
+		name           string
+		Client         client.Client
+		Scheme         *runtime.Scheme
+		Log            logr.Logger
+		Context        context.Context
+		NamespacedName types.NamespacedName
+		EventRecorder  record.EventRecorder
+		req            controllerruntime.Request
+		vsb            *volsnapmoverv1alpha1.VolumeSnapshotBackup
+		want           bool
+		wantErr        bool
+	}{
+		// TODO: Add test cases.
+		{
+			name:    "Given nil VSB CR, should error out",
+			vsb:     nil,
+			want:    false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &VolumeSnapshotBackupReconciler{
+				Client:         tt.Client,
+				Scheme:         tt.Scheme,
+				Log:            tt.Log,
+				Context:        tt.Context,
+				NamespacedName: tt.NamespacedName,
+				EventRecorder:  tt.EventRecorder,
+				req:            tt.req,
+			}
+			got, err := r.isRepSourceCompleted(tt.vsb)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("isRepSourceCompleted() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("isRepSourceCompleted() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

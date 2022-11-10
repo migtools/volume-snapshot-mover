@@ -9,12 +9,6 @@ import (
 	"testing"
 )
 
-//var BackupName = "sample-backup"
-//
-//type backupNameStruct struct {
-//	name *string
-//}
-
 func Test_updateVSBFromBackup(t *testing.T) {
 	tests := []struct {
 		name    string
