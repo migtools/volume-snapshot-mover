@@ -392,6 +392,10 @@ func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList
 
 func updateVSBFromBackup(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, client client.Client, log logr.Logger) error {
 
+	if vsb == nil {
+		return errors.New("nil vsb in updateVSBFromBackup")
+	}
+
 	backupName := vsb.Labels[backupLabel]
 	backup := velero.Backup{}
 	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: backupName}, &backup); err != nil {

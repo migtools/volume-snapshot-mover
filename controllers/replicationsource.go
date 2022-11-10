@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -97,6 +98,15 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 }
 
 func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, repSource *volsyncv1alpha1.ReplicationSource) (bool, error) {
+
+	if vsb == nil {
+		return false, errors.New("nil vsb in setStatusFromRepSource")
+	}
+
+	if repSource == nil {
+		return false, errors.New("nil repSource in setStatusFromRepSource")
+	}
+
 	// check for ReplicationSource phase
 	repSourceCompleted, err := r.isRepSourceCompleted(vsb)
 	if err != nil {
@@ -153,6 +163,10 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 }
 
 func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
+
+	if vsb == nil {
+		return false, errors.New("nil vsb in isRepSourceCompleted")
+	}
 
 	// get replicationsource
 	repSourceName := fmt.Sprintf("%s-rep-src", vsb.Name)
