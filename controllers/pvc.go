@@ -35,6 +35,11 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 		return false, err
 	}
 
+	if vscClone.Status == nil || vscClone.Status.ReadyToUse == nil || *vscClone.Status.ReadyToUse != true {
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent clone %s is not ready to use", vscCloneName))
+		return false, nil
+	}
+
 	// Check if Volumesnapshot clone is present in the protected namespace
 	vsClone := snapv1.VolumeSnapshot{}
 	if err := r.Get(r.Context,
