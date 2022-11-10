@@ -106,6 +106,12 @@ func PopulateResticSecret(name string, namespace string, label string) (*corev1.
 }
 
 func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo string) error {
+	if givensecret == nil {
+		return errors.New("nil givensecret in BuildResticSecret")
+	}
+	if secret == nil {
+		return errors.New("nil secret in BuildResticSecret")
+	}
 
 	provider := givensecret.Labels[OADPBSLProviderName]
 
@@ -335,6 +341,9 @@ func (r *VolumeSnapshotBackupReconciler) setVSBStatus(log logr.Logger) (bool, er
 }
 
 func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList) (bool, error) {
+	if vsClassList == nil {
+		return false, errors.New("nil vsClassList in checkForOneDefaultSnapClass")
+	}
 
 	foundDefaultClass := false
 	for _, vsClass := range vsClassList.Items {
@@ -357,6 +366,9 @@ func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList) (b
 }
 
 func checkForOneDefaultStorageClass(storageClassList *storagev1.StorageClassList) (bool, error) {
+	if storageClassList == nil {
+		return false, errors.New("nil storageClassList in checkForOneDefaultStorageClass")
+	}
 
 	foundDefaultClass := false
 	for _, storageClass := range storageClassList.Items {
@@ -422,6 +434,9 @@ func (r *VolumeSnapshotRestoreReconciler) checkRestoreStatus(log logr.Logger) (b
 }
 
 func updateVSRFromRestore(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, client client.Client, log logr.Logger) error {
+	if vsr == nil {
+		return errors.New("nil vsr in updateVSRFromRestore")
+	}
 
 	restoreName := vsr.Labels[restoreLabel]
 	restore := velero.Restore{}
@@ -441,6 +456,10 @@ func updateVSRFromRestore(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, clien
 }
 
 func updateVSRStatusPhase(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, phase volsnapmoverv1alpha1.VolumeSnapshotRestorePhase, client client.Client) error {
+	if vsr == nil {
+		return errors.New("nil vsr in updateVSRStatusPhase")
+	}
+
 	vsr.Status.Phase = phase
 
 	err := client.Status().Update(context.Background(), vsr)
