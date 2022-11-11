@@ -38,6 +38,16 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 		return false, err
 	}
 
+	if vscInCluster.Status == nil {
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent in-cluster %s status is not set", vscInCluster.Name))
+		return false, nil
+	}
+
+	if vscInCluster.Status.ReadyToUse != nil && *vscInCluster.Status.ReadyToUse != true {
+		r.Log.Info(fmt.Sprintf("volumesnapshotcontent in-cluster %s is not ready to use", vscInCluster.Name))
+		return false, nil
+	}
+
 	// define VSC to be created as clone of spec VSC
 	vscClone := &snapv1.VolumeSnapshotContent{
 		ObjectMeta: metav1.ObjectMeta{
