@@ -73,6 +73,17 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 }
 
 func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecret *corev1.Secret) error {
+	if vsr == nil {
+		return errors.New("nil vsr in buildReplicationDestination")
+	}
+
+	if replicationDestination == nil {
+		return errors.New("nil replicationDestination in buildReplicationDestination")
+	}
+
+	if resticSecret == nil {
+		return errors.New("nil resticSecret in buildReplicationDestination")
+	}
 
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
