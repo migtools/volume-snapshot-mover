@@ -36,6 +36,10 @@ script:
 
 jobs:
   include:
+  - stage: execute unit tests
+    script:
+    - |
+      go test -v ./...
   - stage: build images
     arch: ppc64le
   - arch: s390x
