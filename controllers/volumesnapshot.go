@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -32,7 +31,6 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 	}
 
 	// fetch original vsc
-	time.Sleep(time.Second * 10)
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
 		r.Log.Error(err, fmt.Sprintf("original volumesnapshotcontent %s not found", vsb.Spec.VolumeSnapshotContent.Name))
@@ -228,11 +226,9 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 
 	//skip waiting if vs is ready
 	if vsClone.Status != nil && *vsClone.Status.ReadyToUse == true && *vsClone.Status.BoundVolumeSnapshotContentName == vscClone.Name {
-		time.Sleep(time.Second * 10)
 		return true, nil
 	}
 
-	time.Sleep(time.Second * 30)
 	return true, nil
 }
 
@@ -261,11 +257,9 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 		// TODO: handle better
 		// this prevents the cloned VS being created too quickly after cloned VSC is created
 		// which causes long pending time for the cloned PVC
-		time.Sleep(time.Second * 10)
 		return true, nil
 	}
 
-	time.Sleep(time.Second * 30)
 	return true, nil
 }
 
