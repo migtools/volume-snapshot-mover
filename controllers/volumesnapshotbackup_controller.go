@@ -168,7 +168,6 @@ func (r *VolumeSnapshotBackupReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		Owns(&snapv1.VolumeSnapshot{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&volsyncv1alpha1.ReplicationSource{}).
-		Owns(&volsyncv1alpha1.ReplicationDestination{}).
 		Owns(&v1.Pod{}).
 		WithEventFilter(volumeSnapshotBackupPredicate(r.Scheme)).
 		Complete(r)
