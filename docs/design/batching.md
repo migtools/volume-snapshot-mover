@@ -15,26 +15,36 @@ the results appear to be linear.
 
 ## Motivation
 Improve the performance of VolumeSnapshotMover backup and restore by allowing 
-users to specify a batch number of `volumeSnapshotBackups` and 
+users to specify a concurrent number of `volumeSnapshotBackups` and 
 `volumeSnapshotRestores` that can be simultaneously `inProgress` at once.
 
 
 ## Implementation details
-A configurable value, `dpa.spec.dataMover.batchNumber`, can be used to specify 
+Configurable values, `dpa.spec.dataMover.concurrentBackupVolumes` and 
+`dpa.spec.dataMover.concurrentRestoreVolumes`, can be used to specify 
 a number of `volumeSnapshotBackup` and `volumeSnapshotRestore` CRs that should 
 be operated on at once. For example, given 100 PVs, a user may want to use 
-VolumeSnapshotMover to backup 15 at a time for better performance. 
+VolumeSnapshotMover to backup 15 at a time and restore 20 at a time for
+improved performance. 
 
 To implement this in the the VSM controller, we can keep track of the current 
-number of VSBs/VSRs that are not yet completed. At the beginning of the reconcile, 
-a counter can be incremented for each VSB/VSR that starts.  
-When this counter is equal to the batch number, then requeue. 
+number of `volumeSnapshotBackups` or `volumeSnapshotRestores` that are not yet 
+completed. At the beginning of the reconcile, a counter can be incremented for 
+each VSB/VSR that starts.  
+When this counter is equal to the concurrentVolumes number, then requeue without 
+starting another VSB/VSR process.   
 Once a CR status changes to completed, this value will be decremented, and another
 `volumeSnapshotBackup` or `volumeSnapshotRestore` can start.
 
-If `dpa.spec.dataMover.batchNumber` is not set, then the controller will run as
-it currently does, with each `volumeSnapshotBackup` and `volumeSnapshotRestore` 
-until completed.
+If `dpa.spec.dataMover.concurrentBackupVolumes` or
+`dpa.spec.dataMover.concurrentRestoreVolumes` is not set or it is set to zero, 
+then a default value will be used. This value is TBD.
+
+One option for a default value is to allow for unlimted `volumeSnapshotBackups` or 
+`volumeSnapshotRestores` if it is not set. Another option is to defing constants 
+such as `DefaultConcurrentBackupVolumes` and `DefaultConcurrentRestoreVolumes` 
+that can be set to a determined number, such as 0 or 12. More discussion is needed
+around this topic.
 
 
 ### DPA config:
@@ -46,11 +56,7 @@ spec:
     dataMover:  
       enable: true  
       credentialName: <dm-restic-secret-name>
-      batchNumber: 12
+      concurrentBackupVolumes: 12
+      concurrentRestoreVolumes: 50
 ...
 ```
-
-
-## Alternate Design Ideas
-- Batching for backup/restore in upstream Velero
-    - This approach may be too slow for OADP 1.2
