@@ -11,6 +11,9 @@ can become slow, as diminishing returns increases.
 [Performance testing](https://docs.google.com/document/d/1kPKo46_McEkj0Fu9hdkTxiVDnTh00forFQnscTgiEgg/edit?usp=sharing) 
 found that there is an optimal batch number of 12 for backup. For restore, 
 the results appear to be linear. 
+- It is important to note that these results are
+from a small set of factors such a CephFS and Ceph RBD, as well as small
+volume sizes. It is possible for this number to change with different scenarios.
 
 
 ## Motivation
@@ -20,7 +23,7 @@ users to specify a concurrent number of `volumeSnapshotBackups` and
 
 
 ## Implementation details
-Configurable values, `dpa.spec.dataMover.concurrentBackupVolumes` and 
+Configurable *int64 values, `dpa.spec.dataMover.concurrentBackupVolumes` and 
 `dpa.spec.dataMover.concurrentRestoreVolumes`, can be used to specify 
 a number of `volumeSnapshotBackup` and `volumeSnapshotRestore` CRs that should 
 be operated on at once. For example, given 100 PVs, a user may want to use 
@@ -37,14 +40,13 @@ Once a CR status changes to completed, this value will be decremented, and anoth
 `volumeSnapshotBackup` or `volumeSnapshotRestore` can start.
 
 If `dpa.spec.dataMover.concurrentBackupVolumes` or
-`dpa.spec.dataMover.concurrentRestoreVolumes` is not set or it is set to zero, 
-then a default value will be used. This value is TBD.
+`dpa.spec.dataMover.concurrentRestoreVolumes` is nil, then a default value 
+will be used. 
 
-One option for a default value is to allow for unlimted `volumeSnapshotBackups` or 
-`volumeSnapshotRestores` if it is not set. Another option is to defing constants 
-such as `DefaultConcurrentBackupVolumes` and `DefaultConcurrentRestoreVolumes` 
-that can be set to a determined number, such as 0 or 12. More discussion is needed
-around this topic.
+To allow for a default value for a concurrent number of `volumeSnapshotBackups` 
+or `volumeSnapshotRestores`, constants can be defined such as 
+`DefaultConcurrentBackupVolumes` and `DefaultConcurrentRestoreVolumes` that can 
+be set to a determined number, such as 0 (unlimited) or 12. 
 
 
 ### DPA config:
