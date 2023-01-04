@@ -26,6 +26,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -153,6 +154,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetupWithManager(mgr ctrl.Manager) err
 		For(&volsnapmoverv1alpha1.VolumeSnapshotRestore{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&snapv1.VolumeSnapshotContent{}).
+		Owns(&volsyncv1alpha1.ReplicationDestination{}).
 		WithEventFilter(volumeSnapshotRestorePredicate(r.Scheme)).
 		Complete(r)
 }

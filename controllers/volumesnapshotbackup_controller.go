@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -166,6 +167,7 @@ func (r *VolumeSnapshotBackupReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		Owns(&snapv1.VolumeSnapshotContent{}).
 		Owns(&snapv1.VolumeSnapshot{}).
 		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&volsyncv1alpha1.ReplicationSource{}).
 		Owns(&v1.Pod{}).
 		WithEventFilter(volumeSnapshotBackupPredicate(r.Scheme)).
 		Complete(r)
