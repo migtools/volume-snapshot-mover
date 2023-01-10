@@ -307,7 +307,8 @@ func (r *VolumeSnapshotBackupReconciler) setVSBStatus(log logr.Logger) (bool, er
 		return false, err
 	}
 
-	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed || vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed {
+	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed ||
+		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed {
 		return false, errors.New("vsb failed to complete")
 	}
 

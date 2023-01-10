@@ -181,7 +181,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 
 	VSBComplete, err := r.setVSBStatus(r.Log)
 	if !VSBComplete {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	if !reconFlag {

@@ -37,10 +37,10 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	}
 
 	// make sure VSB is completed or failed before deleting resources AND VSB has not been deleted
-	if (vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted ||
-		vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed ||
-		vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed) &&
-		vsb.DeletionTimestamp == nil {
+	if vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted &&
+		vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed &&
+		vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed &&
+		vsb.DeletionTimestamp.IsZero() {
 		r.Log.Info(fmt.Sprintf("waiting for volsync to complete before deleting volumesnapshotbackup %s resources", r.req.NamespacedName))
 		return false, nil
 	}
@@ -67,7 +67,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	// }
 
 	// Update VSB status as completed
-	if vsb.DeletionTimestamp == nil {
+	if vsb.DeletionTimestamp.IsZero() {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted
 		err := r.Status().Update(context.Background(), &vsb)
 		if err != nil {
