@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -100,12 +100,38 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	// stop reconciling on this resource when completed or failed
-	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted ||
+	if (vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted ||
 		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed ||
-		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed {
+		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed) &&
+		vsb.DeletionTimestamp.IsZero() {
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
+	}
+
+	// Add Finalizer to VSB
+	if !controllerutil.ContainsFinalizer(&vsb, dmFinalizer) {
+		controllerutil.AddFinalizer(&vsb, dmFinalizer)
+		err := r.Update(ctx, &vsb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if !vsb.DeletionTimestamp.IsZero() {
+		_, err := r.CleanBackupResources(r.Log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		controllerutil.RemoveFinalizer(&vsb, dmFinalizer)
+		err = r.Update(ctx, &vsb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		r.Log.Info("Clean up successful")
+		return ctrl.Result{}, nil
 	}
 
 	// Run through all reconcilers associated with VSB needs
@@ -122,7 +148,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		r.CreateVSBResticSecret,
 		r.IsPVCBound,
 		r.CreateReplicationSource,
-		//r.CleanBackupResources,
+		r.CleanBackupResources,
 	)
 
 	// Update the status with any errors, or set completed condition
@@ -151,31 +177,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	statusErr := r.Client.Status().Update(ctx, &vsb)
 	if err == nil { // Don't mask previous error
 		err = statusErr
-	}
-
-	// Add Finalizer to VSB
-	if !controllerutil.ContainsFinalizer(&vsb, dmFinalizer) {
-		controllerutil.AddFinalizer(&vsb, dmFinalizer)
-		err := r.Update(ctx, &vsb)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	if vsb.DeletionTimestamp != nil {
-		_, err := r.CleanBackupResources(r.Log)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		controllerutil.RemoveFinalizer(&vsb, dmFinalizer)
-		err = r.Update(ctx, &vsb)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		r.Log.Info("Clean up successful")
-		return ctrl.Result{}, nil
 	}
 
 	VSBComplete, err := r.setVSBStatus(r.Log)
