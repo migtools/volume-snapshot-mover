@@ -68,7 +68,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	// Update VSB status as completed as well as add completion timestamp
 	vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted
 	now := metav1.Now()
-	vsb.Status.StartTimestamp = &now
+	vsb.Status.CompletionTimestamp = &now
 
 	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
@@ -195,7 +195,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 
 	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted
 	now := metav1.Now()
-	vsr.Status.StartTimestamp = &now
+	vsr.Status.CompletionTimestamp = &now
 
 	err := r.Status().Update(context.Background(), &vsr)
 	if err != nil {
