@@ -34,8 +34,15 @@ type VolumeSnapshotRestoreSpec struct {
 type VolumeSnapshotRestoreStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// volumesnapshot restore phase status
-	Phase          VolumeSnapshotRestorePhase `json:"phase,omitempty"`
-	SnapshotHandle string                     `json:"snapshotHandle,omitempty"`
+	Phase VolumeSnapshotRestorePhase `json:"phase,omitempty"`
+	// name of the volumesnapshot snaphandle that is backed up
+	SnapshotHandle string `json:"snapshotHandle,omitempty"`
+	// StartTimestamp records the time a volsumesnapshotrestore was started.
+	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
+	// CompletionTimestamp records the time a volumesnapshotrestore reached a terminal state.
+	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
+	// name of the ReplicationDestination associated with the volumesnapshotrestore
+	ReplicationDestinationName string `json:"replicationDestinationName,omitempty"`
 }
 
 type VSBRef struct {

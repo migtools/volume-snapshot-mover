@@ -152,6 +152,11 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 	if repDest.Status != nil {
 		reconConditionProgress := metav1.Condition{}
 
+		// add replicationdestination name to VSR status
+		if len(vsr.Status.ReplicationDestinationName) == 0 {
+			vsr.Status.ReplicationDestinationName = repDest.Name
+		}
+
 		// save replicationDestination status conditions
 		for i := range repDest.Status.Conditions {
 			if repDest.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
@@ -167,6 +172,9 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			if sourceStatus == sourceSpec {
 
 				vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
+				// recording completion timestamp for VSR as completed is a terminal state
+				now := metav1.Now()
+				vsr.Status.CompletionTimestamp = &now
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
@@ -191,6 +199,9 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			// if not in progress or completed, phase failed
 		} else if reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonError {
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
+			// recording completion timestamp for VSR as failed is a terminal state
+			now := metav1.Now()
+			vsr.Status.CompletionTimestamp = &now
 
 			err := r.Status().Update(context.Background(), &vsr)
 			if err != nil {

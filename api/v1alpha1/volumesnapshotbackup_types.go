@@ -44,6 +44,14 @@ type VolumeSnapshotBackupStatus struct {
 	Phase VolumeSnapshotBackupPhase `json:"phase,omitempty"`
 	// name of the VolumeSnapshotClass
 	VolumeSnapshotClassName string `json:"volumeSnapshotClassName,omitempty"`
+	// StartTimestamp records the time a volsumesnapshotbackup was started.
+	// +optional
+	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
+	// CompletionTimestamp records the time a volumesnapshotbackup reached a terminal state.
+	// +optional
+	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
+	// name of the ReplicationSource associated with the volumesnapshotbackup
+	ReplicationSourceName string `json:"replicationSourceName,omitempty"`
 }
 
 type PVCData struct {
