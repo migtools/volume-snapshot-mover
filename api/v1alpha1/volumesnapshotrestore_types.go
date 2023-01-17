@@ -41,8 +41,8 @@ type VolumeSnapshotRestoreStatus struct {
 	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
 	// CompletionTimestamp records the time a volumesnapshotrestore reached a terminal state.
 	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
-	// name of the ReplicationDestination associated with the volumesnapshotrestore
-	ReplicationDestinationName string `json:"replicationDestinationName,omitempty"`
+	// Includes information pertaining to Volsync ReplicationDestination CR
+	ReplicationDestinationData ReplicationDestinationData `json:"replicationDestinationData,omitempty"`
 }
 
 type VSBRef struct {
@@ -88,6 +88,17 @@ type VolumeSnapshotRestoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []VolumeSnapshotRestore `json:"items"`
+}
+
+type ReplicationDestinationData struct {
+	// name of the ReplicationDestination associated with the volumesnapshotrestore
+	Name string `json:"name,omitempty"`
+	// StartTimestamp records the time a ReplicationDestination was started.
+	// +optional
+	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
+	// CompletionTimestamp records the time a ReplicationDestination reached a terminal state.
+	// +optional
+	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
 }
 
 func init() {

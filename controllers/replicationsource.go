@@ -108,8 +108,8 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 	}
 
 	// add replicationsource name to VSB status
-	if len(vsb.Status.ReplicationSourceName) == 0 {
-		vsb.Status.ReplicationSourceName = repSource.Name
+	if len(vsb.Status.ReplicationSourceData.Name) == 0 {
+		vsb.Status.ReplicationSourceData.Name = repSource.Name
 	}
 
 	// check for ReplicationSource phase

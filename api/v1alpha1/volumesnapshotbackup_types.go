@@ -50,8 +50,19 @@ type VolumeSnapshotBackupStatus struct {
 	// CompletionTimestamp records the time a volumesnapshotbackup reached a terminal state.
 	// +optional
 	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
+	// Includes information pertaining to Volsync ReplicationSource CR
+	ReplicationSourceData ReplicationSourceData `json:"replicationSourceData,omitempty"`
+}
+
+type ReplicationSourceData struct {
 	// name of the ReplicationSource associated with the volumesnapshotbackup
-	ReplicationSourceName string `json:"replicationSourceName,omitempty"`
+	Name string `json:"name,omitempty"`
+	// StartTimestamp records the time a ReplicationSource was started.
+	// +optional
+	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
+	// CompletionTimestamp records the time a ReplicationSource reached a terminal state.
+	// +optional
+	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
 }
 
 type PVCData struct {

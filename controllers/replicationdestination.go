@@ -153,8 +153,8 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 		reconConditionProgress := metav1.Condition{}
 
 		// add replicationdestination name to VSR status
-		if len(vsr.Status.ReplicationDestinationName) == 0 {
-			vsr.Status.ReplicationDestinationName = repDest.Name
+		if len(vsr.Status.ReplicationDestinationData.Name) == 0 {
+			vsr.Status.ReplicationDestinationData.Name = repDest.Name
 		}
 
 		// save replicationDestination status conditions
