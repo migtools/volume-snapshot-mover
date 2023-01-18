@@ -189,7 +189,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			return false, nil
 
 			// if not in progress or completed, phase failed
-		} else if reconConditionProgress.Reason == volsyncv1alpha1.ReconciledReasonError {
+		} else if reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonError {
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
 
 			err := r.Status().Update(context.Background(), &vsr)
