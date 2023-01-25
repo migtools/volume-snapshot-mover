@@ -176,6 +176,8 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 				now := metav1.Now()
 				vsr.Status.CompletionTimestamp = &now
 
+				vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastManualSync
+
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
 				if err != nil {
@@ -189,6 +191,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 		} else if reconConditionProgress.Status == metav1.ConditionTrue && reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonSync {
 
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseInProgress
+			vsr.Status.ReplicationDestinationData.StartTimestamp = repDest.Status.LastSyncStartTime
 			err := r.Status().Update(context.Background(), &vsr)
 			if err != nil {
 				return false, err

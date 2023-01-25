@@ -98,7 +98,7 @@ type ReplicationDestinationData struct {
 	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
 	// CompletionTimestamp records the time a ReplicationDestination reached a terminal state.
 	// +optional
-	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
+	CompletionTimestamp string `json:"completionTimestamp,omitempty"`
 }
 
 func init() {
