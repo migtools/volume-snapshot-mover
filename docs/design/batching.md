@@ -25,10 +25,13 @@ users to specify a concurrent number of `volumeSnapshotBackups` and
 
 
 ## Implementation details
-Configurable *int64 values, `dpa.spec.dataMover.maxConcurrentBackupVolumes` and 
+Configurable values, `dpa.spec.dataMover.maxConcurrentBackupVolumes` and 
 `dpa.spec.dataMover.maxConcurrentRestoreVolumes`, can be used to specify 
 a number of `volumeSnapshotBackup` and `volumeSnapshotRestore` CRs that should 
-be operated on at once. For example, given 100 PVs, a user may want to use 
+be operated on at once. These values will be set as enviroment variables on the
+data mover deployment to be read by the volumeSnapshotMover controller.
+
+For example, given 100 PVs, a user may want to use 
 VolumeSnapshotMover to backup 15 at a time and restore 20 at a time for
 improved performance. 
 
