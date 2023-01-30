@@ -67,14 +67,16 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 		return false, errors.New(errString)
 	}
 
-	// recording VSB start timestamp as the CR has passed all the validation checks
-	now := metav1.Now()
-	vsb.Status.StartTimestamp = &now
+	if vsb.Status.StartTimestamp == nil {
+		// recording VSB start timestamp as the CR has passed all the validation checks
+		now := metav1.Now()
+		vsb.Status.StartTimestamp = &now
 
-	// update VSB status with StartTimestamp
-	err = r.Client.Status().Update(context.Background(), &vsb)
-	if err != nil {
-		return false, err
+		// update VSB status with StartTimestamp
+		err = r.Client.Status().Update(context.Background(), &vsb)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil
@@ -142,14 +144,16 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 		return false, errors.New(errString)
 	}
 
-	// recording VSR start timestamp as the CR has passed all the validation checks
-	now := metav1.Now()
-	vsr.Status.StartTimestamp = &now
+	if vsr.Status.StartTimestamp == nil {
+		// recording VSR start timestamp as the CR has passed all the validation checks
+		now := metav1.Now()
+		vsr.Status.StartTimestamp = &now
 
-	// update VSR status with StartTimestamp
-	err = r.Client.Status().Update(context.Background(), &vsr)
-	if err != nil {
-		return false, err
+		// update VSR status with StartTimestamp
+		err = r.Client.Status().Update(context.Background(), &vsr)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil

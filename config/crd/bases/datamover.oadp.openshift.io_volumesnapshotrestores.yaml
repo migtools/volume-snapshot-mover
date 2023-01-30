@@ -161,6 +161,7 @@ spec:
                   completionTimestamp:
                     description: CompletionTimestamp records the time a ReplicationDestination
                       reached a terminal state.
+                    format: date-time
                     type: string
                   name:
                     description: name of the ReplicationDestination associated with

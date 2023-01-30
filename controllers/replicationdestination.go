@@ -176,7 +176,9 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 				now := metav1.Now()
 				vsr.Status.CompletionTimestamp = &now
 
-				vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastManualSync
+				if repDest.Status.LastSyncTime != nil {
+					vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastSyncTime
+				}
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
