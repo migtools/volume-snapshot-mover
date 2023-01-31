@@ -46,8 +46,9 @@ const (
 	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 
 	// Restic repo vars
-	ResticPassword   = "RESTIC_PASSWORD"
-	ResticRepository = "RESTIC_REPOSITORY"
+	ResticPassword      = "RESTIC_PASSWORD"
+	ResticRepository    = "RESTIC_REPOSITORY"
+	ResticPruneInterval = "restic-prune-interval"
 
 	// Datamover annotation keys
 	DatamoverResticRepository = "datamover.io/restic-repository"
@@ -71,8 +72,9 @@ var (
 
 	GoogleApplicationCredentialsValue []byte
 
-	ResticPasswordValue []byte
-	ResticRepoValue     string
+	ResticPasswordValue      []byte
+	ResticRepoValue          string
+	ResticPruneIntervalValue []byte
 )
 
 type ReconcileFunc func(logr.Logger) (bool, error)
@@ -105,7 +107,7 @@ func PopulateResticSecret(name string, namespace string, label string) (*corev1.
 	return newResticSecret, nil
 }
 
-func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo string) error {
+func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo, pruneInterval string) error {
 	if givensecret == nil {
 		return errors.New("nil givensecret in BuildResticSecret")
 	}
@@ -134,11 +136,12 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		// build new Restic secret
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
-				AWSAccessKey:     AWSAccessValue,
-				AWSSecretKey:     AWSSecretValue,
-				AWSDefaultRegion: AWSDefaultRegionValue,
-				ResticPassword:   ResticPasswordValue,
-				ResticRepository: []byte(resticrepo),
+				AWSAccessKey:        AWSAccessValue,
+				AWSSecretKey:        AWSSecretValue,
+				AWSDefaultRegion:    AWSDefaultRegionValue,
+				ResticPassword:      ResticPasswordValue,
+				ResticRepository:    []byte(resticrepo),
+				ResticPruneInterval: []byte(pruneInterval),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -160,10 +163,11 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		// build new Restic secret
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
-				AzureAccountName: AzureAccountNameValue,
-				AzureAccountKey:  AzureAccountKeyValue,
-				ResticPassword:   ResticPasswordValue,
-				ResticRepository: []byte(resticrepo),
+				AzureAccountName:    AzureAccountNameValue,
+				AzureAccountKey:     AzureAccountKeyValue,
+				ResticPassword:      ResticPasswordValue,
+				ResticRepository:    []byte(resticrepo),
+				ResticPruneInterval: []byte(pruneInterval),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -186,6 +190,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				GoogleApplicationCredentials: GoogleApplicationCredentialsValue,
 				ResticPassword:               ResticPasswordValue,
 				ResticRepository:             []byte(resticrepo),
+				ResticPruneInterval:          []byte(pruneInterval),
 			},
 		}
 		secret.Data = resticSecretData.Data
