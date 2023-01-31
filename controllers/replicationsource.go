@@ -107,6 +107,11 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		return false, errors.New("nil repSource in setStatusFromRepSource")
 	}
 
+	// add replicationsource name to VSB status
+	if len(vsb.Status.ReplicationSourceData.Name) == 0 {
+		vsb.Status.ReplicationSourceData.Name = repSource.Name
+	}
+
 	// check for ReplicationSource phase
 	repSourceCompleted, err := r.isRepSourceCompleted(vsb)
 	if err != nil {
@@ -129,6 +134,15 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 
 		// Update VSB status as completed
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted
+		// recording completion timestamp for VSB as completed is a terminal state
+		now := metav1.Now()
+		vsb.Status.CompletionTimestamp = &now
+
+		//recording replication source completion timestamp on VSB's status
+		if repSource.Status.LastSyncTime != nil {
+			vsb.Status.ReplicationSourceData.CompletionTimestamp = repSource.Status.LastSyncTime
+		}
+
 		err := r.Status().Update(context.Background(), vsb)
 		if err != nil {
 			return false, err
@@ -139,6 +153,7 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		// ReplicationSource phase is still in progress
 	} else if !repSourceCompleted && reconConditionProgress.Status == metav1.ConditionTrue {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseInProgress
+		vsb.Status.ReplicationSourceData.StartTimestamp = repSource.Status.LastSyncStartTime
 
 		// Update VSB status as in progress
 		err := r.Status().Update(context.Background(), vsb)
@@ -151,7 +166,9 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		//if not in progress or completed, phase failed
 	} else {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed
-
+		// recording completion timestamp for VSB as failed is a terminal state
+		now := metav1.Now()
+		vsb.Status.CompletionTimestamp = &now
 		// Update VSB status
 		err := r.Status().Update(context.Background(), vsb)
 		if err != nil {

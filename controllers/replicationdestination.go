@@ -152,6 +152,11 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 	if repDest.Status != nil {
 		reconConditionProgress := metav1.Condition{}
 
+		// add replicationdestination name to VSR status
+		if len(vsr.Status.ReplicationDestinationData.Name) == 0 {
+			vsr.Status.ReplicationDestinationData.Name = repDest.Name
+		}
+
 		// save replicationDestination status conditions
 		for i := range repDest.Status.Conditions {
 			if repDest.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
@@ -167,6 +172,13 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			if sourceStatus == sourceSpec {
 
 				vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
+				// recording completion timestamp for VSR as completed is a terminal state
+				now := metav1.Now()
+				vsr.Status.CompletionTimestamp = &now
+
+				if repDest.Status.LastSyncTime != nil {
+					vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastSyncTime
+				}
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
@@ -181,6 +193,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 		} else if reconConditionProgress.Status == metav1.ConditionTrue && reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonSync {
 
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseInProgress
+			vsr.Status.ReplicationDestinationData.StartTimestamp = repDest.Status.LastSyncStartTime
 			err := r.Status().Update(context.Background(), &vsr)
 			if err != nil {
 				return false, err
@@ -191,6 +204,9 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			// if not in progress or completed, phase failed
 		} else if reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonError {
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
+			// recording completion timestamp for VSR as failed is a terminal state
+			now := metav1.Now()
+			vsr.Status.CompletionTimestamp = &now
 
 			err := r.Status().Update(context.Background(), &vsr)
 			if err != nil {

@@ -404,6 +404,9 @@ func updateVSBFromBackup(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, client 
 
 	if backup.Status.Phase == velero.BackupPhaseFailed || backup.Status.Phase == velero.BackupPhasePartiallyFailed {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed
+		// recording completion timestamp for VSB as partially failed is a terminal state
+		now := metav1.Now()
+		vsb.Status.CompletionTimestamp = &now
 		err := client.Status().Update(context.Background(), vsb)
 		if err != nil {
 			return err
@@ -446,6 +449,9 @@ func updateVSRFromRestore(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, clien
 
 	if restore.Status.Phase == velero.RestorePhaseFailed || restore.Status.Phase == velero.RestorePhasePartiallyFailed {
 		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed
+		// recording completion timestamp for VSB as partially failed is a terminal state
+		now := metav1.Now()
+		vsr.Status.CompletionTimestamp = &now
 		err := client.Status().Update(context.Background(), vsr)
 		if err != nil {
 			return err
