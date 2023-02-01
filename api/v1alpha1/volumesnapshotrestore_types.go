@@ -28,6 +28,12 @@ type VolumeSnapshotRestoreSpec struct {
 	VolumeSnapshotMoverBackupref VSBRef `json:"volumeSnapshotMoverBackupRef,omitempty"`
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
+	// StorageClassName can be used to override the StorageClass of the source PVC
+	//+optional
+	StorageClassName string `json:"storageClassName,omitempty"`
+	// AccessMode can be used to override the accessMode of the source PVC
+	//+optional
+	AccessMode []corev1.PersistentVolumeAccessMode `json:"accessMode,omitempty"`
 }
 
 // VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore

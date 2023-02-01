@@ -85,6 +85,22 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		return errors.New("nil resticSecret in buildReplicationDestination")
 	}
 
+	// check for config storageClassName, otherwise use source PVC storageClass
+	var repDestStorageClass string
+	if len(vsr.Spec.StorageClassName) > 0 {
+		repDestStorageClass = vsr.Spec.StorageClassName
+	} else {
+		repDestStorageClass = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
+	}
+
+	// check for config accessMode, otherwise use source PVC accessMode
+	var repDestAccessMode []corev1.PersistentVolumeAccessMode
+	if len(vsr.Spec.AccessMode) > 0 {
+		repDestAccessMode = vsr.Spec.AccessMode
+	} else {
+		repDestAccessMode = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.AccessMode
+	}
+
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
 	// build ReplicationDestination
@@ -96,12 +112,12 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 			// TODO: create restic secret from secret from VSB CR status
 			Repository: resticSecret.Name,
 			ReplicationDestinationVolumeOptions: volsyncv1alpha1.ReplicationDestinationVolumeOptions{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				CopyMethod:  volsyncv1alpha1.CopyMethodSnapshot,
+				CopyMethod: volsyncv1alpha1.CopyMethodSnapshot,
 				// let replicationDestination create PVC
 				Capacity:                &capacity,
-				StorageClassName:        &vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName,
+				StorageClassName:        &repDestStorageClass,
 				VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
+				AccessModes:             repDestAccessMode,
 			},
 		},
 	}

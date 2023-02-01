@@ -75,6 +75,22 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		return err
 	}
 
+	// check for config storageClassName, otherwise use source PVC storageClass
+	var repSourceStorageClass string
+	if len(vsb.Spec.StorageClassName) > 0 {
+		repSourceStorageClass = vsb.Spec.StorageClassName
+	} else {
+		repSourceStorageClass = vsb.Status.SourcePVCData.StorageClassName
+	}
+
+	// check for config accessMode, otherwise use source PVC accessMode
+	var repSourceAccessMode []corev1.PersistentVolumeAccessMode
+	if len(vsb.Spec.AccessMode) > 0 {
+		repSourceAccessMode = vsb.Spec.AccessMode
+	} else {
+		repSourceAccessMode = pvc.Spec.AccessModes
+	}
+
 	// build ReplicationSource
 	replicationSourceSpec := volsyncv1alpha1.ReplicationSourceSpec{
 		SourcePVC: pvc.Name,
@@ -85,8 +101,9 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 			Repository: resticSecret.Name,
 			ReplicationSourceVolumeOptions: volsyncv1alpha1.ReplicationSourceVolumeOptions{
 				CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
-				StorageClassName:        &vsb.Status.SourcePVCData.StorageClassName,
+				StorageClassName:        &repSourceStorageClass,
 				VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
+				AccessModes:             repSourceAccessMode,
 			},
 		},
 	}

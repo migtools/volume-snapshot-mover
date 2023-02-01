@@ -28,6 +28,12 @@ type VolumeSnapshotBackupSpec struct {
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 	// Restic Secret reference for given BSL
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
+	// StorageClassName can be used to override the StorageClass of the source PVC
+	//+optional
+	StorageClassName string `json:"storageClassName,omitempty"`
+	// AccessMode can be used to override the accessMode of the source PVC
+	//+optional
+	AccessMode []corev1.PersistentVolumeAccessMode `json:"accessMode,omitempty"`
 }
 
 // VolumeSnapshotBackupStatus defines the observed state of VolumeSnapshotBackup
@@ -66,12 +72,14 @@ type ReplicationSourceData struct {
 }
 
 type PVCData struct {
-	// name of the PersistentVolumeClaim
+	// name of the source PersistentVolumeClaim
 	Name string `json:"name,omitempty"`
 	// size of the PersistentVolumeClaim
 	Size string `json:"size,omitempty"`
-	// name of the StorageClass
+	// name of the StorageClass of the source PVC
 	StorageClassName string `json:"storageClassName,omitempty"`
+	// accessMode of the source PVC
+	AccessMode []corev1.PersistentVolumeAccessMode `json:"accessMode,omitempty"`
 }
 
 type VolumeSnapshotBackupPhase string

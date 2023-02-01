@@ -38,6 +38,12 @@ spec:
           spec:
             description: VolumeSnapshotRestoreSpec defines the desired state of VolumeSnapshotRestore
             properties:
+              accessMode:
+                description: AccessMode can be used to override the accessMode of
+                  the source PVC
+                items:
+                  type: string
+                type: array
               protectedNamespace:
                 description: Namespace where the Velero deployment is present
                 type: string
@@ -50,6 +56,10 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              storageClassName:
+                description: StorageClassName can be used to override the StorageClass
+                  of the source PVC
+                type: string
               volumeSnapshotMoverBackupRef:
                 description: Includes associated volumesnapshotbackup details
                 properties:
@@ -59,14 +69,19 @@ spec:
                   sourcePVCData:
                     description: Includes backed up PVC name and size
                     properties:
+                      accessMode:
+                        description: accessMode of the source PVC
+                        items:
+                          type: string
+                        type: array
                       name:
-                        description: name of the PersistentVolumeClaim
+                        description: name of the source PersistentVolumeClaim
                         type: string
                       size:
                         description: size of the PersistentVolumeClaim
                         type: string
                       storageClassName:
-                        description: name of the StorageClass
+                        description: name of the StorageClass of the source PVC
                         type: string
                     type: object
                   volumeSnapshotClassName:
