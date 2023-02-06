@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -12,6 +13,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -75,6 +77,14 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		return err
 	}
 
+	// fetch the prune interval if specified in the secret
+	pruneInterval := resticSecret.Data["restic-prune-interval"]
+
+	pruneIntervalInt, err := strconv.ParseInt(string(pruneInterval), 10, 32)
+	if err != nil {
+		return err
+	}
+
 	// build ReplicationSource
 	replicationSourceSpec := volsyncv1alpha1.ReplicationSourceSpec{
 		SourcePVC: pvc.Name,
@@ -89,6 +99,9 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 				VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
 			},
 		},
+	}
+	if pruneIntervalInt != 0 {
+		replicationSourceSpec.Restic.PruneIntervalDays = pointer.Int32(int32(pruneIntervalInt))
 	}
 	if replicationSource.CreationTimestamp.IsZero() {
 		replicationSource.Spec = replicationSourceSpec
