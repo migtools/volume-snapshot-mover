@@ -78,11 +78,15 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	}
 
 	// fetch the prune interval if specified in the secret
+	var pruneIntervalInt = int64(0)
+	var err error
 	pruneInterval := resticSecret.Data["restic-prune-interval"]
 
-	pruneIntervalInt, err := strconv.ParseInt(string(pruneInterval), 10, 32)
-	if err != nil {
-		return err
+	if len(pruneInterval) > 0 {
+		pruneIntervalInt, err = strconv.ParseInt(string(pruneInterval), 10, 32)
+		if err != nil {
+			return err
+		}
 	}
 
 	// build ReplicationSource
