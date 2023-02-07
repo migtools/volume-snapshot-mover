@@ -139,7 +139,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 			Containers: []corev1.Container{
 				{
 					Name:  "busybox",
-					Image: "quay.io/ocpmigrate/mssql-sample-app:microsoft",
+					Image: DummyPodImage,
 					Command: []string{
 						"/bin/sh", "-c", "tail -f /dev/null",
 					},
@@ -183,41 +183,6 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 	}
 
 	return true, nil
-}
-
-func (r *VolumeSnapshotBackupReconciler) buildDummyPod(clonedPVC *corev1.PersistentVolumeClaim, p *corev1.Pod) error {
-
-	p.Spec.Containers = []corev1.Container{
-		{
-			Name:  "busybox",
-			Image: DummyPodImage,
-			Command: []string{
-				"/bin/sh", "-c", "tail -f /dev/null",
-			},
-
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "vol1",
-					MountPath: "/mnt/volume1",
-				},
-			},
-		},
-	}
-
-	p.Spec.Volumes = []corev1.Volume{
-		{
-			Name: "vol1",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: clonedPVC.Name,
-				},
-			},
-		},
-	}
-
-	p.Spec.RestartPolicy = corev1.RestartPolicyNever
-
-	return nil
 }
 
 // Get the source PVC from VSB CR's volumesnapshotcontent
