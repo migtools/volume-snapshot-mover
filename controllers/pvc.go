@@ -27,6 +27,12 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 		return false, err
 	}
 
+	// no need to mirror pvc for the vsb if the datamovement has already completed, no need to fetch source VS as it will be deleted once backup completes
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping mirror pvc step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
+	}
+
 	// Get the clone VSC
 	vscClone := snapv1.VolumeSnapshotContent{}
 	vscCloneName := fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)
