@@ -177,6 +177,9 @@ spec:
                 description: name of the volumesnapshot snaphandle that is backed
                   up
                 type: string
+              snapshotName:
+                description: name of the volumesnapshot that is backed up
+                type: string
               startTimestamp:
                 description: StartTimestamp records the time a volsumesnapshotrestore
                   was started.

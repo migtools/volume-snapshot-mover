@@ -37,6 +37,8 @@ type VolumeSnapshotRestoreStatus struct {
 	Phase VolumeSnapshotRestorePhase `json:"phase,omitempty"`
 	// name of the volumesnapshot snaphandle that is backed up
 	SnapshotHandle string `json:"snapshotHandle,omitempty"`
+	// name of the volumesnapshot that is backed up
+	SnapshotName string `json:"snapshotName,omitempty"`
 	// StartTimestamp records the time a volsumesnapshotrestore was started.
 	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
 	// CompletionTimestamp records the time a volumesnapshotrestore reached a terminal state.
