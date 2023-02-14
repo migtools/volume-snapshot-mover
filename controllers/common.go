@@ -342,7 +342,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBStatus(log logr.Logger) (bool, er
 			return false, nil
 		}
 	}
-	return false, errors.New("replication source status not ready")
+	return false, nil
 }
 
 func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList) (bool, error) {
