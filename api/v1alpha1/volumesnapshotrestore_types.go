@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,6 +35,16 @@ type VolumeSnapshotRestoreSpec struct {
 	// AccessMode can be used to override the accessMode of the source PVC
 	//+optional
 	AccessMode []corev1.PersistentVolumeAccessMode `json:"accessMode,omitempty"`
+	// cacheStorageClassName is the storageClass that should be used when provisioning
+	// the cache volume
+	//+optional
+	CacheStorageClassName string `json:"cacheStorageClassName,omitempty"`
+	// cacheCapacity determines the size of the restic metadata cache volume
+	//+optional
+	CacheCapacity *resource.Quantity `json:"cacheCapacity,omitempty"`
+	// cacheAccessMode is the access mode to be used to provision the cache volume
+	//+optional
+	CacheAccessMode []corev1.PersistentVolumeAccessMode `json:"cacheAccessMode,omitempty"`
 }
 
 // VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore

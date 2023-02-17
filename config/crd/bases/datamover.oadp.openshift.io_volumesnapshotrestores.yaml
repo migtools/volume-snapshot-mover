@@ -44,6 +44,24 @@ spec:
                 items:
                   type: string
                 type: array
+              cacheAccessMode:
+                description: cacheAccessMode is the access mode to be used to provision
+                  the cache volume
+                items:
+                  type: string
+                type: array
+              cacheCapacity:
+                anyOf:
+                - type: integer
+                - type: string
+                description: cacheCapacity determines the size of the restic metadata
+                  cache volume
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              cacheStorageClassName:
+                description: cacheStorageClassName is the storageClass that should
+                  be used when provisioning the cache volume
+                type: string
               protectedNamespace:
                 description: Namespace where the Velero deployment is present
                 type: string

@@ -75,20 +75,9 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		return err
 	}
 
-	// check for config storageClassName, otherwise use source PVC storageClass
-	var repSourceStorageClass string
-	if len(vsb.Spec.StorageClassName) > 0 {
-		repSourceStorageClass = vsb.Spec.StorageClassName
-	} else {
-		repSourceStorageClass = vsb.Status.SourcePVCData.StorageClassName
-	}
-
-	// check for config accessMode, otherwise use source PVC accessMode
-	var repSourceAccessMode []corev1.PersistentVolumeAccessMode
-	if len(vsb.Spec.AccessMode) > 0 {
-		repSourceAccessMode = vsb.Spec.AccessMode
-	} else {
-		repSourceAccessMode = pvc.Spec.AccessModes
+	resticVolOptions, err := r.configureRepSourceResticVolOptions(vsb, resticSecret.Name, pvc)
+	if err != nil {
+		return err
 	}
 
 	// build ReplicationSource
@@ -97,16 +86,9 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
 			Manual: fmt.Sprintf("%s-trigger", vsb.Name),
 		},
-		Restic: &volsyncv1alpha1.ReplicationSourceResticSpec{
-			Repository: resticSecret.Name,
-			ReplicationSourceVolumeOptions: volsyncv1alpha1.ReplicationSourceVolumeOptions{
-				CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
-				StorageClassName:        &repSourceStorageClass,
-				VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
-				AccessModes:             repSourceAccessMode,
-			},
-		},
+		Restic: resticVolOptions,
 	}
+
 	if replicationSource.CreationTimestamp.IsZero() {
 		replicationSource.Spec = replicationSourceSpec
 	}
@@ -223,4 +205,74 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv
 
 	// ReplicationSource has not yet completed but is not failed
 	return false, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) (*volsyncv1alpha1.ReplicationSourceVolumeOptions, error) {
+	if vsb == nil {
+		return nil, errors.New("nil vsb in configureRepSourceVolOptions")
+	}
+
+	if pvc == nil {
+		return nil, errors.New("nil pvc in configureRepSourceVolOptions")
+	}
+
+	repSrcVolOptions := volsyncv1alpha1.ReplicationSourceVolumeOptions{
+		CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
+		VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
+	}
+
+	// check for config storageClassName, otherwise use source PVC storageClass
+	var repSourceStorageClass string
+	if len(vsb.Spec.StorageClassName) > 0 {
+		repSourceStorageClass = vsb.Spec.StorageClassName
+
+	} else {
+		repSourceStorageClass = vsb.Status.SourcePVCData.StorageClassName
+	}
+	repSrcVolOptions.StorageClassName = &repSourceStorageClass
+
+	// check for config accessMode, otherwise use source PVC accessMode
+	var repSourceAccessMode []corev1.PersistentVolumeAccessMode
+	if len(vsb.Spec.AccessMode) > 0 {
+		repSourceAccessMode = vsb.Spec.AccessMode
+	} else {
+		repSourceAccessMode = pvc.Spec.AccessModes
+	}
+	repSrcVolOptions.AccessModes = repSourceAccessMode
+
+	return &repSrcVolOptions, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, resticSecretName string, pvc *corev1.PersistentVolumeClaim) (*volsyncv1alpha1.ReplicationSourceResticSpec, error) {
+	if vsb == nil {
+		return nil, errors.New("nil vsr in configureRepSourceResticVolOptions")
+	}
+
+	if pvc == nil {
+		return nil, errors.New("nil pvc in configureRepSourceResticVolOptions")
+	}
+
+	repSrcResticVolOptions := volsyncv1alpha1.ReplicationSourceResticSpec{}
+	repSrcResticVolOptions.Repository = resticSecretName
+
+	if len(vsb.Spec.CacheStorageClassName) > 0 {
+		repSrcResticVolOptions.CacheStorageClassName = &vsb.Spec.CacheStorageClassName
+	}
+
+	if len(vsb.Spec.CacheAccessMode) > 0 {
+		repSrcResticVolOptions.CacheAccessModes = vsb.Spec.CacheAccessMode
+	}
+
+	if vsb.Spec.CacheCapacity != nil {
+		repSrcResticVolOptions.CacheCapacity = vsb.Spec.CacheCapacity
+	}
+
+	optionsSpec, err := r.configureRepSourceVolOptions(vsb, pvc)
+	if err != nil {
+		return nil, err
+	}
+
+	repSrcResticVolOptions.ReplicationSourceVolumeOptions = *optionsSpec
+
+	return &repSrcResticVolOptions, nil
 }
