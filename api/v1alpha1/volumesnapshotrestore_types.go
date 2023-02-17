@@ -35,6 +35,8 @@ type VolumeSnapshotRestoreStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// volumesnapshot restore phase status
 	Phase VolumeSnapshotRestorePhase `json:"phase,omitempty"`
+	// volumesnapshotrestore batching status
+	BatchingStatus VolumeSnapshotRestoreBatchingStatus `json:"batchingStatus,omitempty"`
 	// name of the volumesnapshot snaphandle that is backed up
 	SnapshotHandle string `json:"snapshotHandle,omitempty"`
 	// name of the volumesnapshotcontent that is backed up
@@ -68,6 +70,18 @@ const (
 	SnapMoverRestorePhaseFailed VolumeSnapshotRestorePhase = "Failed"
 
 	SnapMoverRestorePhasePartiallyFailed VolumeSnapshotRestorePhase = "PartiallyFailed"
+)
+
+type VolumeSnapshotRestoreBatchingStatus string
+
+const (
+	SnapMoverRestoreBatchingCompleted VolumeSnapshotRestoreBatchingStatus = "Completed"
+
+	SnapMoverRestoreBatchingQueued VolumeSnapshotRestoreBatchingStatus = "Queued"
+
+	SnapMoverRestoreBatchingProcessing VolumeSnapshotRestoreBatchingStatus = "Processing"
+
+	SnapMoverRestoreBatchingFailed VolumeSnapshotRestoreBatchingStatus = "Failed"
 )
 
 //+kubebuilder:object:root=true

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +39,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var processingVSRs = 0
+var VSRBatchNumber = 0
 
 // VolumeSnapshotRestoreReconciler reconciles a VolumeSnapshotRestore object
 type VolumeSnapshotRestoreReconciler struct {
@@ -88,13 +92,56 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		Name:      vsr.Name,
 	}
 
+	if VSRBatchNumber == 0 {
+		batchValue, err := GetRestoreBatchValue(vsr.Spec.ProtectedNamespace, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		VSRBatchNumber, _ = strconv.Atoi(batchValue)
+	}
+
 	// stop reconciling on this resource when completed or failed
 	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted ||
 		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed ||
 		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
+
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
+	}
+
+	// another VSR can be added to processing batch
+	if len(vsr.Status.BatchingStatus) > 0 && vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingCompleted {
+		processingVSRs--
+	}
+
+	// update non-processed VSR as queued
+	if processingVSRs >= VSRBatchNumber && len(vsr.Status.BatchingStatus) == 0 {
+		r.Log.Info(fmt.Sprintf("marking vsr %v batching status as queued", vsr.Name))
+
+		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued
+		err := r.Status().Update(context.Background(), &vsr)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// requeue VSR is max batch number is still being processed
+	} else if processingVSRs >= VSRBatchNumber && vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued {
+		r.Log.Info(fmt.Sprintf("requeuing vsr %v as max vsrs are being processed", vsr.Name))
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
+
+		// add a queued VSR to processing batch
+	} else if processingVSRs < VSRBatchNumber && (vsr.Status.BatchingStatus == "" ||
+		vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued) {
+
+		processingVSRs++
+		r.Log.Info(fmt.Sprintf("marking vsr %v batching status as processing", vsr.Name))
+
+		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingProcessing
+		err := r.Status().Update(context.Background(), &vsr)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Run through all reconcilers associated with VSR needs
