@@ -215,6 +215,9 @@ spec:
                   was started.
                 format: date-time
                 type: string
+              volumeSnapshotContentName:
+                description: name of the volumesnapshotcontent that is backed up
+                type: string
             type: object
         type: object
     served: true
