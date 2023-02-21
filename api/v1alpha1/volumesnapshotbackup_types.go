@@ -29,6 +29,11 @@ type VolumeSnapshotBackupSpec struct {
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 	// Restic Secret reference for given BSL
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
+	// VolumeOptions defines configurations for VolSync options
+	VolumeOptions *SourceVolumeOptions `json:"volumeOptions,omitempty"`
+}
+
+type SourceVolumeOptions struct {
 	// StorageClassName can be used to override the StorageClass of the source PVC
 	//+optional
 	StorageClassName string `json:"storageClassName,omitempty"`

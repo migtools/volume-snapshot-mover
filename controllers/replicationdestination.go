@@ -235,8 +235,8 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsna
 
 	// check for config storageClassName, otherwise use source PVC storageClass
 	var repDestStorageClass string
-	if len(vsr.Spec.StorageClassName) > 0 {
-		repDestStorageClass = vsr.Spec.StorageClassName
+	if len(vsr.Spec.VolumeOptions.StorageClassName) > 0 {
+		repDestStorageClass = vsr.Spec.VolumeOptions.StorageClassName
 
 	} else {
 		repDestStorageClass = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
@@ -245,8 +245,8 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsna
 
 	// check for config accessMode, otherwise use RWO
 	var repDestAccessMode []corev1.PersistentVolumeAccessMode
-	if len(vsr.Spec.AccessMode) > 0 {
-		repDestAccessMode = vsr.Spec.AccessMode
+	if len(vsr.Spec.VolumeOptions.AccessMode) > 0 {
+		repDestAccessMode = vsr.Spec.VolumeOptions.AccessMode
 	} else {
 		repDestAccessMode = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	}
@@ -268,16 +268,16 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 	repDestResticVolOptions := volsyncv1alpha1.ReplicationDestinationResticSpec{}
 	repDestResticVolOptions.Repository = resticSecretName
 
-	if len(vsr.Spec.CacheStorageClassName) > 0 {
-		repDestResticVolOptions.CacheStorageClassName = &vsr.Spec.CacheStorageClassName
+	if len(vsr.Spec.VolumeOptions.CacheStorageClassName) > 0 {
+		repDestResticVolOptions.CacheStorageClassName = &vsr.Spec.VolumeOptions.CacheStorageClassName
 	}
 
-	if len(vsr.Spec.CacheAccessMode) > 0 {
-		repDestResticVolOptions.CacheAccessModes = vsr.Spec.CacheAccessMode
+	if len(vsr.Spec.VolumeOptions.CacheAccessMode) > 0 {
+		repDestResticVolOptions.CacheAccessModes = vsr.Spec.VolumeOptions.CacheAccessMode
 	}
 
-	if vsr.Spec.CacheCapacity != nil {
-		repDestResticVolOptions.CacheCapacity = vsr.Spec.CacheCapacity
+	if vsr.Spec.VolumeOptions.CacheCapacity != nil {
+		repDestResticVolOptions.CacheCapacity = vsr.Spec.VolumeOptions.CacheCapacity
 	}
 
 	optionsSpec, err := r.configureRepDestVolOptions(vsr, capacity)

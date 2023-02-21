@@ -241,8 +241,8 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsn
 
 	// check for config storageClassName, otherwise use source PVC storageClass
 	var repSourceStorageClass string
-	if len(vsb.Spec.StorageClassName) > 0 {
-		repSourceStorageClass = vsb.Spec.StorageClassName
+	if len(vsb.Spec.VolumeOptions.StorageClassName) > 0 {
+		repSourceStorageClass = vsb.Spec.VolumeOptions.StorageClassName
 
 	} else {
 		repSourceStorageClass = vsb.Status.SourcePVCData.StorageClassName
@@ -251,8 +251,8 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsn
 
 	// check for config accessMode, otherwise use source PVC accessMode
 	var repSourceAccessMode []corev1.PersistentVolumeAccessMode
-	if len(vsb.Spec.AccessMode) > 0 {
-		repSourceAccessMode = vsb.Spec.AccessMode
+	if len(vsb.Spec.VolumeOptions.AccessMode) > 0 {
+		repSourceAccessMode = vsb.Spec.VolumeOptions.AccessMode
 	} else {
 		repSourceAccessMode = pvc.Spec.AccessModes
 	}
@@ -273,16 +273,16 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 	repSrcResticVolOptions := volsyncv1alpha1.ReplicationSourceResticSpec{}
 	repSrcResticVolOptions.Repository = resticSecretName
 
-	if len(vsb.Spec.CacheStorageClassName) > 0 {
-		repSrcResticVolOptions.CacheStorageClassName = &vsb.Spec.CacheStorageClassName
+	if len(vsb.Spec.VolumeOptions.CacheStorageClassName) > 0 {
+		repSrcResticVolOptions.CacheStorageClassName = &vsb.Spec.VolumeOptions.CacheStorageClassName
 	}
 
-	if len(vsb.Spec.CacheAccessMode) > 0 {
-		repSrcResticVolOptions.CacheAccessModes = vsb.Spec.CacheAccessMode
+	if len(vsb.Spec.VolumeOptions.CacheAccessMode) > 0 {
+		repSrcResticVolOptions.CacheAccessModes = vsb.Spec.VolumeOptions.CacheAccessMode
 	}
 
-	if vsb.Spec.CacheCapacity != nil {
-		repSrcResticVolOptions.CacheCapacity = vsb.Spec.CacheCapacity
+	if vsb.Spec.VolumeOptions.CacheCapacity != nil {
+		repSrcResticVolOptions.CacheCapacity = vsb.Spec.VolumeOptions.CacheCapacity
 	}
 
 	optionsSpec, err := r.configureRepSourceVolOptions(vsb, pvc)

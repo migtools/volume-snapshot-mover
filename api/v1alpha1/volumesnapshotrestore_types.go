@@ -29,10 +29,15 @@ type VolumeSnapshotRestoreSpec struct {
 	VolumeSnapshotMoverBackupref VSBRef `json:"volumeSnapshotMoverBackupRef,omitempty"`
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
-	// StorageClassName can be used to override the StorageClass of the source PVC
+	// VolumeOptions defines configurations for VolSync options
+	VolumeOptions *DestinationVolumeOptions `json:"volumeOptions,omitempty"`
+}
+
+type DestinationVolumeOptions struct {
+	// StorageClassName can be used to override the StorageClass of the destination PVC
 	//+optional
 	StorageClassName string `json:"storageClassName,omitempty"`
-	// AccessMode can be used to override the accessMode of the source PVC
+	// AccessMode can be used to override the accessMode of the destination PVC
 	//+optional
 	AccessMode []corev1.PersistentVolumeAccessMode `json:"accessMode,omitempty"`
 	// cacheStorageClassName is the storageClass that should be used when provisioning

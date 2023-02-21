@@ -38,30 +38,6 @@ spec:
           spec:
             description: VolumeSnapshotRestoreSpec defines the desired state of VolumeSnapshotRestore
             properties:
-              accessMode:
-                description: AccessMode can be used to override the accessMode of
-                  the source PVC
-                items:
-                  type: string
-                type: array
-              cacheAccessMode:
-                description: cacheAccessMode is the access mode to be used to provision
-                  the cache volume
-                items:
-                  type: string
-                type: array
-              cacheCapacity:
-                anyOf:
-                - type: integer
-                - type: string
-                description: cacheCapacity determines the size of the restic metadata
-                  cache volume
-                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                x-kubernetes-int-or-string: true
-              cacheStorageClassName:
-                description: cacheStorageClassName is the storageClass that should
-                  be used when provisioning the cache volume
-                type: string
               protectedNamespace:
                 description: Namespace where the Velero deployment is present
                 type: string
@@ -74,10 +50,38 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-              storageClassName:
-                description: StorageClassName can be used to override the StorageClass
-                  of the source PVC
-                type: string
+              volumeOptions:
+                description: VolumeOptions defines configurations for VolSync options
+                properties:
+                  accessMode:
+                    description: AccessMode can be used to override the accessMode
+                      of the destination PVC
+                    items:
+                      type: string
+                    type: array
+                  cacheAccessMode:
+                    description: cacheAccessMode is the access mode to be used to
+                      provision the cache volume
+                    items:
+                      type: string
+                    type: array
+                  cacheCapacity:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: cacheCapacity determines the size of the restic metadata
+                      cache volume
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  cacheStorageClassName:
+                    description: cacheStorageClassName is the storageClass that should
+                      be used when provisioning the cache volume
+                    type: string
+                  storageClassName:
+                    description: StorageClassName can be used to override the StorageClass
+                      of the destination PVC
+                    type: string
+                type: object
               volumeSnapshotMoverBackupRef:
                 description: Includes associated volumesnapshotbackup details
                 properties:
