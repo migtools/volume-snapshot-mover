@@ -246,40 +246,28 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsn
 		VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
 	}
 
-	var repSourceStorageClass string
+	// use source PVC storageClass as default
+	repSourceStorageClass := vsb.Status.SourcePVCData.StorageClassName
+	// use source PVC accessMode as default
+	repSourceAccessModeAM := pvc.Spec.AccessModes
 
 	var repSourceAccessMode string
-	var repSourceAccessModeAM []corev1.PersistentVolumeAccessMode
 
+	// if datamover configmap has data, use these values
 	if cm != nil && cm.Data != nil {
-
 		for spec := range cm.Data {
 
 			// check for config storageClassName, otherwise use source PVC storageClass
 			if spec == "SourceStorageClassName" {
 				repSourceStorageClass = cm.Data["SourceStorageClassName"]
-
-				// cm.Data is set but field not set
-			} else {
-				repSourceStorageClass = vsb.Status.SourcePVCData.StorageClassName
 			}
 
 			// check for config accessMode, otherwise use source PVC accessMode
 			if spec == "SourceAccessMode" {
 				repSourceAccessMode = cm.Data["SourceAccessMode"]
 				repSourceAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repSourceAccessMode)}
-
-				// cm.Data is set but field not set
-			} else {
-				repSourceAccessModeAM = pvc.Spec.AccessModes
 			}
 		}
-
-		// no configmap data used
-	} else {
-
-		repSourceStorageClass = vsb.Status.SourcePVCData.StorageClassName
-		repSourceAccessModeAM = pvc.Spec.AccessModes
 	}
 
 	repSrcVolOptions.StorageClassName = &repSourceStorageClass
@@ -342,7 +330,9 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 		return nil, err
 	}
 
-	repSrcResticVolOptions.ReplicationSourceVolumeOptions = *optionsSpec
+	if optionsSpec != nil {
+		repSrcResticVolOptions.ReplicationSourceVolumeOptions = *optionsSpec
+	}
 
 	return &repSrcResticVolOptions, nil
 }

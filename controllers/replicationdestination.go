@@ -239,40 +239,27 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsna
 		Capacity:                capacity,
 	}
 
-	var repDestStorageClass string
-
 	var repDestAccessMode string
-	var repDestAccessModeAM []corev1.PersistentVolumeAccessMode
+	// use source PVC storageClass as default
+	repDestStorageClass := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
+	// use source PVC accessMode as default
+	repDestAccessModeAM := []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 
+	// if datamover configmap has data, use these values
 	if cm != nil && cm.Data != nil {
-
 		for spec := range cm.Data {
 
 			// check for config storageClassName, otherwise use source PVC storageClass
 			if spec == "DestinationStorageClassName" {
 				repDestStorageClass = cm.Data["DestinationStorageClassName"]
-
-				// cm.Data is set but field not set
-			} else {
-				repDestStorageClass = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
 			}
 
 			// check for config accessMode, otherwise use source PVC accessMode
 			if spec == "DestinationAccessMode" {
 				repDestAccessMode = cm.Data["DestinationAccessMode"]
 				repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestAccessMode)}
-
-				// cm.Data is set but field not set
-			} else {
-				repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 			}
 		}
-
-		// no configmap data used
-	} else {
-
-		repDestStorageClass = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
-		repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	}
 
 	repDestVolOptions.StorageClassName = &repDestStorageClass
@@ -335,7 +322,9 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 		return nil, err
 	}
 
-	repDestResticVolOptions.ReplicationDestinationVolumeOptions = *optionsSpec
+	if optionsSpec != nil {
+		repDestResticVolOptions.ReplicationDestinationVolumeOptions = *optionsSpec
+	}
 
 	return &repDestResticVolOptions, nil
 }
