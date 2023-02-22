@@ -55,6 +55,8 @@ const (
 	DatamoverSourcePVCName    = "datamover.io/source-pvc-name"
 	DatamoverSourcePVCSize    = "datamover.io/source-pvc-size"
 
+	DataMoverConfMapName = "datamover-config"
+
 	// Providers
 	AWSProvider   = "aws"
 	AzureProvider = "azure"
@@ -490,4 +492,20 @@ func updateVSBStatusPhase(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, phase 
 	}
 
 	return nil
+}
+
+func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Client) (*corev1.ConfigMap, bool, error) {
+
+	cm := corev1.ConfigMap{}
+
+	err := client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: DataMoverConfMapName}, &cm)
+	// configmap will not exist if config values were not set
+	if k8serrors.IsNotFound(err) {
+		return nil, false, nil
+
+	} else if err != nil {
+		return nil, false, errors.New("failed to get data mover configMap")
+	}
+
+	return &cm, true, nil
 }

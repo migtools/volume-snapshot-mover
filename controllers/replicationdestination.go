@@ -85,26 +85,27 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		return errors.New("nil resticSecret in buildReplicationDestination")
 	}
 
+	cm, _, err := GetDataMoverConfigMap(vsr.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return err
+	}
+
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
+
+	resticVolOptions, err := r.configureRepDestResticVolOptions(vsr, resticSecret.Name, cm, &capacity)
+	if err != nil {
+		return err
+	}
+
 	// build ReplicationDestination
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
 			Manual: fmt.Sprintf("%s-trigger", vsr.Name),
 		},
-		Restic: &volsyncv1alpha1.ReplicationDestinationResticSpec{
-			// TODO: create restic secret from secret from VSB CR status
-			Repository: resticSecret.Name,
-			ReplicationDestinationVolumeOptions: volsyncv1alpha1.ReplicationDestinationVolumeOptions{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				CopyMethod:  volsyncv1alpha1.CopyMethodSnapshot,
-				// let replicationDestination create PVC
-				Capacity:                &capacity,
-				StorageClassName:        &vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName,
-				VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
-			},
-		},
+		Restic: resticVolOptions,
 	}
+
 	if replicationDestination.CreationTimestamp.IsZero() {
 		replicationDestination.Spec = replicationDestinationSpec
 	}
@@ -219,4 +220,122 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 
 	r.Log.Info(fmt.Sprintf("waiting for replicationdestination %s/%s to complete", vsr.Spec.ProtectedNamespace, repDestName))
 	return false, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, capacity *resource.Quantity, cm *corev1.ConfigMap) (*volsyncv1alpha1.ReplicationDestinationVolumeOptions, error) {
+
+	if vsr == nil {
+		return nil, errors.New("nil vsb in configureRepDestVolOptions")
+	}
+
+	if capacity == nil {
+		return nil, errors.New("nil pvc in configureRepDestVolOptions")
+	}
+
+	// we do not want users to change these
+	repDestVolOptions := volsyncv1alpha1.ReplicationDestinationVolumeOptions{
+		CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
+		VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
+		Capacity:                capacity,
+	}
+
+	var repDestStorageClass string
+
+	var repDestAccessMode string
+	var repDestAccessModeAM []corev1.PersistentVolumeAccessMode
+
+	if cm != nil && cm.Data != nil {
+
+		for spec := range cm.Data {
+
+			// check for config storageClassName, otherwise use source PVC storageClass
+			if spec == "DestinationStorageClassName" {
+				repDestStorageClass = cm.Data["DestinationStorageClassName"]
+
+				// cm.Data is set but field not set
+			} else {
+				repDestStorageClass = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
+			}
+
+			// check for config accessMode, otherwise use source PVC accessMode
+			if spec == "DestinationAccessMode" {
+				repDestAccessMode = cm.Data["DestinationAccessMode"]
+				repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestAccessMode)}
+
+				// cm.Data is set but field not set
+			} else {
+				repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+			}
+		}
+
+		// no configmap data used
+	} else {
+
+		repDestStorageClass = vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
+		repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	}
+
+	repDestVolOptions.StorageClassName = &repDestStorageClass
+	repDestVolOptions.AccessModes = repDestAccessModeAM
+
+	return &repDestVolOptions, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecretName string,
+	cm *corev1.ConfigMap, capacity *resource.Quantity) (*volsyncv1alpha1.ReplicationDestinationResticSpec, error) {
+
+	if vsr == nil {
+		return nil, errors.New("nil vsr in configureRepDestResticVolOptions")
+	}
+
+	if capacity == nil {
+		return nil, errors.New("nil capacity in configureRepDestResticVolOptions")
+	}
+
+	repDestResticVolOptions := volsyncv1alpha1.ReplicationDestinationResticSpec{}
+	repDestResticVolOptions.Repository = resticSecretName
+
+	var repDestCacheStorageClass string
+	var repDestCaceheStorageClassPt *string
+
+	var repDestCacheAccessMode string
+
+	var repDestCacheCapacity string
+	var repDestCacheCapacityCp resource.Quantity
+
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+
+			// check for config cacheStorageClassName, otherwise use source PVC storageClass
+			if spec == "DestinationCacheStorageClassName" {
+				repDestCacheStorageClass = cm.Data["DestinationCacheStorageClassName"]
+				repDestCaceheStorageClassPt = &repDestCacheStorageClass
+
+				repDestResticVolOptions.CacheStorageClassName = repDestCaceheStorageClassPt
+			}
+
+			// check for config cacheAccessMode, otherwise use source PVC accessMode
+			if spec == "DestinationCacheAccessMode" {
+				repDestCacheAccessMode = cm.Data["DestinationCacheAccessMode"]
+				repDestResticVolOptions.CacheAccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestCacheAccessMode)}
+			}
+
+			// check for config cacheCapacity, otherwise use source PVC capacity
+			if spec == "DestinationCacheCapacity" {
+				repDestCacheCapacity = cm.Data["DestinationCacheCapacity"]
+				repDestCacheCapacityCp = resource.MustParse(repDestCacheCapacity)
+
+				repDestResticVolOptions.CacheCapacity = &repDestCacheCapacityCp
+			}
+		}
+	}
+
+	optionsSpec, err := r.configureRepDestVolOptions(vsr, capacity, cm)
+	if err != nil {
+		return nil, err
+	}
+
+	repDestResticVolOptions.ReplicationDestinationVolumeOptions = *optionsSpec
+
+	return &repDestResticVolOptions, nil
 }
