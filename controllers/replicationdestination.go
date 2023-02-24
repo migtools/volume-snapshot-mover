@@ -53,10 +53,15 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		return false, err
 	}
 
+	cm, err := GetDataMoverConfigMap(vsr.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// Create ReplicationDestination in protected namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
-		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret)
+		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret, cm)
 	})
 	if err != nil {
 		return false, err
@@ -72,7 +77,8 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 	return true, nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecret *corev1.Secret) error {
+func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore,
+	resticSecret *corev1.Secret, cm *corev1.ConfigMap) error {
 	if vsr == nil {
 		return errors.New("nil vsr in buildReplicationDestination")
 	}
@@ -83,11 +89,6 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 
 	if resticSecret == nil {
 		return errors.New("nil resticSecret in buildReplicationDestination")
-	}
-
-	cm, _, err := GetDataMoverConfigMap(vsr.Spec.ProtectedNamespace, r.Log, r.Client)
-	if err != nil {
-		return err
 	}
 
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size

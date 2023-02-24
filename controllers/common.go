@@ -494,18 +494,18 @@ func updateVSBStatusPhase(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, phase 
 	return nil
 }
 
-func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Client) (*corev1.ConfigMap, bool, error) {
+func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Client) (*corev1.ConfigMap, error) {
 
 	cm := corev1.ConfigMap{}
 
 	err := client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: DataMoverConfMapName}, &cm)
 	// configmap will not exist if config values were not set
 	if k8serrors.IsNotFound(err) {
-		return nil, false, nil
+		return nil, nil
 
 	} else if err != nil {
-		return nil, false, errors.New("failed to get data mover configMap")
+		return nil, errors.New("failed to get data mover configMap")
 	}
 
-	return &cm, true, nil
+	return &cm, nil
 }

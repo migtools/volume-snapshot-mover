@@ -38,6 +38,11 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 		return false, err
 	}
 
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// define replicationSource to be created
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
@@ -52,7 +57,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
 
-		return r.buildReplicationSource(repSource, &vsb, &clonedPVC)
+		return r.buildReplicationSource(repSource, &vsb, &clonedPVC, cm)
 	})
 	if err != nil {
 		return false, err
@@ -68,7 +73,8 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
+func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup,
+	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap) error {
 
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
@@ -88,11 +94,6 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		if err != nil {
 			return err
 		}
-	}
-
-	cm, _, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
-	if err != nil {
-		return err
 	}
 
 	resticVolOptions, err := r.configureRepSourceResticVolOptions(vsb, resticSecret.Name, pvc, cm)
