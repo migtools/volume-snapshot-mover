@@ -48,6 +48,9 @@ const ReconciledReasonError = "Error"
 const ReconciledReasonComplete = "Complete"
 const ReconcileCompleteMessage = "Reconcile complete"
 
+var processingVSBs = 0
+var VSBBatchNumber = 0
+
 // VolumeSnapshotBackupReconciler reconciles a VolumeSnapshotBackup object
 type VolumeSnapshotBackupReconciler struct {
 	client.Client
@@ -62,9 +65,6 @@ type VolumeSnapshotBackupReconciler struct {
 const (
 	dmFinalizer = "oadp.openshift.io/oadp-datamover"
 )
-
-var processingVSBs = 0
-var VSBBatchNumber = 0
 
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/status,verbs=get;update;patch
@@ -117,13 +117,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed ||
 		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed) &&
 		vsb.DeletionTimestamp.IsZero() {
-
-		// update once volsync completes instead?
-		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted
-		err := r.Status().Update(context.Background(), &vsb)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 
 		// remove from queue
 		return ctrl.Result{
