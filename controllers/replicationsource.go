@@ -11,6 +11,7 @@ import (
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
@@ -37,6 +38,11 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 		return false, err
 	}
 
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// define replicationSource to be created
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
@@ -51,7 +57,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
 
-		return r.buildReplicationSource(repSource, &vsb, &clonedPVC)
+		return r.buildReplicationSource(repSource, &vsb, &clonedPVC, cm)
 	})
 	if err != nil {
 		return false, err
@@ -67,7 +73,8 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim) error {
+func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup,
+	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap) error {
 
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
@@ -89,21 +96,20 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		}
 	}
 
+	resticVolOptions, err := r.configureRepSourceResticVolOptions(vsb, resticSecret.Name, pvc, cm)
+	if err != nil {
+		return err
+	}
+
 	// build ReplicationSource
 	replicationSourceSpec := volsyncv1alpha1.ReplicationSourceSpec{
 		SourcePVC: pvc.Name,
 		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
 			Manual: fmt.Sprintf("%s-trigger", vsb.Name),
 		},
-		Restic: &volsyncv1alpha1.ReplicationSourceResticSpec{
-			Repository: resticSecret.Name,
-			ReplicationSourceVolumeOptions: volsyncv1alpha1.ReplicationSourceVolumeOptions{
-				CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
-				StorageClassName:        &vsb.Status.SourcePVCData.StorageClassName,
-				VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
-			},
-		},
+		Restic: resticVolOptions,
 	}
+
 	if pruneIntervalInt != 0 {
 		replicationSourceSpec.Restic.PruneIntervalDays = pointer.Int32(int32(pruneIntervalInt))
 	}
@@ -223,4 +229,111 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv
 
 	// ReplicationSource has not yet completed but is not failed
 	return false, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap) (*volsyncv1alpha1.ReplicationSourceVolumeOptions, error) {
+
+	if vsb == nil {
+		return nil, errors.New("nil vsb in configureRepSourceVolOptions")
+	}
+
+	if pvc == nil {
+		return nil, errors.New("nil pvc in configureRepSourceVolOptions")
+	}
+
+	// we do not want users to change these
+	repSrcVolOptions := volsyncv1alpha1.ReplicationSourceVolumeOptions{
+		CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
+		VolumeSnapshotClassName: &vsb.Status.VolumeSnapshotClassName,
+	}
+
+	// use source PVC storageClass as default
+	repSourceStorageClass := vsb.Status.SourcePVCData.StorageClassName
+	// use source PVC accessMode as default
+	repSourceAccessModeAM := pvc.Spec.AccessModes
+
+	var repSourceAccessMode string
+
+	// if datamover configmap has data, use these values
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+
+			// check for config storageClassName, otherwise use source PVC storageClass
+			if spec == "SourceStorageClassName" {
+				repSourceStorageClass = cm.Data["SourceStorageClassName"]
+			}
+
+			// check for config accessMode, otherwise use source PVC accessMode
+			if spec == "SourceAccessMode" {
+				repSourceAccessMode = cm.Data["SourceAccessMode"]
+				repSourceAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repSourceAccessMode)}
+			}
+		}
+	}
+
+	repSrcVolOptions.StorageClassName = &repSourceStorageClass
+	repSrcVolOptions.AccessModes = repSourceAccessModeAM
+
+	return &repSrcVolOptions, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, resticSecretName string,
+	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap) (*volsyncv1alpha1.ReplicationSourceResticSpec, error) {
+
+	if vsb == nil {
+		return nil, errors.New("nil vsr in configureRepSourceResticVolOptions")
+	}
+
+	if pvc == nil {
+		return nil, errors.New("nil pvc in configureRepSourceResticVolOptions")
+	}
+
+	repSrcResticVolOptions := volsyncv1alpha1.ReplicationSourceResticSpec{}
+	repSrcResticVolOptions.Repository = resticSecretName
+
+	var repSourceCacheStorageClass string
+	var repSourceCaceheStorageClassPt *string
+
+	var repSourceCacheAccessMode string
+
+	var repSourceCacheCapacity string
+	var repSourceCacheCapacityCp resource.Quantity
+
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+
+			// check for config cacheStorageClassName, otherwise use source PVC storageClass
+			if spec == "SourceCacheStorageClassName" {
+				repSourceCacheStorageClass = cm.Data["SourceCacheStorageClassName"]
+				repSourceCaceheStorageClassPt = &repSourceCacheStorageClass
+
+				repSrcResticVolOptions.CacheStorageClassName = repSourceCaceheStorageClassPt
+			}
+
+			// check for config cacheAccessMode, otherwise use source PVC accessMode
+			if spec == "SourceCacheAccessMode" {
+				repSourceCacheAccessMode = cm.Data["SourceCacheAccessMode"]
+				repSrcResticVolOptions.CacheAccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repSourceCacheAccessMode)}
+			}
+
+			// check for config cacheCapacity, otherwise use source PVC capacity
+			if spec == "SourceCacheCapacity" {
+				repSourceCacheCapacity = cm.Data["SourceCacheCapacity"]
+				repSourceCacheCapacityCp = resource.MustParse(repSourceCacheCapacity)
+
+				repSrcResticVolOptions.CacheCapacity = &repSourceCacheCapacityCp
+			}
+		}
+	}
+
+	optionsSpec, err := r.configureRepSourceVolOptions(vsb, pvc, cm)
+	if err != nil {
+		return nil, err
+	}
+
+	if optionsSpec != nil {
+		repSrcResticVolOptions.ReplicationSourceVolumeOptions = *optionsSpec
+	}
+
+	return &repSrcResticVolOptions, nil
 }

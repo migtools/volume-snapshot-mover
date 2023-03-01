@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"context"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"testing"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -67,12 +68,13 @@ func getFakeClientFromObjectsRepSrc(objs ...client.Object) (client.WithWatch, er
 
 func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T) {
 	tests := []struct {
-		name    string
-		vsb     *volsnapmoverv1alpha1.VolumeSnapshotBackup
-		pvc     *corev1.PersistentVolumeClaim
-		repsrc  *volsyncv1alpha1.ReplicationSource
-		secret  *corev1.Secret
-		wantErr bool
+		name      string
+		vsb       *volsnapmoverv1alpha1.VolumeSnapshotBackup
+		pvc       *corev1.PersistentVolumeClaim
+		repsrc    *volsyncv1alpha1.ReplicationSource
+		secret    *corev1.Secret
+		configMap *corev1.ConfigMap
+		wantErr   bool
 	}{
 		// TODO: Add test cases.
 		{
@@ -113,6 +115,12 @@ func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T
 			repsrc: &volsyncv1alpha1.ReplicationSource{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsb-rep-src",
+					Namespace: namespace,
+				},
+			},
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "datamover-config",
 					Namespace: namespace,
 				},
 			},
@@ -185,7 +193,7 @@ func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T
 					},
 				},
 			}
-			err = r.buildReplicationSource(tt.repsrc, tt.vsb, tt.pvc)
+			err = r.buildReplicationSource(tt.repsrc, tt.vsb, tt.pvc, tt.configMap)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("VolumeSnapshotMoverBackupReconciler.buildReplicationSource() error = %v, wantErr %v", err, tt.wantErr)
 				return
