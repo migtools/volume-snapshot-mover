@@ -283,6 +283,9 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 	repDestResticVolOptions := volsyncv1alpha1.ReplicationDestinationResticSpec{}
 	repDestResticVolOptions.Repository = resticSecretName
 
+	veleroSA, err := GetVeleroServiceAccount(vsr.Spec.ProtectedNamespace, r.Client)
+	repDestResticVolOptions.MoverServiceAccount = &veleroSA.Name
+
 	var repDestCacheStorageClass string
 	var repDestCaceheStorageClassPt *string
 

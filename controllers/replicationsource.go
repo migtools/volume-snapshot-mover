@@ -291,6 +291,9 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 	repSrcResticVolOptions := volsyncv1alpha1.ReplicationSourceResticSpec{}
 	repSrcResticVolOptions.Repository = resticSecretName
 
+	veleroSA, err := GetVeleroServiceAccount(vsb.Spec.ProtectedNamespace, r.Client)
+	repSrcResticVolOptions.MoverServiceAccount = &veleroSA.Name
+
 	var repSourceCacheStorageClass string
 	var repSourceCaceheStorageClassPt *string
 
