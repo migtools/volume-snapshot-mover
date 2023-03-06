@@ -53,10 +53,15 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		return false, err
 	}
 
+	cm, err := GetDataMoverConfigMap(vsr.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// Create ReplicationDestination in protected namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
-		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret)
+		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret, cm)
 	})
 	if err != nil {
 		return false, err
@@ -72,7 +77,8 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 	return true, nil
 }
 
-func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecret *corev1.Secret) error {
+func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore,
+	resticSecret *corev1.Secret, cm *corev1.ConfigMap) error {
 	if vsr == nil {
 		return errors.New("nil vsr in buildReplicationDestination")
 	}
@@ -87,24 +93,20 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
+
+	resticVolOptions, err := r.configureRepDestResticVolOptions(vsr, resticSecret.Name, cm, &capacity)
+	if err != nil {
+		return err
+	}
+
 	// build ReplicationDestination
 	replicationDestinationSpec := volsyncv1alpha1.ReplicationDestinationSpec{
 		Trigger: &volsyncv1alpha1.ReplicationDestinationTriggerSpec{
 			Manual: fmt.Sprintf("%s-trigger", vsr.Name),
 		},
-		Restic: &volsyncv1alpha1.ReplicationDestinationResticSpec{
-			// TODO: create restic secret from secret from VSB CR status
-			Repository: resticSecret.Name,
-			ReplicationDestinationVolumeOptions: volsyncv1alpha1.ReplicationDestinationVolumeOptions{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				CopyMethod:  volsyncv1alpha1.CopyMethodSnapshot,
-				// let replicationDestination create PVC
-				Capacity:                &capacity,
-				StorageClassName:        &vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName,
-				VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
-			},
-		},
+		Restic: resticVolOptions,
 	}
+
 	if replicationDestination.CreationTimestamp.IsZero() {
 		replicationDestination.Spec = replicationDestinationSpec
 	}
@@ -152,6 +154,11 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 	if repDest.Status != nil {
 		reconConditionProgress := metav1.Condition{}
 
+		// add replicationdestination name to VSR status
+		if len(vsr.Status.ReplicationDestinationData.Name) == 0 {
+			vsr.Status.ReplicationDestinationData.Name = repDest.Name
+		}
+
 		// save replicationDestination status conditions
 		for i := range repDest.Status.Conditions {
 			if repDest.Status.Conditions[i].Reason == volsyncv1alpha1.SynchronizingReasonSync {
@@ -167,6 +174,13 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			if sourceStatus == sourceSpec {
 
 				vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
+				// recording completion timestamp for VSR as completed is a terminal state
+				now := metav1.Now()
+				vsr.Status.CompletionTimestamp = &now
+
+				if repDest.Status.LastSyncTime != nil {
+					vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastSyncTime
+				}
 
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
@@ -181,6 +195,7 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 		} else if reconConditionProgress.Status == metav1.ConditionTrue && reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonSync {
 
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseInProgress
+			vsr.Status.ReplicationDestinationData.StartTimestamp = repDest.Status.LastSyncStartTime
 			err := r.Status().Update(context.Background(), &vsr)
 			if err != nil {
 				return false, err
@@ -189,8 +204,11 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			return false, nil
 
 			// if not in progress or completed, phase failed
-		} else if reconConditionProgress.Reason == volsyncv1alpha1.ReconciledReasonError {
+		} else if reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonError {
 			vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed
+			// recording completion timestamp for VSR as failed is a terminal state
+			now := metav1.Now()
+			vsr.Status.CompletionTimestamp = &now
 
 			err := r.Status().Update(context.Background(), &vsr)
 			if err != nil {
@@ -203,4 +221,111 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 
 	r.Log.Info(fmt.Sprintf("waiting for replicationdestination %s/%s to complete", vsr.Spec.ProtectedNamespace, repDestName))
 	return false, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, capacity *resource.Quantity, cm *corev1.ConfigMap) (*volsyncv1alpha1.ReplicationDestinationVolumeOptions, error) {
+
+	if vsr == nil {
+		return nil, errors.New("nil vsb in configureRepDestVolOptions")
+	}
+
+	if capacity == nil {
+		return nil, errors.New("nil pvc in configureRepDestVolOptions")
+	}
+
+	// we do not want users to change these
+	repDestVolOptions := volsyncv1alpha1.ReplicationDestinationVolumeOptions{
+		CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
+		VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
+		Capacity:                capacity,
+	}
+
+	var repDestAccessMode string
+	// use source PVC storageClass as default
+	repDestStorageClass := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName
+	// use source PVC accessMode as default
+	repDestAccessModeAM := []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+
+	// if datamover configmap has data, use these values
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+
+			// check for config storageClassName, otherwise use source PVC storageClass
+			if spec == "DestinationStorageClassName" {
+				repDestStorageClass = cm.Data["DestinationStorageClassName"]
+			}
+
+			// check for config accessMode, otherwise use source PVC accessMode
+			if spec == "DestinationAccessMode" {
+				repDestAccessMode = cm.Data["DestinationAccessMode"]
+				repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestAccessMode)}
+			}
+		}
+	}
+
+	repDestVolOptions.StorageClassName = &repDestStorageClass
+	repDestVolOptions.AccessModes = repDestAccessModeAM
+
+	return &repDestVolOptions, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecretName string,
+	cm *corev1.ConfigMap, capacity *resource.Quantity) (*volsyncv1alpha1.ReplicationDestinationResticSpec, error) {
+
+	if vsr == nil {
+		return nil, errors.New("nil vsr in configureRepDestResticVolOptions")
+	}
+
+	if capacity == nil {
+		return nil, errors.New("nil capacity in configureRepDestResticVolOptions")
+	}
+
+	repDestResticVolOptions := volsyncv1alpha1.ReplicationDestinationResticSpec{}
+	repDestResticVolOptions.Repository = resticSecretName
+
+	var repDestCacheStorageClass string
+	var repDestCaceheStorageClassPt *string
+
+	var repDestCacheAccessMode string
+
+	var repDestCacheCapacity string
+	var repDestCacheCapacityCp resource.Quantity
+
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+
+			// check for config cacheStorageClassName, otherwise use source PVC storageClass
+			if spec == "DestinationCacheStorageClassName" {
+				repDestCacheStorageClass = cm.Data["DestinationCacheStorageClassName"]
+				repDestCaceheStorageClassPt = &repDestCacheStorageClass
+
+				repDestResticVolOptions.CacheStorageClassName = repDestCaceheStorageClassPt
+			}
+
+			// check for config cacheAccessMode, otherwise use source PVC accessMode
+			if spec == "DestinationCacheAccessMode" {
+				repDestCacheAccessMode = cm.Data["DestinationCacheAccessMode"]
+				repDestResticVolOptions.CacheAccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestCacheAccessMode)}
+			}
+
+			// check for config cacheCapacity, otherwise use source PVC capacity
+			if spec == "DestinationCacheCapacity" {
+				repDestCacheCapacity = cm.Data["DestinationCacheCapacity"]
+				repDestCacheCapacityCp = resource.MustParse(repDestCacheCapacity)
+
+				repDestResticVolOptions.CacheCapacity = &repDestCacheCapacityCp
+			}
+		}
+	}
+
+	optionsSpec, err := r.configureRepDestVolOptions(vsr, capacity, cm)
+	if err != nil {
+		return nil, err
+	}
+
+	if optionsSpec != nil {
+		repDestResticVolOptions.ReplicationDestinationVolumeOptions = *optionsSpec
+	}
+
+	return &repDestResticVolOptions, nil
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -194,6 +196,9 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted
+	now := metav1.Now()
+	vsr.Status.CompletionTimestamp = &now
+
 	err := r.Status().Update(context.Background(), &vsr)
 	if err != nil {
 		return false, err

@@ -46,13 +46,16 @@ const (
 	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 
 	// Restic repo vars
-	ResticPassword   = "RESTIC_PASSWORD"
-	ResticRepository = "RESTIC_REPOSITORY"
+	ResticPassword      = "RESTIC_PASSWORD"
+	ResticRepository    = "RESTIC_REPOSITORY"
+	ResticPruneInterval = "restic-prune-interval"
 
 	// Datamover annotation keys
 	DatamoverResticRepository = "datamover.io/restic-repository"
 	DatamoverSourcePVCName    = "datamover.io/source-pvc-name"
 	DatamoverSourcePVCSize    = "datamover.io/source-pvc-size"
+
+	DataMoverConfMapName = "datamover-config"
 
 	// Providers
 	AWSProvider   = "aws"
@@ -71,8 +74,9 @@ var (
 
 	GoogleApplicationCredentialsValue []byte
 
-	ResticPasswordValue []byte
-	ResticRepoValue     string
+	ResticPasswordValue      []byte
+	ResticRepoValue          string
+	ResticPruneIntervalValue []byte
 )
 
 type ReconcileFunc func(logr.Logger) (bool, error)
@@ -105,7 +109,7 @@ func PopulateResticSecret(name string, namespace string, label string) (*corev1.
 	return newResticSecret, nil
 }
 
-func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo string) error {
+func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo, pruneInterval string) error {
 	if givensecret == nil {
 		return errors.New("nil givensecret in BuildResticSecret")
 	}
@@ -134,11 +138,12 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		// build new Restic secret
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
-				AWSAccessKey:     AWSAccessValue,
-				AWSSecretKey:     AWSSecretValue,
-				AWSDefaultRegion: AWSDefaultRegionValue,
-				ResticPassword:   ResticPasswordValue,
-				ResticRepository: []byte(resticrepo),
+				AWSAccessKey:        AWSAccessValue,
+				AWSSecretKey:        AWSSecretValue,
+				AWSDefaultRegion:    AWSDefaultRegionValue,
+				ResticPassword:      ResticPasswordValue,
+				ResticRepository:    []byte(resticrepo),
+				ResticPruneInterval: []byte(pruneInterval),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -160,10 +165,11 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		// build new Restic secret
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
-				AzureAccountName: AzureAccountNameValue,
-				AzureAccountKey:  AzureAccountKeyValue,
-				ResticPassword:   ResticPasswordValue,
-				ResticRepository: []byte(resticrepo),
+				AzureAccountName:    AzureAccountNameValue,
+				AzureAccountKey:     AzureAccountKeyValue,
+				ResticPassword:      ResticPasswordValue,
+				ResticRepository:    []byte(resticrepo),
+				ResticPruneInterval: []byte(pruneInterval),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -186,6 +192,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				GoogleApplicationCredentials: GoogleApplicationCredentialsValue,
 				ResticPassword:               ResticPasswordValue,
 				ResticRepository:             []byte(resticrepo),
+				ResticPruneInterval:          []byte(pruneInterval),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -338,7 +345,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBStatus(log logr.Logger) (bool, er
 			return false, nil
 		}
 	}
-	return false, errors.New("replication source status not ready")
+	return false, nil
 }
 
 func checkForOneDefaultSnapClass(vsClassList *snapv1.VolumeSnapshotClassList) (bool, error) {
@@ -405,6 +412,9 @@ func updateVSBFromBackup(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, client 
 
 	if backup.Status.Phase == velero.BackupPhaseFailed || backup.Status.Phase == velero.BackupPhasePartiallyFailed {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed
+		// recording completion timestamp for VSB as partially failed is a terminal state
+		now := metav1.Now()
+		vsb.Status.CompletionTimestamp = &now
 		err := client.Status().Update(context.Background(), vsb)
 		if err != nil {
 			return err
@@ -447,6 +457,9 @@ func updateVSRFromRestore(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, clien
 
 	if restore.Status.Phase == velero.RestorePhaseFailed || restore.Status.Phase == velero.RestorePhasePartiallyFailed {
 		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed
+		// recording completion timestamp for VSB as partially failed is a terminal state
+		now := metav1.Now()
+		vsr.Status.CompletionTimestamp = &now
 		err := client.Status().Update(context.Background(), vsr)
 		if err != nil {
 			return err
@@ -480,4 +493,20 @@ func updateVSBStatusPhase(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, phase 
 	}
 
 	return nil
+}
+
+func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Client) (*corev1.ConfigMap, error) {
+
+	cm := corev1.ConfigMap{}
+
+	err := client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: DataMoverConfMapName}, &cm)
+	// configmap will not exist if config values were not set
+	if k8serrors.IsNotFound(err) {
+		return nil, nil
+
+	} else if err != nil {
+		return nil, errors.New("failed to get data mover configMap")
+	}
+
+	return &cm, nil
 }

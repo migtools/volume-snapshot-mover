@@ -287,6 +287,7 @@ func (r *VolumeSnapshotRestoreReconciler) WaitForVolSyncSnapshotContentToBeReady
 
 	if *vsc.Status.ReadyToUse == true && vsc.Status.SnapshotHandle != nil {
 		vsr.Status.SnapshotHandle = *vsc.Status.SnapshotHandle
+		vsr.Status.VolumeSnapshotContentName = vsc.Name
 
 		// Update VSR status
 		err := r.Status().Update(context.Background(), &vsr)

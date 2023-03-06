@@ -1,10 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
-
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -64,6 +65,18 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 
 		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed", r.req.NamespacedName))
 		return false, errors.New(errString)
+	}
+
+	if vsb.Status.StartTimestamp == nil {
+		// recording VSB start timestamp as the CR has passed all the validation checks
+		now := metav1.Now()
+		vsb.Status.StartTimestamp = &now
+
+		// update VSB status with StartTimestamp
+		err = r.Client.Status().Update(context.Background(), &vsb)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil
@@ -129,6 +142,18 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 
 		r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as failed", r.req.NamespacedName))
 		return false, errors.New(errString)
+	}
+
+	if vsr.Status.StartTimestamp == nil {
+		// recording VSR start timestamp as the CR has passed all the validation checks
+		now := metav1.Now()
+		vsr.Status.StartTimestamp = &now
+
+		// update VSR status with StartTimestamp
+		err = r.Client.Status().Update(context.Background(), &vsr)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil

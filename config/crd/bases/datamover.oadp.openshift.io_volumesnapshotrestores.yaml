@@ -78,6 +78,11 @@ spec:
             description: VolumeSnapshotRestoreStatus defines the observed state of
               VolumeSnapshotRestore
             properties:
+              completionTimestamp:
+                description: CompletionTimestamp records the time a volumesnapshotrestore
+                  reached a terminal state.
+                format: date-time
+                type: string
               conditions:
                 items:
                   description: "Condition contains details for one aspect of the current
@@ -149,7 +154,36 @@ spec:
               phase:
                 description: volumesnapshot restore phase status
                 type: string
+              replicationDestinationData:
+                description: Includes information pertaining to Volsync ReplicationDestination
+                  CR
+                properties:
+                  completionTimestamp:
+                    description: CompletionTimestamp records the time a ReplicationDestination
+                      reached a terminal state.
+                    format: date-time
+                    type: string
+                  name:
+                    description: name of the ReplicationDestination associated with
+                      the volumesnapshotrestore
+                    type: string
+                  startTimestamp:
+                    description: StartTimestamp records the time a ReplicationDestination
+                      was started.
+                    format: date-time
+                    type: string
+                type: object
               snapshotHandle:
+                description: name of the volumesnapshot snaphandle that is backed
+                  up
+                type: string
+              startTimestamp:
+                description: StartTimestamp records the time a volsumesnapshotrestore
+                  was started.
+                format: date-time
+                type: string
+              volumeSnapshotContentName:
+                description: name of the volumesnapshotcontent that is backed up
                 type: string
             type: object
         type: object

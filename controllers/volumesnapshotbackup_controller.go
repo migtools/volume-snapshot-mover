@@ -19,8 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -130,7 +131,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Log.Info("Clean up successful")
+
 		return ctrl.Result{}, nil
 	}
 

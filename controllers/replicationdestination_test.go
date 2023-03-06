@@ -24,6 +24,7 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 		vsr            *volsnapmoverv1alpha1.VolumeSnapshotRestore
 		repDest        *volsyncv1alpha1.ReplicationDestination
 		secret         *corev1.Secret
+		configMap      *corev1.ConfigMap
 		Client         client.Client
 		Log            logr.Logger
 		Context        context.Context
@@ -36,7 +37,7 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 	}{
 		// TODO: Add test cases
 		{
-			name: "Given vsr and repdest and secret, should pass",
+			name: "Given vsr and repdest and secret and configmap, should pass",
 			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sample-vsr",
@@ -66,6 +67,12 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "test-secret",
 					Namespace: "test-ns",
+				},
+			},
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "datamover-config",
+					Namespace: namespace,
 				},
 			},
 			want:    true,
@@ -163,7 +170,8 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 				EventRecorder:  tt.EventRecorder,
 				req:            tt.req,
 			}
-			err := r.buildReplicationDestination(tt.repDest, tt.vsr, tt.secret)
+
+			err := r.buildReplicationDestination(tt.repDest, tt.vsr, tt.secret, tt.configMap)
 			if err != nil && tt.wantErr {
 				t.Logf("buildReplicationDestination() error = %v, wantErr %v", err, tt.wantErr)
 				return
