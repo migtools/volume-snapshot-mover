@@ -187,7 +187,7 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		return false, nil
 
 		//if not in progress or completed, phase failed
-	} else {
+	} else if reconConditionProgress.Reason == volsyncv1alpha1.SynchronizingReasonError {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed
 		// recording completion timestamp for VSB as failed is a terminal state
 		now := metav1.Now()
@@ -200,6 +200,8 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s as failed", r.req.NamespacedName))
 		return false, nil
 	}
+	r.Log.Info(fmt.Sprintf("waiting for replicationsource %s/%s to complete", vsb.Spec.ProtectedNamespace, repSource.Name))
+	return false, nil
 }
 
 func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
