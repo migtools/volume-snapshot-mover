@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	v1 "k8s.io/api/core/v1"
@@ -55,6 +57,10 @@ type VolumeSnapshotBackupReconciler struct {
 	EventRecorder  record.EventRecorder
 	req            ctrl.Request
 }
+
+const (
+	dmFinalizer = "oadp.openshift.io/oadp-datamover"
+)
 
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/status,verbs=get;update;patch
@@ -95,12 +101,38 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	// stop reconciling on this resource when completed or failed
-	if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted ||
+	if (vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted ||
 		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed ||
-		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed {
+		vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed) &&
+		vsb.DeletionTimestamp.IsZero() {
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
+	}
+
+	// Add Finalizer to VSB
+	if !controllerutil.ContainsFinalizer(&vsb, dmFinalizer) {
+		controllerutil.AddFinalizer(&vsb, dmFinalizer)
+		err := r.Update(ctx, &vsb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if !vsb.DeletionTimestamp.IsZero() {
+		_, err := r.CleanBackupResources(r.Log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		controllerutil.RemoveFinalizer(&vsb, dmFinalizer)
+		err = r.Update(ctx, &vsb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// Run through all reconcilers associated with VSB needs
@@ -150,7 +182,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 
 	VSBComplete, err := r.setVSBStatus(r.Log)
 	if !VSBComplete {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	if !reconFlag {

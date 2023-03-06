@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
@@ -30,7 +31,6 @@ var cleanupVSRTypes = []client.Object{
 }
 
 func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
-
 	// get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
@@ -38,8 +38,11 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 		return false, err
 	}
 
-	// make sure VSB is completed before deleting resources
-	if vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	// make sure VSB is completed or failed before deleting resources AND VSB has not been deleted
+	if vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted &&
+		vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed &&
+		vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhasePartiallyFailed &&
+		vsb.DeletionTimestamp.IsZero() {
 		r.Log.Info(fmt.Sprintf("waiting for volsync to complete before deleting volumesnapshotbackup %s resources", r.req.NamespacedName))
 		return false, nil
 	}
@@ -65,14 +68,13 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	// 	return false, err
 	// }
 
-	// Update VSB status as completed as well as add completion timestamp
-	vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted
-	now := metav1.Now()
-	vsb.Status.CompletionTimestamp = &now
-
-	err := r.Status().Update(context.Background(), &vsb)
-	if err != nil {
-		return false, err
+	// Update VSB status as completed
+	if vsb.DeletionTimestamp.IsZero() {
+		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted
+		err := r.Status().Update(context.Background(), &vsb)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil
