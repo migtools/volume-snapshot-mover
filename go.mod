@@ -44,8 +44,8 @@ require (
 	github.com/miscreant/miscreant.go v0.0.0-20200214223636-26d376326b75 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/onsi/ginkgo/v2 v2.8.3 // indirect
-	github.com/onsi/gomega v1.27.0 // indirect
+	github.com/onsi/ginkgo/v2 v2.8.4 // indirect
+	github.com/onsi/gomega v1.27.2 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/petermattis/goid v0.0.0-20221202122410-a449aaf35945 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/backube/volsync v0.3.1-0.20230302150656-e2429d406045
+	github.com/backube/volsync v0.3.1-0.20230303214324-44a66483cfcc
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
