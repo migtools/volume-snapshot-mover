@@ -58,10 +58,15 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		return false, err
 	}
 
+	veleroSA, err := GetVeleroServiceAccount(vsr.Spec.ProtectedNamespace, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// Create ReplicationDestination in protected namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repDestination, func() error {
 
-		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret, cm)
+		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret, cm, veleroSA)
 	})
 	if err != nil {
 		return false, err
@@ -78,7 +83,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 }
 
 func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicationDestination *volsyncv1alpha1.ReplicationDestination, vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore,
-	resticSecret *corev1.Secret, cm *corev1.ConfigMap) error {
+	resticSecret *corev1.Secret, cm *corev1.ConfigMap, sa *corev1.ServiceAccount) error {
 	if vsr == nil {
 		return errors.New("nil vsr in buildReplicationDestination")
 	}
@@ -91,10 +96,18 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		return errors.New("nil resticSecret in buildReplicationDestination")
 	}
 
+	if cm == nil {
+		return errors.New("nil configMap in buildReplicationDestination")
+	}
+
+	if sa == nil {
+		return errors.New("nil serviceAccount in buildReplicationDestination")
+	}
+
 	stringCapacity := vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Size
 	capacity := resource.MustParse(stringCapacity)
 
-	resticVolOptions, err := r.configureRepDestResticVolOptions(vsr, resticSecret.Name, cm, &capacity)
+	resticVolOptions, err := r.configureRepDestResticVolOptions(vsr, resticSecret.Name, cm, &capacity, sa)
 	if err != nil {
 		return err
 	}
@@ -270,7 +283,7 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsna
 }
 
 func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, resticSecretName string,
-	cm *corev1.ConfigMap, capacity *resource.Quantity) (*volsyncv1alpha1.ReplicationDestinationResticSpec, error) {
+	cm *corev1.ConfigMap, capacity *resource.Quantity, sa *corev1.ServiceAccount) (*volsyncv1alpha1.ReplicationDestinationResticSpec, error) {
 
 	if vsr == nil {
 		return nil, errors.New("nil vsr in configureRepDestResticVolOptions")
@@ -283,8 +296,7 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 	repDestResticVolOptions := volsyncv1alpha1.ReplicationDestinationResticSpec{}
 	repDestResticVolOptions.Repository = resticSecretName
 
-	veleroSA, err := GetVeleroServiceAccount(vsr.Spec.ProtectedNamespace, r.Client)
-	repDestResticVolOptions.MoverServiceAccount = &veleroSA.Name
+	repDestResticVolOptions.MoverServiceAccount = &sa.Name
 
 	var repDestCacheStorageClass string
 	var repDestCaceheStorageClassPt *string

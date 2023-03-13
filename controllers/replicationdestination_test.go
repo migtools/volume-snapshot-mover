@@ -25,6 +25,7 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 		repDest        *volsyncv1alpha1.ReplicationDestination
 		secret         *corev1.Secret
 		configMap      *corev1.ConfigMap
+		serviceAcct    *corev1.ServiceAccount
 		Client         client.Client
 		Log            logr.Logger
 		Context        context.Context
@@ -75,6 +76,12 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 					Namespace: namespace,
 				},
 			},
+			serviceAcct: &corev1.ServiceAccount{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "velero",
+					Namespace: namespace,
+				},
+			},
 			want:    true,
 			wantErr: false,
 		},
@@ -91,6 +98,18 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "test-secret",
 					Namespace: "test-ns",
+				},
+			},
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "datamover-config",
+					Namespace: namespace,
+				},
+			},
+			serviceAcct: &corev1.ServiceAccount{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "velero",
+					Namespace: namespace,
 				},
 			},
 			want:    false,
@@ -124,6 +143,18 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 					Namespace: "test-ns",
 				},
 			},
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "datamover-config",
+					Namespace: namespace,
+				},
+			},
+			serviceAcct: &corev1.ServiceAccount{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "velero",
+					Namespace: namespace,
+				},
+			},
 			want:    false,
 			wantErr: true,
 		},
@@ -154,7 +185,19 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 					Namespace: namespace,
 				},
 			},
-			secret:  nil,
+			secret: nil,
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "datamover-config",
+					Namespace: namespace,
+				},
+			},
+			serviceAcct: &corev1.ServiceAccount{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "velero",
+					Namespace: namespace,
+				},
+			},
 			want:    false,
 			wantErr: true,
 		},
@@ -171,7 +214,7 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 				req:            tt.req,
 			}
 
-			err := r.buildReplicationDestination(tt.repDest, tt.vsr, tt.secret, tt.configMap)
+			err := r.buildReplicationDestination(tt.repDest, tt.vsr, tt.secret, tt.configMap, tt.serviceAcct)
 			if err != nil && tt.wantErr {
 				t.Logf("buildReplicationDestination() error = %v, wantErr %v", err, tt.wantErr)
 				return
