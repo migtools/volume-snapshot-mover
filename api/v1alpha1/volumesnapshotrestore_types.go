@@ -68,6 +68,8 @@ const (
 	SnapMoverRestorePhaseFailed VolumeSnapshotRestorePhase = "Failed"
 
 	SnapMoverRestorePhasePartiallyFailed VolumeSnapshotRestorePhase = "PartiallyFailed"
+
+	SnapMoverRestorePhaseCleanup VolumeSnapshotRestorePhase = "Cleanup"
 )
 
 //+kubebuilder:object:root=true
