@@ -53,7 +53,7 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 		client.InNamespace(vsb.Spec.ProtectedNamespace),
 	}
 
-	// Update VSB status as completed
+	// Update VSB status as Cleanup
 	if vsb.DeletionTimestamp.IsZero() {
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCleanup
 		err := r.Status().Update(context.Background(), &vsb)
@@ -189,7 +189,7 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 		client.InNamespace(vsr.Spec.ProtectedNamespace),
 	}
 
-	// Update VSB status as completed
+	// Update VSR status as cleanup
 	if vsr.DeletionTimestamp.IsZero() {
 		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCleanup
 		err := r.Status().Update(context.Background(), &vsr)
