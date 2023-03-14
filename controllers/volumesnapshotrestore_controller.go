@@ -36,6 +36,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -63,6 +64,7 @@ type VolumeSnapshotRestoreReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
+
 func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Set reconciler vars
 	r.Log = log.FromContext(ctx).WithValues("vsr", req.NamespacedName)
@@ -89,12 +91,39 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	// stop reconciling on this resource when completed or failed
-	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted ||
+	if (vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted ||
 		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed ||
-		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
+		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed) &&
+		vsr.DeletionTimestamp.IsZero() {
+
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
+	}
+
+	// Add Finalizer to VSR
+	if !controllerutil.ContainsFinalizer(&vsr, dmFinalizer) {
+		controllerutil.AddFinalizer(&vsr, dmFinalizer)
+		err := r.Update(ctx, &vsr)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if !vsr.DeletionTimestamp.IsZero() {
+		_, err := r.CleanRestoreResources(r.Log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		controllerutil.RemoveFinalizer(&vsr, dmFinalizer)
+		err = r.Update(ctx, &vsr)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// Run through all reconcilers associated with VSR needs
@@ -138,7 +167,7 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 
 	VSRComplete, err := r.SetVSRStatus(r.Log)
 	if !VSRComplete {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	if !reconFlag {

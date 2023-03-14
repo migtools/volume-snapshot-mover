@@ -132,7 +132,8 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 		return false, err
 	}
 
-	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed || vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
+	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed ||
+		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
 		return false, errors.New(fmt.Sprintf("vsr %s/%s failed to complete", vsr.Namespace, vsr.Name))
 	}
 

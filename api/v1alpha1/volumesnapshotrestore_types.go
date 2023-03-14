@@ -73,6 +73,10 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:path=volumesnapshotrestores,shortName=vsr
+// +kubebuilder:printcolumn:name="PVC Name",type=string,JSONPath=".spec.volumeSnapshotMoverBackupRef.sourcePVCData.name"
+// +kubebuilder:printcolumn:name="VolumeSnapshotContent",type=string,JSONPath=".status.volumeSnapshotContentName"
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
 
 // VolumeSnapshotRestore is the Schema for the volumesnapshotrestores API
 type VolumeSnapshotRestore struct {
