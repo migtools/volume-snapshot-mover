@@ -130,6 +130,8 @@ github.com/backube/volsync v0.3.1-0.20230303214324-44a66483cfcc h1:eZzCQKUox3zUa
 github.com/backube/volsync v0.3.1-0.20230303214324-44a66483cfcc/go.mod h1:Icl6Ipn3RCOebGf5ZauipYbqtQCwdC75Hq0iaSpJBf8=
 github.com/backube/volsync v0.5.0 h1:noJdslCTtqTosMb2w3htKvkI30mVbpAUNM+K7/9Uq0g=
 github.com/backube/volsync v0.5.0/go.mod h1:EghJ3/+iru4OW7sSKVUIDQRYmxtdDqhAwBIU7Wjn3Hw=
+github.com/backube/volsync v0.7.0 h1:7sDZk3MvJVhcUwCylX0dwYcmQrxyEhZ6sIjFJ4DFF94=
+github.com/backube/volsync v0.7.0/go.mod h1:Icl6Ipn3RCOebGf5ZauipYbqtQCwdC75Hq0iaSpJBf8=
 github.com/benbjohnson/clock v1.0.3/go.mod h1:bGMdMPoPVvcYyt1gHDf4J2KE153Yf9BuiUKYMaxlTDM=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
