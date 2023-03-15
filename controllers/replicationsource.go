@@ -43,6 +43,11 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 		return false, err
 	}
 
+	veleroSA, err := GetVeleroServiceAccount(vsb.Spec.ProtectedNamespace, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// define replicationSource to be created
 	repSource := &volsyncv1alpha1.ReplicationSource{
 		ObjectMeta: metav1.ObjectMeta{
@@ -57,7 +62,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	// Create ReplicationSource in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, repSource, func() error {
 
-		return r.buildReplicationSource(repSource, &vsb, &clonedPVC, cm)
+		return r.buildReplicationSource(repSource, &vsb, &clonedPVC, cm, veleroSA)
 	})
 	if err != nil {
 		return false, err
@@ -74,7 +79,27 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 }
 
 func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSource *volsyncv1alpha1.ReplicationSource, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup,
-	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap) error {
+	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap, sa *corev1.ServiceAccount) error {
+
+	if vsb == nil {
+		return errors.New("nil vsb in buildReplicationSource")
+	}
+
+	if replicationSource == nil {
+		return errors.New("nil replicationSource in buildReplicationSource")
+	}
+
+	if pvc == nil {
+		return errors.New("nil pvc in buildReplicationSource")
+	}
+
+	if cm == nil {
+		return errors.New("nil configMap in buildReplicationSource")
+	}
+
+	if sa == nil {
+		return errors.New("nil serviceAccount in buildReplicationSource")
+	}
 
 	// get restic secret created by controller
 	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
@@ -96,7 +121,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		}
 	}
 
-	resticVolOptions, err := r.configureRepSourceResticVolOptions(vsb, resticSecret.Name, pvc, cm)
+	resticVolOptions, err := r.configureRepSourceResticVolOptions(vsb, resticSecret.Name, pvc, cm, sa)
 	if err != nil {
 		return err
 	}
@@ -285,7 +310,7 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsn
 }
 
 func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, resticSecretName string,
-	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap) (*volsyncv1alpha1.ReplicationSourceResticSpec, error) {
+	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap, sa *corev1.ServiceAccount) (*volsyncv1alpha1.ReplicationSourceResticSpec, error) {
 
 	if vsb == nil {
 		return nil, errors.New("nil vsr in configureRepSourceResticVolOptions")
@@ -297,6 +322,8 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 
 	repSrcResticVolOptions := volsyncv1alpha1.ReplicationSourceResticSpec{}
 	repSrcResticVolOptions.Repository = resticSecretName
+
+	repSrcResticVolOptions.MoverServiceAccount = &sa.Name
 
 	var repSourceCacheStorageClass string
 	var repSourceCaceheStorageClassPt *string

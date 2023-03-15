@@ -517,6 +517,17 @@ func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Clie
 	return &cm, nil
 }
 
+func GetVeleroServiceAccount(namespace string, client client.Client) (*corev1.ServiceAccount, error) {
+	sa := corev1.ServiceAccount{}
+
+	err := client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "velero"}, &sa)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sa, nil
+}
+
 func getVSMContainer(namespace string, client client.Client) (*corev1.Container, error) {
 	vsmDeployment := appsv1.Deployment{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: vsmDeploymentName, Namespace: namespace}, &vsmDeployment)
@@ -581,4 +592,5 @@ func GetRestoreBatchValue(namespace string, client client.Client) (string, error
 		return "", errors.New(fmt.Sprint("cannot obtain vsb batch value"))
 	}
 	return restoreBatchValue, nil
+
 }
