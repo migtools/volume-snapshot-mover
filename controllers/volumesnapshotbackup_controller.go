@@ -135,6 +135,8 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	if !vsb.DeletionTimestamp.IsZero() {
+		processingVSBs--
+
 		_, err := r.CleanBackupResources(r.Log)
 		if err != nil {
 			return ctrl.Result{}, err
