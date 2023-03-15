@@ -70,6 +70,8 @@ const (
 	SnapMoverRestorePhaseFailed VolumeSnapshotRestorePhase = "Failed"
 
 	SnapMoverRestorePhasePartiallyFailed VolumeSnapshotRestorePhase = "PartiallyFailed"
+
+	SnapMoverRestorePhaseCleanup VolumeSnapshotRestorePhase = "Cleanup"
 )
 
 type VolumeSnapshotRestoreBatchingStatus string

@@ -88,6 +88,8 @@ const (
 	SnapMoverBackupPhaseFailed VolumeSnapshotBackupPhase = "Failed"
 
 	SnapMoverBackupPhasePartiallyFailed VolumeSnapshotBackupPhase = "PartiallyFailed"
+
+	SnapMoverBackupPhaseCleanup VolumeSnapshotBackupPhase = "Cleanup"
 )
 
 type VolumeSnapshotBackupBatchingStatus string
