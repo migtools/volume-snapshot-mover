@@ -569,6 +569,7 @@ func GetBackupBatchValue(namespace string, client client.Client) (string, error)
 	if backupBatchValue == "" {
 		return "", errors.New(fmt.Sprint("cannot obtain vsb batch value"))
 	}
+
 	return backupBatchValue, nil
 }
 
@@ -591,6 +592,44 @@ func GetRestoreBatchValue(namespace string, client client.Client) (string, error
 	if restoreBatchValue == "" {
 		return "", errors.New(fmt.Sprint("cannot obtain vsb batch value"))
 	}
-	return restoreBatchValue, nil
 
+	return restoreBatchValue, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) setVSBQueue(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, log logr.Logger) (bool, error) {
+
+	// another VSB can be added to processing batch
+	if len(vsb.Status.BatchingStatus) > 0 && vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted {
+		processingVSBs--
+	}
+
+	// update non-processed VSB as queued
+	if processingVSBs >= VSBBatchNumber && len(vsb.Status.BatchingStatus) == 0 {
+		log.Info(fmt.Sprintf("marking vsb %v batching status as queued", vsb.Name))
+
+		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
+		}
+
+		// requeue VSB is max batch number is still being processed
+	} else if processingVSBs >= VSBBatchNumber && vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued {
+		return false, nil
+
+		// add a queued VSB to processing batch
+	} else if processingVSBs < VSBBatchNumber && (vsb.Status.BatchingStatus == "" ||
+		vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued) {
+
+		processingVSBs++
+		log.Info(fmt.Sprintf("marking vsb %v batching status as processing", vsb.Name))
+
+		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingProcessing
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
 }

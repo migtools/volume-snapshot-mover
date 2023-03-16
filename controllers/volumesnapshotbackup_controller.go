@@ -109,7 +109,11 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		VSBBatchNumber, _ = strconv.Atoi(batchValue)
+
+		VSBBatchNumber, err = strconv.Atoi(batchValue)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// stop reconciling on this resource when completed or failed
@@ -151,39 +155,18 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		return ctrl.Result{}, nil
 	}
 
-	// another VSB can be added to processing batch
-	if len(vsb.Status.BatchingStatus) > 0 && vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted {
-		processingVSBs--
+	processed, err := r.setVSBQueue(&vsb, r.Log)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// update non-processed VSB as queued
-	if processingVSBs >= VSBBatchNumber && len(vsb.Status.BatchingStatus) == 0 {
-		r.Log.Info(fmt.Sprintf("marking vsb %v batching status as queued", vsb.Name))
-
-		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued
-		err := r.Status().Update(context.Background(), &vsb)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// requeue VSB is max batch number is still being processed
-	} else if processingVSBs >= VSBBatchNumber && vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued {
+	// no error but VSB queue is full
+	if !processed && err == nil {
 		r.Log.Info(fmt.Sprintf("requeuing vsb %v as max vsbs are being processed", vsb.Name))
 		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
-
-		// add a queued VSB to processing batch
-	} else if processingVSBs < VSBBatchNumber && (vsb.Status.BatchingStatus == "" ||
-		vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued) {
-
-		processingVSBs++
-		r.Log.Info(fmt.Sprintf("marking vsb %v batching status as processing", vsb.Name))
-
-		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingProcessing
-		err := r.Status().Update(context.Background(), &vsb)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 	}
+
+	r.Log.Info(fmt.Sprintf("vsb %v vsbs being processed %v", vsb.Name, processingVSBs))
 
 	// Run through all reconcilers associated with VSB needs
 	// Reconciliation logic

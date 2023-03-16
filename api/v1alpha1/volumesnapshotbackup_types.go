@@ -100,8 +100,6 @@ const (
 	SnapMoverBackupBatchingQueued VolumeSnapshotBackupBatchingStatus = "Queued"
 
 	SnapMoverBackupBatchingProcessing VolumeSnapshotBackupBatchingStatus = "Processing"
-
-	SnapMoverBackupBatchingFailed VolumeSnapshotBackupBatchingStatus = "Failed"
 )
 
 //+kubebuilder:object:root=true
