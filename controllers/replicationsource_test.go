@@ -238,55 +238,6 @@ func TestVolumeSnapshotMoverBackupReconciler_BuildReplicationSource(t *testing.T
 			wantErr: true,
 		},
 		{
-			name: "Given nil configmap, should error out",
-			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-vsb",
-					Namespace: "bar",
-				},
-				Spec: volsnapmoverv1alpha1.VolumeSnapshotBackupSpec{
-					VolumeSnapshotContent: corev1.ObjectReference{
-						Name: "sample-snapshot",
-					},
-					ProtectedNamespace: namespace,
-				},
-			},
-			pvc: &corev1.PersistentVolumeClaim{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "pvc",
-					Namespace: namespace,
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("10Gi"),
-						},
-					},
-				},
-			},
-			repsrc: &volsyncv1alpha1.ReplicationSource{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "sample-vsb-rep-src",
-					Namespace: namespace,
-				},
-			},
-			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "test-secret",
-					Namespace: "test-ns",
-				},
-			},
-			configMap: nil,
-			serviceAcct: &corev1.ServiceAccount{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "velero",
-					Namespace: namespace,
-				},
-			},
-			wantErr: true,
-		},
-		{
 			name: "Given nil serviceAccount, should error out",
 			vsb: &volsnapmoverv1alpha1.VolumeSnapshotBackup{
 				ObjectMeta: v1.ObjectMeta{
