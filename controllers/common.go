@@ -598,11 +598,6 @@ func GetRestoreBatchValue(namespace string, client client.Client) (string, error
 
 func (r *VolumeSnapshotBackupReconciler) setVSBQueue(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, log logr.Logger) (bool, error) {
 
-	// another VSB can be added to processing batch
-	if len(vsb.Status.BatchingStatus) > 0 && vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted {
-		processingVSBs--
-	}
-
 	// update non-processed VSB as queued
 	if processingVSBs >= VSBBatchNumber && len(vsb.Status.BatchingStatus) == 0 {
 		log.Info(fmt.Sprintf("marking vsb %v batching status as queued", vsb.Name))
@@ -626,6 +621,39 @@ func (r *VolumeSnapshotBackupReconciler) setVSBQueue(vsb *volsnapmoverv1alpha1.V
 
 		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingProcessing
 		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, log logr.Logger) (bool, error) {
+
+	// update non-processed VSR as queued
+	if processingVSRs >= VSRBatchNumber && len(vsr.Status.BatchingStatus) == 0 {
+		log.Info(fmt.Sprintf("marking vsr %v batching status as queued", vsr.Name))
+
+		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued
+		err := r.Status().Update(context.Background(), vsr)
+		if err != nil {
+			return false, err
+		}
+
+		// requeue VSR is max batch number is still being processed
+	} else if processingVSRs >= VSRBatchNumber && vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued {
+		return false, nil
+
+		// add a queued VSR to processing batch
+	} else if processingVSRs < VSRBatchNumber && (vsr.Status.BatchingStatus == "" ||
+		vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued) {
+
+		processingVSRs++
+		log.Info(fmt.Sprintf("marking vsr %v batching status as processing", vsr.Name))
+
+		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingProcessing
+		err := r.Status().Update(context.Background(), vsr)
 		if err != nil {
 			return false, err
 		}

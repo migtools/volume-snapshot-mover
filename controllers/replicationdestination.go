@@ -200,6 +200,8 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 				r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s batching status as completed", vsr.Name))
 				vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingCompleted
 
+				processingVSRs--
+
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
 				if err != nil {

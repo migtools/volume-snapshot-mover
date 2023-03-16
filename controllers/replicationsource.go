@@ -196,6 +196,8 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted
 		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s batching status as completed", vsb.Name))
 
+		processingVSBs--
+
 		err := r.Status().Update(context.Background(), vsb)
 		if err != nil {
 			return false, err

@@ -138,8 +138,23 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// Check and add VSBs to queue until full
+	processed, err := r.setVSBQueue(&vsb, r.Log)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// no error but VSB queue is full
+	if !processed && err == nil {
+		r.Log.Info(fmt.Sprintf("requeuing vsb %v as max vsbs are being processed", vsb.Name))
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
+	}
+
 	if !vsb.DeletionTimestamp.IsZero() {
-		processingVSBs--
+		// if batchingStatus is completed then processingVSBs has already been decremented
+		if vsb.Status.BatchingStatus != "" && vsb.Status.BatchingStatus != volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted {
+			processingVSBs--
+		}
 
 		_, err := r.CleanBackupResources(r.Log)
 		if err != nil {
@@ -154,19 +169,6 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 
 		return ctrl.Result{}, nil
 	}
-
-	processed, err := r.setVSBQueue(&vsb, r.Log)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// no error but VSB queue is full
-	if !processed && err == nil {
-		r.Log.Info(fmt.Sprintf("requeuing vsb %v as max vsbs are being processed", vsb.Name))
-		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
-	}
-
-	r.Log.Info(fmt.Sprintf("vsb %v vsbs being processed %v", vsb.Name, processingVSBs))
 
 	// Run through all reconcilers associated with VSB needs
 	// Reconciliation logic
