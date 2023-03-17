@@ -97,7 +97,10 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		VSRBatchNumber, _ = strconv.Atoi(batchValue)
+		VSRBatchNumber, err = strconv.Atoi(batchValue)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// stop reconciling on this resource when completed or failed
