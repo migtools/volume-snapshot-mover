@@ -54,6 +54,13 @@ spec:
               protectedNamespace:
                 description: Namespace where the Velero deployment is present
                 type: string
+              resticCustomCARef:
+                description: Restic custom CA configuration
+                properties:
+                  name:
+                    description: 'Name of a secret containing a CUSTOM_CA key with the base64-encoded certificate to pass to the --cacert option in restic.'
+                    type: string
+                type: object
               resticSecretRef:
                 description: Restic Secret reference for given BSL
                 properties:
