@@ -42,6 +42,8 @@ type VolumeSnapshotBackupStatus struct {
 	ResticRepository string `json:"resticrepository,omitempty"`
 	// volumesnapshot backup phase status
 	Phase VolumeSnapshotBackupPhase `json:"phase,omitempty"`
+	// volumesnapshotbackup batching status
+	BatchingStatus VolumeSnapshotBackupBatchingStatus `json:"batchingStatus,omitempty"`
 	// name of the VolumeSnapshotClass
 	VolumeSnapshotClassName string `json:"volumeSnapshotClassName,omitempty"`
 	// StartTimestamp records the time a volsumesnapshotbackup was started.
@@ -88,6 +90,16 @@ const (
 	SnapMoverBackupPhasePartiallyFailed VolumeSnapshotBackupPhase = "PartiallyFailed"
 
 	SnapMoverBackupPhaseCleanup VolumeSnapshotBackupPhase = "Cleanup"
+)
+
+type VolumeSnapshotBackupBatchingStatus string
+
+const (
+	SnapMoverBackupBatchingCompleted VolumeSnapshotBackupBatchingStatus = "Completed"
+
+	SnapMoverBackupBatchingQueued VolumeSnapshotBackupBatchingStatus = "Queued"
+
+	SnapMoverBackupBatchingProcessing VolumeSnapshotBackupBatchingStatus = "Processing"
 )
 
 //+kubebuilder:object:root=true

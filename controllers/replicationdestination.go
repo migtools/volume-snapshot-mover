@@ -182,7 +182,9 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 			sourceSpec := repDest.Spec.Trigger.Manual
 			if sourceStatus == sourceSpec {
 
+				r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as VolSync phase completed", r.req.NamespacedName))
 				vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted
+
 				// recording completion timestamp for VSR as completed is a terminal state
 				now := metav1.Now()
 				vsr.Status.CompletionTimestamp = &now
@@ -191,12 +193,17 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 					vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastSyncTime
 				}
 
+				r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s batching status as completed", vsr.Name))
+				vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingCompleted
+
+				processingVSRs--
+
 				// Update VSR status as completed
 				err := r.Status().Update(context.Background(), &vsr)
 				if err != nil {
 					return false, err
 				}
-				r.Log.Info(fmt.Sprintf("marking volumesnapshotrestore %s as completed", r.req.NamespacedName))
+
 				return true, nil
 			}
 

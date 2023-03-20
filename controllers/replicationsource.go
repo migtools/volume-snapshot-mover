@@ -176,8 +176,10 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 
 	if repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing {
 
-		// Update VSB status as completed
+		// Update VSB status as volsync completed
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s VolSync phase as complete", r.req.NamespacedName))
+
 		// recording completion timestamp for VSB as completed is a terminal state
 		now := metav1.Now()
 		vsb.Status.CompletionTimestamp = &now
@@ -187,11 +189,16 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 			vsb.Status.ReplicationSourceData.CompletionTimestamp = repSource.Status.LastSyncTime
 		}
 
+		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted
+		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s batching status as completed", vsb.Name))
+
+		processingVSBs--
+
 		err := r.Status().Update(context.Background(), vsb)
 		if err != nil {
 			return false, err
 		}
-		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s VolSync phase as complete", r.req.NamespacedName))
+
 		return true, nil
 
 		// ReplicationSource phase is still in progress

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +39,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var processingVSRs = 0
+var VSRBatchNumber = 0
 
 // VolumeSnapshotRestoreReconciler reconciles a VolumeSnapshotRestore object
 type VolumeSnapshotRestoreReconciler struct {
@@ -88,13 +92,39 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		Name:      vsr.Name,
 	}
 
+	if VSRBatchNumber == 0 {
+		batchValue, err := GetRestoreBatchValue(vsr.Spec.ProtectedNamespace, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		VSRBatchNumber, err = strconv.Atoi(batchValue)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// stop reconciling on this resource when completed or failed
 	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted ||
 		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed ||
 		vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed {
+
 		return ctrl.Result{
 			Requeue: false,
 		}, nil
+	}
+
+	// TODO: add VSR finalizer/queue processing logic
+
+	// Check and add VSRs to queue until full
+	processed, err := r.setVSRQueue(&vsr, r.Log)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// no error but VSR queue is full
+	if !processed && err == nil {
+		r.Log.Info(fmt.Sprintf("requeuing vsr %v as max vsrs are being processed", vsr.Name))
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// Run through all reconcilers associated with VSR needs
