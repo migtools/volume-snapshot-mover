@@ -151,7 +151,7 @@ func (r *VolumeSnapshotBackupReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	if !vsb.DeletionTimestamp.IsZero() {
-		// if batchingStatus is completed then processingVSBs has already been decremented
+		// remove VSB from queue if deleted
 		if vsb.Status.BatchingStatus != "" && vsb.Status.BatchingStatus != volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted {
 			processingVSBs--
 		}
