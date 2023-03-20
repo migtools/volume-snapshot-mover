@@ -347,6 +347,11 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 		}
 	}
 
+	if vsr.Spec.ResticCustomCARef.Name != "" {
+		repDestResticVolOptions.CustomCA.Key = "CUSTOM_CA"
+		repDestResticVolOptions.CustomCA.SecretName = vsr.Spec.ResticCustomCARef.Name
+	}
+
 	optionsSpec, err := r.configureRepDestVolOptions(vsr, capacity, cm)
 	if err != nil {
 		return nil, err

@@ -28,6 +28,9 @@ type VolumeSnapshotRestoreSpec struct {
 	VolumeSnapshotMoverBackupref VSBRef `json:"volumeSnapshotMoverBackupRef,omitempty"`
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
+	// Restic custom CA configuration
+	// +optional
+	ResticCustomCARef corev1.LocalObjectReference `json:"resticCustomCARef,omitempty"`
 }
 
 // VolumeSnapshotRestoreStatus defines the observed state of VolumeSnapshotRestore
