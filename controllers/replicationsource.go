@@ -93,10 +93,6 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		return errors.New("nil pvc in buildReplicationSource")
 	}
 
-	if cm == nil {
-		return errors.New("nil configMap in buildReplicationSource")
-	}
-
 	if sa == nil {
 		return errors.New("nil serviceAccount in buildReplicationSource")
 	}

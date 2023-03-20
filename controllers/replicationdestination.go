@@ -96,10 +96,6 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		return errors.New("nil resticSecret in buildReplicationDestination")
 	}
 
-	if cm == nil {
-		return errors.New("nil configMap in buildReplicationDestination")
-	}
-
 	if sa == nil {
 		return errors.New("nil serviceAccount in buildReplicationDestination")
 	}
