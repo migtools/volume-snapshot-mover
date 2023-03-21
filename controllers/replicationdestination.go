@@ -333,6 +333,16 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 
 				repDestResticVolOptions.CacheCapacity = &repDestCacheCapacityCp
 			}
+
+			if spec == "DestinationMoverSecurityContext" {
+				if cm.Data["DestinationMoverSecurityContext"] == "true" {
+					podSC, err := r.GetRepDestPodSecurityContext(vsr.Namespace, vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Name)
+					if err != nil {
+						return nil, err
+					}
+					repDestResticVolOptions.MoverSecurityContext = podSC
+				}
+			}
 		}
 	}
 

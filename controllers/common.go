@@ -662,7 +662,29 @@ func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) GetPodSecurityContext(namespace string, sourcePVCName string) (*corev1.PodSecurityContext, error) {
+func (r *VolumeSnapshotBackupReconciler) GetRepSrcPodSecurityContext(namespace string, sourcePVCName string) (*corev1.PodSecurityContext, error) {
+
+	podSC := corev1.PodSecurityContext{}
+	podList := corev1.PodList{}
+	if err := r.List(r.Context, &podList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.Spec.Volumes != nil {
+			po := getPVCPod(&pod, sourcePVCName)
+
+			if po != nil && po.Spec.SecurityContext != nil {
+				podSC = *po.Spec.SecurityContext
+				return &podSC, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) GetRepDestPodSecurityContext(namespace string, sourcePVCName string) (*corev1.PodSecurityContext, error) {
 
 	podSC := corev1.PodSecurityContext{}
 	podList := corev1.PodList{}
