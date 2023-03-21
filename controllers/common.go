@@ -521,3 +521,35 @@ func GetVeleroServiceAccount(namespace string, client client.Client) (*corev1.Se
 
 	return &sa, nil
 }
+
+func (r *VolumeSnapshotBackupReconciler) GetPodSecurityContext(namespace string, sourcePVCName string) (*corev1.PodSecurityContext, error) {
+
+	podSC := corev1.PodSecurityContext{}
+	podList := corev1.PodList{}
+	if err := r.List(r.Context, &podList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.Spec.Volumes != nil {
+			po := getPVCPod(&pod, sourcePVCName)
+
+			if po != nil && po.Spec.SecurityContext != nil {
+				podSC = *po.Spec.SecurityContext
+				return &podSC, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func getPVCPod(pod *corev1.Pod, pvcName string) *corev1.Pod {
+
+	for _, vol := range pod.Spec.Volumes {
+		if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == pvcName {
+			return pod
+		}
+	}
+	return nil
+}
