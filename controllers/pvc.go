@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
@@ -55,6 +56,11 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 		return false, nil
 	}
 
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+
 	// Create a PVC with the above volumesnapshot clone as the source
 
 	pvcClone := &corev1.PersistentVolumeClaim{
@@ -69,7 +75,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, pvcClone, func() error {
 
-		return r.buildPVCClone(pvcClone, &vsClone)
+		return r.buildPVCClone(pvcClone, &vsClone, cm)
 	})
 	if err != nil {
 		r.Log.Info(fmt.Sprintf("err building pvc clone: %v", err))
@@ -87,7 +93,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot) error {
+func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot, cm *corev1.ConfigMap) error {
 	sourcePVC, err := r.getSourcePVC()
 	if err != nil {
 		return err
@@ -101,11 +107,35 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 			APIGroup: &apiGroup,
 		}
 
-		pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
+		var pvcCloneStorageClassName string
+		var pvcCloneAccessMove string
+
+		if cm != nil && cm.Data != nil {
+			for spec := range cm.Data {
+				// check for config storageClassName, otherwise use source PVC storageClass
+				if spec == "SourceStorageClassName" {
+					pvcCloneStorageClassName = cm.Data["SourceStorageClassName"]
+					pvcClone.Spec.StorageClassName = &pvcCloneStorageClassName
+				}
+
+				// check for config accessMode, otherwise use source PVC accessMode
+				if spec == "SourceAccessMode" {
+					pvcCloneAccessMove = cm.Data["SourceAccessMode"]
+					pvcClone.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(pvcCloneAccessMove)}
+				}
+			}
+
+		}
+
+		if pvcClone.Spec.AccessModes == nil {
+			pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
+		}
+
+		if pvcClone.Spec.StorageClassName == nil {
+			pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
+		}
 
 		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
-
-		pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 	}
 
 	return nil
@@ -154,6 +184,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 						{
 							Name:      "vol1",
 							MountPath: "/mnt/volume1",
+							ReadOnly:  true,
 						},
 					},
 				},
@@ -164,12 +195,26 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 							ClaimName: clonedPVC.Name,
+							ReadOnly:  true,
 						},
 					},
 				},
 			},
 			RestartPolicy: corev1.RestartPolicyNever,
 		},
+	}
+
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+
+	if cm != nil && cm.Data != nil && cm.Data["SourceMoverSecurityContext"] == "true" {
+		podSC, err := GetPodSecurityContext(vsb.Namespace, vsb.Status.SourcePVCData.Name, r.Client)
+		if err != nil {
+			return false, err
+		}
+		dp.Spec.SecurityContext = podSC
 	}
 
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, dp, func() error {

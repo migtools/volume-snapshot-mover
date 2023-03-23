@@ -672,7 +672,7 @@ func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Clie
 
 	for _, pod := range podList.Items {
 		if pod.Spec.Volumes != nil {
-			po := getPVCPod(&pod, sourcePVCName)
+			po := podHasPVCName(&pod, sourcePVCName)
 
 			if po != nil && po.Spec.SecurityContext != nil {
 				podSC = *po.Spec.SecurityContext
@@ -684,7 +684,7 @@ func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Clie
 	return nil, nil
 }
 
-func getPVCPod(pod *corev1.Pod, pvcName string) *corev1.Pod {
+func podHasPVCName(pod *corev1.Pod, pvcName string) *corev1.Pod {
 
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == pvcName {
