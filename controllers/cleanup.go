@@ -52,12 +52,10 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	}
 
 	// Update VSB status as Cleanup
-	if vsb.DeletionTimestamp.IsZero() {
-		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCleanup
-		err := r.Status().Update(context.Background(), &vsb)
-		if err != nil {
-			return false, err
-		}
+	vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCleanup
+	err := r.Status().Update(context.Background(), &vsb)
+	if err != nil {
+		return false, err
 	}
 
 	for _, obj := range cleanupVSBTypes {
@@ -191,12 +189,10 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	// Update VSR status as cleanup
-	if vsr.DeletionTimestamp.IsZero() {
-		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCleanup
-		err := r.Status().Update(context.Background(), &vsr)
-		if err != nil {
-			return false, err
-		}
+	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCleanup
+	err := r.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return false, err
 	}
 
 	for _, obj := range cleanupVSRTypes {

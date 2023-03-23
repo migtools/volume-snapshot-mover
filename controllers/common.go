@@ -11,6 +11,7 @@ import (
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +31,12 @@ const (
 	storageClassDefaultKey        = "storageclass.kubernetes.io/is-default-class"
 	OADPBSLProviderName           = "openshift.io/oadp-bsl-provider"
 	dmFinalizer                   = "oadp.openshift.io/oadp-datamover"
+
+	// VSM deployment vars
+	vsmDeploymentName = "volume-snapshot-mover"
+	vsmContainerName  = "data-mover-controller-container"
+	batchBackupName   = "DATAMOVER_CONCURRENT_BACKUP"
+	batchRestoreName  = "DATAMOVER_CONCURRENT_RESTORE"
 )
 
 // Restic secret data keys
@@ -499,7 +506,6 @@ func updateVSBStatusPhase(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, phase 
 func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Client) (*corev1.ConfigMap, error) {
 
 	cm := corev1.ConfigMap{}
-
 	err := client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: DataMoverConfMapName}, &cm)
 	// configmap will not exist if config values were not set
 	if k8serrors.IsNotFound(err) {
@@ -510,4 +516,149 @@ func GetDataMoverConfigMap(namespace string, log logr.Logger, client client.Clie
 	}
 
 	return &cm, nil
+}
+
+func GetVeleroServiceAccount(namespace string, client client.Client) (*corev1.ServiceAccount, error) {
+	sa := corev1.ServiceAccount{}
+
+	err := client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "velero"}, &sa)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sa, nil
+}
+
+func getVSMContainer(namespace string, client client.Client) (*corev1.Container, error) {
+	vsmDeployment := appsv1.Deployment{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: vsmDeploymentName, Namespace: namespace}, &vsmDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	// get VSM container
+	var vsmContainer *corev1.Container
+	for i, container := range vsmDeployment.Spec.Template.Spec.Containers {
+		if container.Name == vsmContainerName {
+			vsmContainer = &vsmDeployment.Spec.Template.Spec.Containers[i]
+			break
+		}
+	}
+
+	if vsmContainer == nil {
+		return nil, errors.New(fmt.Sprintf("cannot obtain vsm container %s", vsmContainerName))
+	}
+	return vsmContainer, nil
+}
+
+func GetBackupBatchValue(namespace string, client client.Client) (string, error) {
+
+	vsmContainer, err := getVSMContainer(namespace, client)
+	if err != nil {
+		return "", err
+	}
+	// get batching values from deployment env
+	var backupBatchValue string
+
+	for i, env := range vsmContainer.Env {
+		if env.Name == batchBackupName {
+			backupBatchValue = vsmContainer.Env[i].Value
+			break
+		}
+	}
+
+	if backupBatchValue == "" {
+		return "", errors.New(fmt.Sprint("cannot obtain vsb batch value"))
+	}
+
+	return backupBatchValue, nil
+}
+
+func GetRestoreBatchValue(namespace string, client client.Client) (string, error) {
+
+	vsmContainer, err := getVSMContainer(namespace, client)
+	if err != nil {
+		return "", err
+	}
+	// get batching values from deployment env
+	var restoreBatchValue string
+
+	for i, env := range vsmContainer.Env {
+		if env.Name == batchRestoreName {
+			restoreBatchValue = vsmContainer.Env[i].Value
+			break
+		}
+	}
+
+	if restoreBatchValue == "" {
+		return "", errors.New(fmt.Sprint("cannot obtain vsb batch value"))
+	}
+
+	return restoreBatchValue, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) setVSBQueue(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, log logr.Logger) (bool, error) {
+
+	// update non-processed VSB as queued
+	if processingVSBs >= VSBBatchNumber && len(vsb.Status.BatchingStatus) == 0 {
+		log.Info(fmt.Sprintf("marking vsb %v batching status as queued", vsb.Name))
+
+		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
+		}
+
+		// requeue VSB is max batch number is still being processed
+	} else if processingVSBs >= VSBBatchNumber && vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued {
+		return false, nil
+
+		// add a queued VSB to processing batch
+	} else if processingVSBs < VSBBatchNumber && (vsb.Status.BatchingStatus == "" ||
+		vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued) {
+
+		processingVSBs++
+		log.Info(fmt.Sprintf("marking vsb %v batching status as processing", vsb.Name))
+
+		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingProcessing
+		err := r.Status().Update(context.Background(), vsb)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
+func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, log logr.Logger) (bool, error) {
+
+	// update non-processed VSR as queued
+	if processingVSRs >= VSRBatchNumber && len(vsr.Status.BatchingStatus) == 0 {
+		log.Info(fmt.Sprintf("marking vsr %v batching status as queued", vsr.Name))
+
+		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued
+		err := r.Status().Update(context.Background(), vsr)
+		if err != nil {
+			return false, err
+		}
+
+		// requeue VSR is max batch number is still being processed
+	} else if processingVSRs >= VSRBatchNumber && vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued {
+		return false, nil
+
+		// add a queued VSR to processing batch
+	} else if processingVSRs < VSRBatchNumber && (vsr.Status.BatchingStatus == "" ||
+		vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued) {
+
+		processingVSRs++
+		log.Info(fmt.Sprintf("marking vsr %v batching status as processing", vsr.Name))
+
+		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingProcessing
+		err := r.Status().Update(context.Background(), vsr)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
 }
