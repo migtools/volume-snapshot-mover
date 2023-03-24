@@ -28,9 +28,6 @@ type VolumeSnapshotBackupSpec struct {
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 	// Restic Secret reference for given BSL
 	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
-	// Restic custom CA configuration
-	// +optional
-	ResticCustomCARef corev1.LocalObjectReference `json:"resticCustomCARef,omitempty"`
 }
 
 // VolumeSnapshotBackupStatus defines the observed state of VolumeSnapshotBackup

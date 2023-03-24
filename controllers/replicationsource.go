@@ -369,10 +369,8 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 		}
 	}
 
-	if vsb.Spec.ResticCustomCARef.Name != "" {
-		repSrcResticVolOptions.CustomCA.Key = "CUSTOM_CA"
-		repSrcResticVolOptions.CustomCA.SecretName = vsb.Spec.ResticCustomCARef.Name
-	}
+	repSrcResticVolOptions.CustomCA.Key = "RESTIC_CUSTOM_CA"
+	repSrcResticVolOptions.CustomCA.SecretName = resticSecretName
 
 	optionsSpec, err := r.configureRepSourceVolOptions(vsb, pvc, cm)
 	if err != nil {
