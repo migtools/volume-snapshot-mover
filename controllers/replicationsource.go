@@ -289,13 +289,13 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsn
 		for spec := range cm.Data {
 
 			// check for config storageClassName, otherwise use source PVC storageClass
-			if spec == "SourceStorageClassName" {
-				repSourceStorageClass = cm.Data["SourceStorageClassName"]
+			if spec == SourceStorageClassName {
+				repSourceStorageClass = cm.Data[SourceStorageClassName]
 			}
 
 			// check for config accessMode, otherwise use source PVC accessMode
-			if spec == "SourceAccessMode" {
-				repSourceAccessMode = cm.Data["SourceAccessMode"]
+			if spec == SourceAccessMoce {
+				repSourceAccessMode = cm.Data[SourceAccessMoce]
 				repSourceAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repSourceAccessMode)}
 			}
 		}
@@ -335,29 +335,29 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 		for spec := range cm.Data {
 
 			// check for config cacheStorageClassName, otherwise use source PVC storageClass
-			if spec == "SourceCacheStorageClassName" {
-				repSourceCacheStorageClass = cm.Data["SourceCacheStorageClassName"]
+			if spec == SourceCacheStorageClassName {
+				repSourceCacheStorageClass = cm.Data[SourceCacheStorageClassName]
 				repSourceCaceheStorageClassPt = &repSourceCacheStorageClass
 
 				repSrcResticVolOptions.CacheStorageClassName = repSourceCaceheStorageClassPt
 			}
 
 			// check for config cacheAccessMode, otherwise use source PVC accessMode
-			if spec == "SourceCacheAccessMode" {
-				repSourceCacheAccessMode = cm.Data["SourceCacheAccessMode"]
+			if spec == SourceCacheAccessMoce {
+				repSourceCacheAccessMode = cm.Data[SourceCacheAccessMoce]
 				repSrcResticVolOptions.CacheAccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repSourceCacheAccessMode)}
 			}
 
 			// check for config cacheCapacity, otherwise use source PVC capacity
-			if spec == "SourceCacheCapacity" {
-				repSourceCacheCapacity = cm.Data["SourceCacheCapacity"]
+			if spec == SourceCacheCapacity {
+				repSourceCacheCapacity = cm.Data[SourceCacheCapacity]
 				repSourceCacheCapacityCp = resource.MustParse(repSourceCacheCapacity)
 
 				repSrcResticVolOptions.CacheCapacity = &repSourceCacheCapacityCp
 			}
 
-			if spec == "SourceMoverSecurityContext" {
-				if cm.Data["SourceMoverSecurityContext"] == "true" {
+			if spec == SourceMoverSecurityContext {
+				if cm.Data[SourceMoverSecurityContext] == "true" {
 					podSC, err := GetPodSecurityContext(vsb.Namespace, vsb.Status.SourcePVCData.Name, r.Client)
 					if err != nil {
 						return nil, err

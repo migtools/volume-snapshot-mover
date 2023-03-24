@@ -267,13 +267,13 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsna
 		for spec := range cm.Data {
 
 			// check for config storageClassName, otherwise use source PVC storageClass
-			if spec == "DestinationStorageClassName" {
-				repDestStorageClass = cm.Data["DestinationStorageClassName"]
+			if spec == DestinationStorageClassName {
+				repDestStorageClass = cm.Data[DestinationStorageClassName]
 			}
 
 			// check for config accessMode, otherwise use source PVC accessMode
-			if spec == "DestinationAccessMode" {
-				repDestAccessMode = cm.Data["DestinationAccessMode"]
+			if spec == DestinationAccessMoce {
+				repDestAccessMode = cm.Data[DestinationAccessMoce]
 				repDestAccessModeAM = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestAccessMode)}
 			}
 		}
@@ -313,29 +313,29 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 		for spec := range cm.Data {
 
 			// check for config cacheStorageClassName, otherwise use source PVC storageClass
-			if spec == "DestinationCacheStorageClassName" {
-				repDestCacheStorageClass = cm.Data["DestinationCacheStorageClassName"]
+			if spec == DestinationCacheStorageClassName {
+				repDestCacheStorageClass = cm.Data[DestinationCacheStorageClassName]
 				repDestCaceheStorageClassPt = &repDestCacheStorageClass
 
 				repDestResticVolOptions.CacheStorageClassName = repDestCaceheStorageClassPt
 			}
 
 			// check for config cacheAccessMode, otherwise use source PVC accessMode
-			if spec == "DestinationCacheAccessMode" {
-				repDestCacheAccessMode = cm.Data["DestinationCacheAccessMode"]
+			if spec == DestinationCacheAccessMoce {
+				repDestCacheAccessMode = cm.Data[DestinationCacheAccessMoce]
 				repDestResticVolOptions.CacheAccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(repDestCacheAccessMode)}
 			}
 
 			// check for config cacheCapacity, otherwise use source PVC capacity
-			if spec == "DestinationCacheCapacity" {
-				repDestCacheCapacity = cm.Data["DestinationCacheCapacity"]
+			if spec == DestinationCacheCapacity {
+				repDestCacheCapacity = cm.Data[DestinationCacheCapacity]
 				repDestCacheCapacityCp = resource.MustParse(repDestCacheCapacity)
 
 				repDestResticVolOptions.CacheCapacity = &repDestCacheCapacityCp
 			}
 
-			if spec == "DestinationMoverSecurityContext" {
-				if cm.Data["DestinationMoverSecurityContext"] == "true" {
+			if spec == DestinationMoverSecurityContext {
+				if cm.Data[DestinationMoverSecurityContext] == "true" {
 					podSC, err := GetPodSecurityContext(vsr.Namespace, vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.Name, r.Client)
 					if err != nil {
 						return nil, err

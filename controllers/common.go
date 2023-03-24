@@ -70,6 +70,27 @@ const (
 	GCPProvider   = "gcp"
 )
 
+// VSM configmap values
+const (
+	// replicationSource values
+	SourceStorageClassName      = "SourceStorageClassName"
+	SourceAccessMoce            = "SourceAccessMode"
+	SourceCacheStorageClassName = "SourceCacheStorageClassName"
+	SourceCacheAccessMoce       = "SourceCacheAccessMode"
+	SourceCacheCapacity         = "SourceCacheCapacity"
+	SourceCacheAccessMode       = "SourceCacheAccessMode"
+	SourceMoverSecurityContext  = "SourceMoverSecurityContext"
+
+	// replicationDestination values
+	DestinationStorageClassName      = "DestinationStorageClassName"
+	DestinationAccessMoce            = "DestinationAccessMode"
+	DestinationCacheStorageClassName = "DestinationCacheStorageClassName"
+	DestinationCacheAccessMoce       = "DestinationCacheAccessMode"
+	DestinationCacheCapacity         = "DestinationCacheCapacity"
+	DestinationCacheAccessMode       = "DestinationCacheAccessMode"
+	DestinationMoverSecurityContext  = "DestinationMoverSecurityContext"
+)
+
 // Restic secret vars to create new secrets
 var (
 	AWSAccessValue        []byte

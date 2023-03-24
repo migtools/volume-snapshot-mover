@@ -113,14 +113,14 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		if cm != nil && cm.Data != nil {
 			for spec := range cm.Data {
 				// check for config storageClassName, otherwise use source PVC storageClass
-				if spec == "SourceStorageClassName" {
-					pvcCloneStorageClassName = cm.Data["SourceStorageClassName"]
+				if spec == SourceStorageClassName {
+					pvcCloneStorageClassName = cm.Data[SourceStorageClassName]
 					pvcClone.Spec.StorageClassName = &pvcCloneStorageClassName
 				}
 
 				// check for config accessMode, otherwise use source PVC accessMode
-				if spec == "SourceAccessMode" {
-					pvcCloneAccessMove = cm.Data["SourceAccessMode"]
+				if spec == SourceAccessMoce {
+					pvcCloneAccessMove = cm.Data[SourceAccessMoce]
 					pvcClone.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(pvcCloneAccessMove)}
 				}
 			}
@@ -209,7 +209,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		return false, err
 	}
 
-	if cm != nil && cm.Data != nil && cm.Data["SourceMoverSecurityContext"] == "true" {
+	if cm != nil && cm.Data != nil && cm.Data[SourceMoverSecurityContext] == "true" {
 		podSC, err := GetPodSecurityContext(vsb.Namespace, vsb.Status.SourcePVCData.Name, r.Client)
 		if err != nil {
 			return false, err
