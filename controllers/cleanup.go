@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	volsyncv1alpha1 "github.com/backube/volsync/api/v1alpha1"
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -54,12 +52,10 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	}
 
 	// Update VSB status as Cleanup
-	if vsb.DeletionTimestamp.IsZero() {
-		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCleanup
-		err := r.Status().Update(context.Background(), &vsb)
-		if err != nil {
-			return false, err
-		}
+	vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverBackupPhaseCleanup
+	err := r.Status().Update(context.Background(), &vsb)
+	if err != nil {
+		return false, err
 	}
 
 	for _, obj := range cleanupVSBTypes {
@@ -178,7 +174,10 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	// make sure VSR is completed before deleting resources
-	if vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
+	if vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted &&
+		vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed &&
+		vsr.Status.Phase != volsnapmoverv1alpha1.SnapMoverRestorePhasePartiallyFailed &&
+		vsr.DeletionTimestamp.IsZero() {
 		r.Log.Info(fmt.Sprintf("waiting for volsync to complete before deleting volumesnapshotrestore %s resources", r.req.NamespacedName))
 		return false, nil
 	}
@@ -190,12 +189,10 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 	}
 
 	// Update VSR status as cleanup
-	if vsr.DeletionTimestamp.IsZero() {
-		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCleanup
-		err := r.Status().Update(context.Background(), &vsr)
-		if err != nil {
-			return false, err
-		}
+	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCleanup
+	err := r.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return false, err
 	}
 
 	for _, obj := range cleanupVSRTypes {
@@ -213,13 +210,14 @@ func (r *VolumeSnapshotRestoreReconciler) CleanRestoreResources(log logr.Logger)
 		return false, err
 	}
 
-	vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted
-	now := metav1.Now()
-	vsr.Status.CompletionTimestamp = &now
+	// Update VSR status as completed
+	if vsr.DeletionTimestamp.IsZero() {
 
-	err := r.Status().Update(context.Background(), &vsr)
-	if err != nil {
-		return false, err
+		vsr.Status.Phase = volsnapmoverv1alpha1.SnapMoverRestorePhaseCompleted
+		err := r.Status().Update(context.Background(), &vsr)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil

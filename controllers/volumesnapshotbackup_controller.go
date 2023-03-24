@@ -62,10 +62,6 @@ type VolumeSnapshotBackupReconciler struct {
 	req            ctrl.Request
 }
 
-const (
-	dmFinalizer = "oadp.openshift.io/oadp-datamover"
-)
-
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=datamover.oadp.openshift.io,resources=volumesnapshotbackups/finalizers,verbs=update

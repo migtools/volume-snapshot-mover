@@ -30,6 +30,7 @@ const (
 	volumeSnapshotClassDefaultKey = "snapshot.storage.kubernetes.io/is-default-class"
 	storageClassDefaultKey        = "storageclass.kubernetes.io/is-default-class"
 	OADPBSLProviderName           = "openshift.io/oadp-bsl-provider"
+	dmFinalizer                   = "oadp.openshift.io/oadp-datamover"
 
 	// VSM deployment vars
 	vsmDeploymentName = "volume-snapshot-mover"
