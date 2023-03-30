@@ -71,6 +71,27 @@ const (
 	GCPProvider   = "gcp"
 )
 
+// VSM configmap values
+const (
+	// replicationSource values
+	SourceStorageClassName      = "SourceStorageClassName"
+	SourceAccessMoce            = "SourceAccessMode"
+	SourceCacheStorageClassName = "SourceCacheStorageClassName"
+	SourceCacheAccessMoce       = "SourceCacheAccessMode"
+	SourceCacheCapacity         = "SourceCacheCapacity"
+	SourceCacheAccessMode       = "SourceCacheAccessMode"
+	SourceMoverSecurityContext  = "SourceMoverSecurityContext"
+
+	// replicationDestination values
+	DestinationStorageClassName      = "DestinationStorageClassName"
+	DestinationAccessMoce            = "DestinationAccessMode"
+	DestinationCacheStorageClassName = "DestinationCacheStorageClassName"
+	DestinationCacheAccessMoce       = "DestinationCacheAccessMode"
+	DestinationCacheCapacity         = "DestinationCacheCapacity"
+	DestinationCacheAccessMode       = "DestinationCacheAccessMode"
+	DestinationMoverSecurityContext  = "DestinationMoverSecurityContext"
+)
+
 // Restic secret vars to create new secrets
 var (
 	AWSAccessValue        []byte
@@ -661,4 +682,37 @@ func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.
 	}
 
 	return true, nil
+}
+
+func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Client) (*corev1.PodSecurityContext, error) {
+
+	podSC := corev1.PodSecurityContext{}
+	podList := corev1.PodList{}
+	if err := c.List(context.Background(), &podList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.Spec.Volumes != nil {
+			po := podHasPVCName(&pod, sourcePVCName)
+
+			if po != nil && po.Spec.SecurityContext != nil {
+				podSC = *po.Spec.SecurityContext
+				return &podSC, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func podHasPVCName(pod *corev1.Pod, pvcName string) *corev1.Pod {
+
+	for _, vol := range pod.Spec.Volumes {
+		if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == pvcName {
+			return pod
+		}
+	}
+
+	return nil
 }
