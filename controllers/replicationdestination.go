@@ -252,7 +252,7 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestVolOptions(vsr *volsna
 
 	// we do not want users to change these
 	repDestVolOptions := volsyncv1alpha1.ReplicationDestinationVolumeOptions{
-		CopyMethod:              volsyncv1alpha1.CopyMethodDirect,
+		CopyMethod:              volsyncv1alpha1.CopyMethodSnapshot,
 		VolumeSnapshotClassName: &vsr.Spec.VolumeSnapshotMoverBackupref.VolumeSnapshotClassName,
 		Capacity:                capacity,
 	}
