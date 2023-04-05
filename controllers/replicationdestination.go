@@ -120,6 +120,13 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		replicationDestination.Spec = replicationDestinationSpec
 	}
 
+	// include custom CA if specified
+	resticCustomCA := resticSecret.Data[ResticCustomCA]
+	if len(resticCustomCA) > 0 {
+		replicationDestination.Spec.Restic.CustomCA.SecretName = resticSecret.Name
+		replicationDestination.Spec.Restic.CustomCA.Key = ResticCustomCA
+	}
+
 	return nil
 }
 
@@ -346,9 +353,6 @@ func (r *VolumeSnapshotRestoreReconciler) configureRepDestResticVolOptions(vsr *
 			}
 		}
 	}
-
-	repDestResticVolOptions.CustomCA.Key = "RESTIC_CUSTOM_CA"
-	repDestResticVolOptions.CustomCA.SecretName = resticSecretName
 
 	optionsSpec, err := r.configureRepDestVolOptions(vsr, capacity, cm)
 	if err != nil {
