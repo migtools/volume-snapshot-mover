@@ -138,6 +138,13 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 		replicationSource.Spec = replicationSourceSpec
 	}
 
+	// pass along a custom CA if specified
+	resticCustomCA := resticSecret.Data[ResticCustomCA]
+	if len(resticCustomCA) > 0 {
+		replicationSource.Spec.Restic.CustomCA.SecretName = resticSecret.Name
+		replicationSource.Spec.Restic.CustomCA.Key = ResticCustomCA
+	}
+
 	return nil
 }
 

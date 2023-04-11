@@ -120,6 +120,13 @@ func (r *VolumeSnapshotRestoreReconciler) buildReplicationDestination(replicatio
 		replicationDestination.Spec = replicationDestinationSpec
 	}
 
+	// include custom CA if specified
+	resticCustomCA := resticSecret.Data[ResticCustomCA]
+	if len(resticCustomCA) > 0 {
+		replicationDestination.Spec.Restic.CustomCA.SecretName = resticSecret.Name
+		replicationDestination.Spec.Restic.CustomCA.Key = ResticCustomCA
+	}
+
 	return nil
 }
 
