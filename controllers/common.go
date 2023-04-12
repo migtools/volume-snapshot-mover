@@ -54,6 +54,7 @@ const (
 	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 
 	// Restic repo vars
+	ResticCustomCA      = "RESTIC_CUSTOM_CA"
 	ResticPassword      = "RESTIC_PASSWORD"
 	ResticRepository    = "RESTIC_REPOSITORY"
 	ResticPruneInterval = "restic-prune-interval"
@@ -103,6 +104,7 @@ var (
 
 	GoogleApplicationCredentialsValue []byte
 
+	ResticCustomCAValue      []byte
 	ResticPasswordValue      []byte
 	ResticRepoValue          string
 	ResticPruneIntervalValue []byte
@@ -161,6 +163,8 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				AWSDefaultRegionValue = val
 			case key == ResticPassword:
 				ResticPasswordValue = val
+			case key == ResticCustomCA:
+				ResticCustomCAValue = val
 			}
 		}
 
@@ -170,6 +174,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				AWSAccessKey:        AWSAccessValue,
 				AWSSecretKey:        AWSSecretValue,
 				AWSDefaultRegion:    AWSDefaultRegionValue,
+				ResticCustomCA:      ResticCustomCAValue,
 				ResticPassword:      ResticPasswordValue,
 				ResticRepository:    []byte(resticrepo),
 				ResticPruneInterval: []byte(pruneInterval),
@@ -188,6 +193,8 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				AzureAccountKeyValue = val
 			case key == ResticPassword:
 				ResticPasswordValue = val
+			case key == ResticCustomCA:
+				ResticCustomCAValue = val
 			}
 		}
 
@@ -196,6 +203,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 			Data: map[string][]byte{
 				AzureAccountName:    AzureAccountNameValue,
 				AzureAccountKey:     AzureAccountKeyValue,
+				ResticCustomCA:      ResticCustomCAValue,
 				ResticPassword:      ResticPasswordValue,
 				ResticRepository:    []byte(resticrepo),
 				ResticPruneInterval: []byte(pruneInterval),
@@ -212,6 +220,8 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				GoogleApplicationCredentialsValue = val
 			case key == ResticPassword:
 				ResticPasswordValue = val
+			case key == ResticCustomCA:
+				ResticCustomCAValue = val
 			}
 		}
 
@@ -219,6 +229,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
 				GoogleApplicationCredentials: GoogleApplicationCredentialsValue,
+				ResticCustomCA:               ResticCustomCAValue,
 				ResticPassword:               ResticPasswordValue,
 				ResticRepository:             []byte(resticrepo),
 				ResticPruneInterval:          []byte(pruneInterval),

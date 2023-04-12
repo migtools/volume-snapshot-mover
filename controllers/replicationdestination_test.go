@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -35,6 +36,7 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 		Scheme         *runtime.Scheme
 		want           bool
 		wantErr        bool
+		validate       func(*volsyncv1alpha1.ReplicationDestination) error
 	}{
 		// TODO: Add test cases
 		{
@@ -201,6 +203,66 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 			want:    false,
 			wantErr: true,
 		},
+		{
+			name: "Should pass custom CA field through to restic secret",
+			vsr: &volsnapmoverv1alpha1.VolumeSnapshotRestore{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-vsr",
+					Namespace: "bar",
+				},
+				Spec: volsnapmoverv1alpha1.VolumeSnapshotRestoreSpec{
+					ResticSecretRef: corev1.LocalObjectReference{
+						Name: "secret",
+					},
+					VolumeSnapshotMoverBackupref: volsnapmoverv1alpha1.VSBRef{
+						BackedUpPVCData: volsnapmoverv1alpha1.PVCData{
+							Name:             "test-pvc",
+							Size:             "1G",
+							StorageClassName: "test-class",
+						},
+					},
+					ProtectedNamespace: "test-ns",
+				},
+			},
+			repDest: &volsyncv1alpha1.ReplicationDestination{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "sample-vsb-rep-src",
+					Namespace: namespace,
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test-secret",
+					Namespace: "test-ns",
+				},
+				Data: map[string][]byte{
+					ResticCustomCA: []byte("test-secret"),
+				},
+			},
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "datamover-config",
+					Namespace: namespace,
+				},
+			},
+			serviceAcct: &corev1.ServiceAccount{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "velero",
+					Namespace: namespace,
+				},
+			},
+			want:    true,
+			wantErr: false,
+			validate: func(rd *volsyncv1alpha1.ReplicationDestination) error {
+				if rd.Spec.Restic.CustomCA.Key != ResticCustomCA {
+					return fmt.Errorf("restic custom CA key name mismatch, got %s, expected %s", rd.Spec.Restic.CustomCA.Key, ResticCustomCA)
+				}
+				if rd.Spec.Restic.CustomCA.SecretName != "test-secret" {
+					return fmt.Errorf("restic custom CA secret name mismatch, got %s, expected %s", rd.Spec.Restic.CustomCA.SecretName, "test-secret")
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -221,6 +283,12 @@ func TestVolumeSnapshotRestoreReconciler_buildReplicationDestination(t *testing.
 			}
 			if err == nil && tt.want && !tt.wantErr {
 				t.Logf("buildReplicationDestination() err = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.validate != nil {
+				if err = tt.validate(tt.repDest); err != nil {
+					t.Errorf("validation error: %v", err)
+				}
 			}
 		})
 	}
