@@ -701,7 +701,7 @@ func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Clie
 
 				// pod with container securityContext
 				if sc != nil {
-					podSC := buildPodSecurityContext(sc, po)
+					podSC := buildPodSecurityContext(*sc, *pod.Spec.SecurityContext)
 					return podSC, nil
 				}
 
@@ -741,25 +741,25 @@ func getContainerSecurityContext(pod *corev1.Pod) *corev1.SecurityContext {
 	return nil
 }
 
-func buildPodSecurityContext(sc *corev1.SecurityContext, pod *corev1.Pod) *corev1.PodSecurityContext {
+func buildPodSecurityContext(sc corev1.SecurityContext, podSC corev1.PodSecurityContext) *corev1.PodSecurityContext {
 
 	// updated podSecurityContext fields that can also be found in
 	// container securityContext
 	if sc.SELinuxOptions != nil {
-		pod.Spec.SecurityContext.SELinuxOptions = sc.SELinuxOptions
+		podSC.SELinuxOptions = sc.SELinuxOptions
 	}
 	if sc.WindowsOptions != nil {
-		pod.Spec.SecurityContext.WindowsOptions = sc.WindowsOptions
+		podSC.WindowsOptions = sc.WindowsOptions
 	}
 	if sc.RunAsUser != nil {
-		pod.Spec.SecurityContext.RunAsUser = sc.RunAsUser
+		podSC.RunAsUser = sc.RunAsUser
 	}
 	if sc.RunAsGroup != nil {
-		pod.Spec.SecurityContext.RunAsGroup = sc.RunAsGroup
+		podSC.RunAsGroup = sc.RunAsGroup
 	}
 	if sc.RunAsNonRoot != nil {
-		pod.Spec.SecurityContext.RunAsNonRoot = sc.RunAsNonRoot
+		podSC.RunAsNonRoot = sc.RunAsNonRoot
 	}
 
-	return pod.Spec.SecurityContext
+	return &podSC
 }
