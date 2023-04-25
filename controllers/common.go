@@ -697,7 +697,6 @@ func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.
 
 func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Client) (*corev1.PodSecurityContext, error) {
 
-	podSC := corev1.PodSecurityContext{}
 	podList := corev1.PodList{}
 	if err := c.List(context.Background(), &podList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, err
@@ -707,9 +706,22 @@ func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Clie
 		if pod.Spec.Volumes != nil {
 			po := podHasPVCName(&pod, sourcePVCName)
 
-			if po != nil && po.Spec.SecurityContext != nil {
-				podSC = *po.Spec.SecurityContext
-				return &podSC, nil
+			// pod containing volume
+			if po != nil {
+				sc := getContainerSecurityContext(po)
+
+				// pod with container securityContext
+				if sc != nil {
+					podSC := buildPodSecurityContext(*sc, *pod.Spec.SecurityContext)
+					return podSC, nil
+				}
+
+				// pod with podSecurityContext without container securityContext
+				if sc == nil && po.Spec.SecurityContext != nil {
+					return po.Spec.SecurityContext, nil
+				}
+
+				break
 			}
 		}
 	}
@@ -720,10 +732,45 @@ func GetPodSecurityContext(namespace string, sourcePVCName string, c client.Clie
 func podHasPVCName(pod *corev1.Pod, pvcName string) *corev1.Pod {
 
 	for _, vol := range pod.Spec.Volumes {
-		if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == pvcName {
+		if vol.PersistentVolumeClaim != nil &&
+			vol.PersistentVolumeClaim.ClaimName == pvcName {
 			return pod
 		}
 	}
-
 	return nil
+}
+
+func getContainerSecurityContext(pod *corev1.Pod) *corev1.SecurityContext {
+
+	containerSC := corev1.SecurityContext{}
+	for _, container := range pod.Spec.Containers {
+		if container.SecurityContext != nil {
+			containerSC = *container.SecurityContext
+			return &containerSC
+		}
+	}
+	return nil
+}
+
+func buildPodSecurityContext(sc corev1.SecurityContext, podSC corev1.PodSecurityContext) *corev1.PodSecurityContext {
+
+	// updated podSecurityContext fields that can also be found in
+	// container securityContext
+	if sc.SELinuxOptions != nil {
+		podSC.SELinuxOptions = sc.SELinuxOptions
+	}
+	if sc.WindowsOptions != nil {
+		podSC.WindowsOptions = sc.WindowsOptions
+	}
+	if sc.RunAsUser != nil {
+		podSC.RunAsUser = sc.RunAsUser
+	}
+	if sc.RunAsGroup != nil {
+		podSC.RunAsGroup = sc.RunAsGroup
+	}
+	if sc.RunAsNonRoot != nil {
+		podSC.RunAsNonRoot = sc.RunAsNonRoot
+	}
+
+	return &podSC
 }
