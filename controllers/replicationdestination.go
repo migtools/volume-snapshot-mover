@@ -153,6 +153,11 @@ func (r *VolumeSnapshotRestoreReconciler) SetVSRStatus(log logr.Logger) (bool, e
 		return false, errors.New(fmt.Sprintf("vsr %s/%s failed to complete", vsr.Namespace, vsr.Name))
 	}
 
+	// no need to check replicationDestination progess if completed
+	if vsr.Status.Phase == volsnapmoverv1alpha1.SnapMoverRestoreVolSyncPhaseCompleted {
+		return true, nil
+	}
+
 	repDestName := fmt.Sprintf("%s-rep-dest", vsr.Name)
 	repDest := volsyncv1alpha1.ReplicationDestination{}
 	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: repDestName}, &repDest); err != nil {
