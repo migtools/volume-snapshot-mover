@@ -15,6 +15,8 @@ in instances such as cluster deletion or disaster.
 2. Quickstart using Volume Snapshot Mover:
     1. [Backup](#backup)
     2. [Restore](#restore)
+3. [Advanced Options](#Advanced-Options)
+
 
 
 <h2>Prerequisites:<a id="pre-reqs"></a></h2>
@@ -186,3 +188,115 @@ spec:
 - Check that your application data has been restored:
 
 `oc get route <route-name> -n <app-ns> -ojsonpath="{.spec.host}"`
+
+<hr style="height:1px;border:none;color:#333;">
+
+<h4> Advanced Options <a id="Advanced-Options"></a></h4>
+
+The OADP datamover feature supports volume snapshots via the CSI driver. Both
+CephRBD and CephFS are [supported via CSI](https://github.com/ceph/ceph-csi).
+The OADP datamover feature leverages some of the more recently added features of 
+Ceph and CSI to be performant in large scale environments.
+
+In large scale backups the OADP highly recommends OCP 4.12 and above. In OCP 4.12
+extra parameters on the DPA are required for Ceph.  These parameters should not
+be required in OCP >= 4.13. 
+
+For backups on CSI backed by CephFS OADP requires the following volume options
+specified in the DPA.
+
+```
+volumeOptions:
+  sourceVolumeOptions:
+    accessMode: ReadOnlyMany
+    cacheAccessMode: ReadWriteMany
+    cacheStorageClassName: ocs-storagecluster-cephfs
+    moverSecurityContext: true
+    storageClassName: ocs-storagecluster-cephfs-shallow
+```
+
+Since the DPA is a cluster wide configuration, if you plan to backup any other
+storage type we recommend creating two instances of the DPA with the appropriate 
+DPA settings. Note the name and settings of the two following DPA configurations.
+The two instances of the DPA can be configured on the same cluster.
+
+For example a cephfs dpa config:
+```
+apiVersion: oadp.openshift.io/v1alpha1
+kind: DataProtectionApplication
+metadata:
+  name: cephfs-dpa
+  namespace: openshift-adp
+spec:
+  features:
+    dataMover: 
+      enable: true
+      credentialName: <secret-name>
+      volumeOptions:
+        sourceVolumeOptions:
+          accessMode: ReadOnlyMany
+          cacheAccessMode: ReadWriteMany
+          cacheStorageClassName: ocs-storagecluster-cephfs
+          moverSecurityContext: true
+          storageClassName: ocs-storagecluster-cephfs-shallow
+  backupLocations:
+    - velero:
+        config:
+          profile: default
+          region: us-east-1
+        credential:
+          key: cloud
+          name: cloud-credentials
+        default: true
+        objectStorage:
+          bucket: <bucket-name>
+          prefix: <bucket-prefix>
+        provider: aws
+  configuration:
+    restic:
+      enable: false
+    velero:
+      defaultPlugins:
+        - openshift
+        - aws
+        - csi
+      featureFlags:
+        - EnableCSI
+```
+
+For example a non-cephfs dpa config:
+```
+apiVersion: oadp.openshift.io/v1alpha1
+kind: DataProtectionApplication
+metadata:
+  name: all-other-storage-dpa
+  namespace: openshift-adp
+spec:
+  features:
+    dataMover: 
+      enable: true
+      credentialName: <secret-name>
+  backupLocations:
+    - velero:
+        config:
+          profile: default
+          region: us-east-1
+        credential:
+          key: cloud
+          name: cloud-credentials
+        default: true
+        objectStorage:
+          bucket: <bucket-name>
+          prefix: <bucket-prefix>
+        provider: aws
+  configuration:
+    restic:
+      enable: false
+    velero:
+      defaultPlugins:
+        - openshift
+        - aws
+        - csi
+      featureFlags:
+        - EnableCSI
+```
