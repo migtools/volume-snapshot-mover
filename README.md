@@ -193,17 +193,21 @@ spec:
 
 <h4> Advanced Options <a id="Advanced-Options"></a></h4>
 
-The OADP datamover feature supports volume snapshots via the CSI driver. Both
-CephRBD and CephFS are [supported via CSI](https://github.com/ceph/ceph-csi).
-The OADP datamover feature leverages some of the more recently added features of 
-Ceph and CSI to be performant in large scale environments.
+The OADP VolumeSnapshotMover feature supports volume snapshots via the CSI driver. 
+Both CephRBD and CephFS are [supported via CSI](https://github.com/ceph/ceph-csi).
+The OADP VolumeSnapshotMover feature leverages some of the more recently added 
+features of Ceph and CSI to be performant in large scale environments.
+
+One of these newly added features for backups with CephFS to be more performant
+is the [shallow copy](https://github.com/ceph/ceph-csi/blob/devel/docs/design/proposals/cephfs-snapshot-shallow-ro-vol.md) 
+method, which is available > OCP 4.12.
 
 In large scale backups the OADP highly recommends OCP 4.12 and above. In OCP 4.12
-extra parameters on the DPA are required for Ceph.  These parameters should not
-be required in OCP >= 4.13. 
+extra parameters on the DPA are required for this CephFS shallow copy.
+These parameters should not be required in OCP >= 4.13. 
 
-For backups on CSI backed by CephFS OADP requires the following volume options
-specified in the DPA.
+For backups on CSI backed by CephFS using shallow copy, OADP requires the 
+following volume options specified in the DPA.
 
 ```
 volumeOptions:
@@ -218,9 +222,10 @@ volumeOptions:
 Since the DPA is a cluster wide configuration, if you plan to backup any other
 storage type we recommend creating two instances of the DPA with the appropriate 
 DPA settings. Note the name and settings of the two following DPA configurations.
-The two instances of the DPA can be configured on the same cluster.
+The two instances of the DPA can be configured on the same cluster in separate
+namespaces.
 
-For example a cephfs dpa config:
+For example a CephFS DPA config:
 ```
 apiVersion: oadp.openshift.io/v1alpha1
 kind: DataProtectionApplication
@@ -239,6 +244,9 @@ spec:
           cacheStorageClassName: ocs-storagecluster-cephfs
           moverSecurityContext: true
           storageClassName: ocs-storagecluster-cephfs-shallow
+        destinationVolumeOptions:
+          cacheAccessMode: ReadWriteOnce
+          moverSecurityContext: true
   backupLocations:
     - velero:
         config:
@@ -264,13 +272,13 @@ spec:
         - EnableCSI
 ```
 
-For example a non-cephfs dpa config:
+For example a non-CephFS DPA config:
 ```
 apiVersion: oadp.openshift.io/v1alpha1
 kind: DataProtectionApplication
 metadata:
   name: all-other-storage-dpa
-  namespace: openshift-adp
+  namespace: dpa-openshift
 spec:
   features:
     dataMover: 
