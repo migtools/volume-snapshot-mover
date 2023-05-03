@@ -108,6 +108,7 @@ const (
 // +kubebuilder:printcolumn:name="PVC Name",type=string,JSONPath=".status.sourcePVCData.name"
 // +kubebuilder:printcolumn:name="VolumeSnapshotContent",type=string,JSONPath=".spec.volumeSnapshotContent.name"
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="BatchingStatus",type=string,JSONPath=".status.batchingStatus"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
 
 // VolumeSnapshotBackup is the Schema for the volumesnapshotbackups API
