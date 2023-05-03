@@ -91,6 +91,14 @@ const (
 	DestinationCacheCapacity         = "DestinationCacheCapacity"
 	DestinationCacheAccessMode       = "DestinationCacheAccessMode"
 	DestinationMoverSecurityContext  = "DestinationMoverSecurityContext"
+
+	// RetainPolicy parameters
+	SnapshotRetainPolicyHourly  = "SnapshotRetainPolicyHourly"
+	SnapshotRetainPolicyDaily   = "SnapshotRetainPolicyDaily"
+	SnapshotRetainPolicyWeekly  = "SnapshotRetainPolicyWeekly"
+	SnapshotRetainPolicyMonthly = "SnapshotRetainPolicyMonthly"
+	SnapshotRetainPolicyYearly  = "SnapshotRetainPolicyYearly"
+	SnapshotRetainPolicyWithin  = "SnapshotRetainPolicyWithin"
 )
 
 // Restic secret vars to create new secrets
