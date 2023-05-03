@@ -314,6 +314,111 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceVolOptions(vsb *volsn
 	return &repSrcVolOptions, nil
 }
 
+func (r *VolumeSnapshotBackupReconciler) configureRepSourceSnapshotRetainPolicy(cm *corev1.ConfigMap) (*volsyncv1alpha1.ResticRetainPolicy, error) {
+
+	var snapshotRetainPolicyDaily, snapshotRetainPolicyHourly, snapshotRetainPolicyWeekly, snapshotRetainPolicyMonthly, snapshotRetainPolicyYearly, snapshotRetainPolicyWithin string
+	var daily, hourly, weekly, monthly, yearly = int64(0), int64(0), int64(0), int64(0), int64(0)
+	var err error
+	retainPolicy := volsyncv1alpha1.ResticRetainPolicy{}
+	// if datamover configmap has data, use these values
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+
+			// check for SnapshotRetainPolicy parameters and assign the values accordingly to the volsync restic retain struct
+
+			if spec == SnapshotRetainPolicyDaily {
+				snapshotRetainPolicyDaily = cm.Data[SnapshotRetainPolicyDaily]
+			}
+
+			if spec == SnapshotRetainPolicyHourly {
+				snapshotRetainPolicyHourly = cm.Data[SnapshotRetainPolicyHourly]
+			}
+
+			if spec == SnapshotRetainPolicyWeekly {
+				snapshotRetainPolicyWeekly = cm.Data[SnapshotRetainPolicyWeekly]
+			}
+
+			if spec == SnapshotRetainPolicyMonthly {
+				snapshotRetainPolicyMonthly = cm.Data[SnapshotRetainPolicyMonthly]
+			}
+
+			if spec == SnapshotRetainPolicyYearly {
+				snapshotRetainPolicyYearly = cm.Data[SnapshotRetainPolicyYearly]
+			}
+
+			if spec == SnapshotRetainPolicyWithin {
+				snapshotRetainPolicyWithin = cm.Data[SnapshotRetainPolicyWithin]
+			}
+
+		}
+	}
+
+	if len(snapshotRetainPolicyDaily) > 0 {
+		daily, err = strconv.ParseInt(snapshotRetainPolicyDaily, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(snapshotRetainPolicyHourly) > 0 {
+		hourly, err = strconv.ParseInt(snapshotRetainPolicyHourly, 10, 32)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(snapshotRetainPolicyWeekly) > 0 {
+		weekly, err = strconv.ParseInt(snapshotRetainPolicyWeekly, 10, 32)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(snapshotRetainPolicyMonthly) > 0 {
+		monthly, err = strconv.ParseInt(snapshotRetainPolicyMonthly, 10, 32)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(snapshotRetainPolicyYearly) > 0 {
+		yearly, err = strconv.ParseInt(snapshotRetainPolicyYearly, 10, 32)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if daily != 0 {
+		retainPolicy.Daily = pointer.Int32(int32(daily))
+	}
+
+	if hourly != 0 {
+		retainPolicy.Hourly = pointer.Int32(int32(hourly))
+	}
+
+	if weekly != 0 {
+		retainPolicy.Weekly = pointer.Int32(int32(weekly))
+	}
+
+	if monthly != 0 {
+		retainPolicy.Monthly = pointer.Int32(int32(monthly))
+	}
+
+	if yearly != 0 {
+		retainPolicy.Yearly = pointer.Int32(int32(yearly))
+	}
+
+	if len(snapshotRetainPolicyWithin) > 0 {
+		retainPolicy.Within = &snapshotRetainPolicyWithin
+	}
+
+	return &retainPolicy, nil
+}
+
 func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, resticSecretName string,
 	pvc *corev1.PersistentVolumeClaim, cm *corev1.ConfigMap, sa *corev1.ServiceAccount) (*volsyncv1alpha1.ReplicationSourceResticSpec, error) {
 
@@ -381,8 +486,17 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 		return nil, err
 	}
 
+	retainPolicySpec, err := r.configureRepSourceSnapshotRetainPolicy(cm)
+	if err != nil {
+		return nil, err
+	}
+
 	if optionsSpec != nil {
 		repSrcResticVolOptions.ReplicationSourceVolumeOptions = *optionsSpec
+	}
+
+	if retainPolicySpec != nil {
+		repSrcResticVolOptions.Retain = retainPolicySpec
 	}
 
 	return &repSrcResticVolOptions, nil
