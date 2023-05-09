@@ -59,15 +59,14 @@ metadata:
     name: cephfs-config
     namespace: openshift-adp
 data:
-    cephFS:
-        sourceVolumeOptions:
-            storageClassName: cephfs-shallow
-            accessMode: ReadOnlyMany
-            moverSecurityContext: true
-        destinationVolumeOptions:
-            cacheAccessMode: ReadWriteOnce
-            cachecapacity: 10Gi
-            moverSecurityContext: true
+    sourceVolumeOptions:
+        storageClassName: cephfs-shallow
+        accessMode: ReadOnlyMany
+        moverSecurityContext: true
+    destinationVolumeOptions:
+        cacheAccessMode: ReadWriteOnce
+        cachecapacity: 10Gi
+        moverSecurityContext: true
 ```
 
 ```
@@ -77,13 +76,12 @@ metadata:
     name: cephrbd-config
     namespace: openshift-adp
 data:
-    cephRBD:
-        sourceVolumeOptions:
-            accessMode: ReadOnlyMany
-            moverSecurityContext: true
-        destinationVolumeOptions:
-            cacheAccessMode: ReadWriteOnce
-            moverSecurityContext: true
+    sourceVolumeOptions:
+        accessMode: ReadOnlyMany
+        moverSecurityContext: true
+    destinationVolumeOptions:
+        cacheAccessMode: ReadWriteOnce
+        moverSecurityContext: true
 ```
 
 Once a VSM CR is created and the VSM controller process begins, these configMaps  
