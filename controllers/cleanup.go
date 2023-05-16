@@ -20,7 +20,6 @@ var cleanupVSBTypes = []client.Object{
 	&snapv1.VolumeSnapshot{},
 	&snapv1.VolumeSnapshotContent{},
 	&corev1.Secret{},
-	&volsyncv1alpha1.ReplicationSource{},
 }
 
 var cleanupVSRTypes = []client.Object{

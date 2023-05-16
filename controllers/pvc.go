@@ -153,6 +153,12 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		return false, err
 	}
 
+	// no need to perform BindPVCToDummyPod step for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping BindPVCToDummyPod step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
+	}
+
 	// fetch the cloned PVC
 	clonedPVC := corev1.PersistentVolumeClaim{}
 	err := r.Get(r.Context,
@@ -304,6 +310,12 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 		}
 		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
+	}
+
+	// no need to perform IsPVCBound step for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping IsPVCBound step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
 	}
 
 	// get cloned pvc
