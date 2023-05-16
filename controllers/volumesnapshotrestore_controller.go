@@ -31,6 +31,7 @@ import (
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
 	snapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,6 +103,23 @@ func (r *VolumeSnapshotRestoreReconciler) Reconcile(ctx context.Context, req ctr
 		VSRBatchNumber, err = strconv.Atoi(batchValue)
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+	}
+
+	// Delete this VSR when Restore is complete
+	restoreName := vsr.Labels[restoreLabel]
+	restore := velero.Restore{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: vsr.Spec.ProtectedNamespace, Name: restoreName}, &restore); err != nil {
+		return ctrl.Result{
+			Requeue: true,
+		}, err
+	}
+	if restore.Status.Phase == velero.RestorePhaseCompleted {
+		r.Log.Info(fmt.Sprintf("deleting vsr %v as restore %v is completed", vsr.Name, restoreName))
+		if err := r.Delete(ctx, &vsr); err != nil {
+			return ctrl.Result{
+				Requeue: true,
+			}, err
 		}
 	}
 
