@@ -112,7 +112,7 @@ spec:
         provider: aws
   configuration:
     restic:
-      enable: false
+      enable: false #[true, false]
     velero:
       defaultPlugins:
         - openshift
