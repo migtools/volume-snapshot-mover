@@ -31,7 +31,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 	}
 
 	// no need to perform MirrorVolumeSnapshotContent step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping MirrorVolumeSnapshotContent step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
@@ -99,7 +99,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 	}
 
 	// no need to perform MirrorVolumeSnapshot step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping MirrorVolumeSnapshot step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
@@ -221,7 +221,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 	}
 
 	// no need to perform WaitForClonedVolumeSnapshotToBeReady step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping WaitForClonedVolumeSnapshotToBeReady step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
@@ -263,7 +263,7 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 	}
 
 	// no need to perform WaitForClonedVolumeSnapshotContentToBeReady step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping WaitForClonedVolumeSnapshotContentToBeReady step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}

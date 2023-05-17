@@ -44,6 +44,12 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 		return false, nil
 	}
 
+	// no need to perfrom cleanup for the vsb if the datamovement has already completed, completed phase comes after cleanup
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping CleanBackupResources step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
+	}
+
 	// get resources with VSB controller label in protected ns
 	deleteOptions := []client.DeleteAllOfOption{
 		client.MatchingLabels{VSBLabel: vsb.Name},

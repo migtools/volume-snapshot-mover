@@ -29,7 +29,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	}
 
 	// no need to mirror pvc for the vsb if the datamovement has already completed, no need to fetch source VS as it will be deleted once backup completes
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping mirror pvc step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
@@ -154,7 +154,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 	}
 
 	// no need to perform BindPVCToDummyPod step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping BindPVCToDummyPod step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
@@ -313,7 +313,7 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 	}
 
 	// no need to perform IsPVCBound step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping IsPVCBound step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
