@@ -31,7 +31,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 	}
 
 	// no need to create rs for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping create rs step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
@@ -187,7 +187,7 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		}
 	}
 
-	if repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing {
+	if repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing && vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 
 		// Update VSB status as volsync completed
 		vsb.Status.Phase = volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted

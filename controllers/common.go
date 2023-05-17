@@ -383,7 +383,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBStatus(log logr.Logger) (bool, er
 
 	if repSource.Status != nil {
 
-		if len(vsb.Status.Phase) > 0 {
+		if len(vsb.Status.Phase) > 0 && vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 			// no need to check replicationSource progess if completed
 			if vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
 				return true, nil
