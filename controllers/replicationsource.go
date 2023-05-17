@@ -38,7 +38,11 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 		return false, err
 	}
 
-	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
+	if len(vsb.Status.SourcePVCData.Name) == 0 {
+		return false, nil
+	}
+
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
 	if err != nil {
 		return false, err
 	}

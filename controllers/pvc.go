@@ -56,11 +56,6 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 		return false, nil
 	}
 
-	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
-	if err != nil {
-		return false, err
-	}
-
 	// Create a PVC with the above volumesnapshot clone as the source
 
 	pvcClone := &corev1.PersistentVolumeClaim{
@@ -75,7 +70,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, pvcClone, func() error {
 
-		return r.buildPVCClone(pvcClone, &vsClone, cm)
+		return r.buildPVCClone(pvcClone, &vsClone)
 	})
 	if err != nil {
 		r.Log.Info(fmt.Sprintf("err building pvc clone: %v", err))
@@ -93,8 +88,19 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot, cm *corev1.ConfigMap) error {
+func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot) error {
 	sourcePVC, err := r.getSourcePVC()
+	if err != nil {
+		return err
+	}
+
+	// fetch VSB again from cluster as status was updated in getSourcePVC()
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		return err
+	}
+
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
 	if err != nil {
 		return err
 	}
@@ -204,7 +210,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		},
 	}
 
-	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, r.Log, r.Client)
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
 	if err != nil {
 		return false, err
 	}
