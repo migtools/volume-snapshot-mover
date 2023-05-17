@@ -37,7 +37,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	}
 
 	// no need to perform CreateVSBResticSecret step for the vsb if the datamovement has already completed
-	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
 		r.Log.Info(fmt.Sprintf("skipping CreateVSBResticSecret step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
 		return true, nil
 	}
