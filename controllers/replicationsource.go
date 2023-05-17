@@ -30,6 +30,12 @@ func (r *VolumeSnapshotBackupReconciler) CreateReplicationSource(log logr.Logger
 		return false, err
 	}
 
+	// no need to create rs for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping create rs step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
+	}
+
 	// get cloned pvc
 	pvcName := fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)
 	clonedPVC := corev1.PersistentVolumeClaim{}

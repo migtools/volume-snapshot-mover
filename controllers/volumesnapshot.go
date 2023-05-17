@@ -30,6 +30,12 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 		return false, err
 	}
 
+	// no need to perform MirrorVolumeSnapshotContent step for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping MirrorVolumeSnapshotContent step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
+	}
+
 	// fetch original vsc
 	vscInCluster := snapv1.VolumeSnapshotContent{}
 	if err := r.Get(r.Context, types.NamespacedName{Name: vsb.Spec.VolumeSnapshotContent.Name}, &vscInCluster); err != nil {
@@ -90,6 +96,12 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 		}
 		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
+	}
+
+	// no need to perform MirrorVolumeSnapshot step for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping MirrorVolumeSnapshot step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
 	}
 
 	// fetch vsc clone
@@ -208,6 +220,12 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotToBeReady(lo
 		return false, err
 	}
 
+	// no need to perform WaitForClonedVolumeSnapshotToBeReady step for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping WaitForClonedVolumeSnapshotToBeReady step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
+	}
+
 	// Get the clone VSC
 	vscClone := snapv1.VolumeSnapshotContent{}
 	vscCloneName := fmt.Sprintf("%s-clone", vsb.Spec.VolumeSnapshotContent.Name)
@@ -242,6 +260,12 @@ func (r *VolumeSnapshotBackupReconciler) WaitForClonedVolumeSnapshotContentToBeR
 		}
 		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
 		return false, err
+	}
+
+	// no need to perform WaitForClonedVolumeSnapshotContentToBeReady step for the vsb if the datamovement has already completed
+	if len(vsb.Status.Phase) > 0 && vsb.Status.Phase == volsnapmoverv1alpha1.SnapMoverVolSyncPhaseCompleted {
+		r.Log.Info(fmt.Sprintf("skipping WaitForClonedVolumeSnapshotContentToBeReady step for vsb %s/%s as datamovement is complete", vsb.Namespace, vsb.Name))
+		return true, nil
 	}
 
 	// fetch vsc clone
