@@ -53,7 +53,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 		return false, err
 	}
 
-	cm, err := GetDataMoverConfigMap(vsr.Spec.ProtectedNamespace, r.Log, r.Client)
+	cm, err := GetDataMoverConfigMap(vsr.Spec.ProtectedNamespace, vsr.Spec.VolumeSnapshotMoverBackupref.BackedUpPVCData.StorageClassName, r.Log, r.Client)
 	if err != nil {
 		return false, err
 	}
