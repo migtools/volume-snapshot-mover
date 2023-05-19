@@ -225,6 +225,8 @@ DPA settings. Note the name and settings of the two following DPA configurations
 The two instances of the DPA can be configured on the same cluster in separate
 namespaces.
 
+**Note**: these volumeOptions are configured per storageClass.
+
 For example a CephFS DPA config:
 ```
 apiVersion: oadp.openshift.io/v1alpha1
@@ -237,16 +239,17 @@ spec:
     dataMover: 
       enable: true
       credentialName: <secret-name>
-      volumeOptions:
-        sourceVolumeOptions:
-          accessMode: ReadOnlyMany
-          cacheAccessMode: ReadWriteMany
-          cacheStorageClassName: ocs-storagecluster-cephfs
-          moverSecurityContext: true
-          storageClassName: ocs-storagecluster-cephfs-shallow
-        destinationVolumeOptions:
-          cacheAccessMode: ReadWriteOnce
-          moverSecurityContext: true
+      volumeOptionsForStorageClasses:
+        ocs-storagecluster-cephfs:
+          sourceVolumeOptions:
+            accessMode: ReadOnlyMany
+            cacheAccessMode: ReadWriteMany
+            cacheStorageClassName: ocs-storagecluster-cephfs
+            moverSecurityContext: true
+            storageClassName: ocs-storagecluster-cephfs-shallow
+          destinationVolumeOptions:
+            cacheAccessMode: ReadWriteOnce
+            moverSecurityContext: true
   backupLocations:
     - velero:
         config:
