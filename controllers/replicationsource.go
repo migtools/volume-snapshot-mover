@@ -491,6 +491,15 @@ func (r *VolumeSnapshotBackupReconciler) configureRepSourceResticVolOptions(vsb 
 		}
 	}
 
+	// default moverSecurityContext to true
+	if cm == nil {
+		podSC, err := GetPodSecurityContext(vsb.Namespace, vsb.Status.SourcePVCData.Name, r.Client)
+		if err != nil {
+			return nil, err
+		}
+		repSrcResticVolOptions.MoverSecurityContext = podSC
+	}
+
 	optionsSpec, err := r.configureRepSourceVolOptions(vsb, pvc, cm)
 	if err != nil {
 		return nil, err
