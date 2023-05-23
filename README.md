@@ -202,7 +202,7 @@ One of these newly added features for backups with CephFS to be more performant
 is the [shallow copy](https://github.com/ceph/ceph-csi/blob/devel/docs/design/proposals/cephfs-snapshot-shallow-ro-vol.md) 
 method, which is available > OCP 4.12.
 
-In large scale backups the OADP highly recommends OCP 4.12 and above. In OCP 4.12
+In large scale backups OADP highly recommends OCP 4.12 and above. In OCP 4.12
 extra parameters on the DPA are required for this CephFS shallow copy.
 These parameters should not be required in OCP >= 4.13. 
 
@@ -227,7 +227,7 @@ namespaces.
 
 **Note**: these volumeOptions are configured per storageClass.
 
-For example a CephFS DPA config:
+For example a CephFS DPA config with:
 ```
 apiVersion: oadp.openshift.io/v1alpha1
 kind: DataProtectionApplication
