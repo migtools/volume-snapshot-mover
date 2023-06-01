@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -187,7 +188,7 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 			Containers: []corev1.Container{
 				{
 					Name:  "busybox",
-					Image: DummyPodImage,
+					Image: getDataMoverDummyPodImage(),
 					Command: []string{
 						"/bin/sh", "-c", "tail -f /dev/null",
 					},
@@ -340,4 +341,11 @@ func (r *VolumeSnapshotBackupReconciler) IsPVCBound(log logr.Logger) (bool, erro
 
 	return true, nil
 
+}
+
+func getDataMoverDummyPodImage() string {
+	if os.Getenv("DATA_MOVER_DUMMY_POD_IMAGE") == "" {
+		return DummyPodImage
+	}
+	return os.Getenv("DATA_MOVER_DUMMY_POD_IMAGE")
 }
