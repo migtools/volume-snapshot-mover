@@ -101,11 +101,6 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		return err
 	}
 
-	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
-	if err != nil {
-		return err
-	}
-
 	if pvcClone.CreationTimestamp.IsZero() {
 		apiGroup := "snapshot.storage.k8s.io"
 		pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
@@ -113,35 +108,8 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 			Kind:     vsClone.Kind,
 			APIGroup: &apiGroup,
 		}
-
-		var pvcCloneStorageClassName string
-		var pvcCloneAccessMove string
-
-		if cm != nil && cm.Data != nil {
-			for spec := range cm.Data {
-				// check for config storageClassName, otherwise use source PVC storageClass
-				if spec == SourceStorageClassName {
-					pvcCloneStorageClassName = cm.Data[SourceStorageClassName]
-					pvcClone.Spec.StorageClassName = &pvcCloneStorageClassName
-				}
-
-				// check for config accessMode, otherwise use source PVC accessMode
-				if spec == SourceAccessMoce {
-					pvcCloneAccessMove = cm.Data[SourceAccessMoce]
-					pvcClone.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.PersistentVolumeAccessMode(pvcCloneAccessMove)}
-				}
-			}
-
-		}
-
-		if pvcClone.Spec.AccessModes == nil {
-			pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
-		}
-
-		if pvcClone.Spec.StorageClassName == nil {
-			pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
-		}
-
+		pvcClone.Spec.AccessModes = sourcePVC.Spec.AccessModes
+		pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
 	}
 
