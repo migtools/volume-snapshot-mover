@@ -101,7 +101,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		return err
 	}
 
-	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, *sourcePVC.Spec.StorageClassName, r.Log, r.Client)
 	if err != nil {
 		return err
 	}
