@@ -118,6 +118,7 @@ spec:
         - openshift
         - aws
         - csi
+        - vsm
       featureFlags:
         - EnableCSI
 ```
