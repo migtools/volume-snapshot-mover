@@ -63,6 +63,17 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 		return false, err
 	}
 
+	// Check if retain policy is set by the user for datamover backups
+	retainPolicyPresent, err := r.isRetainPolicySet(&vsb)
+	if err != nil {
+		return false, err
+	}
+
+	// If retainPolicy is not set then cleanup the ReplicationSource objects as well
+	if !retainPolicyPresent {
+		cleanupVSBTypes = append(cleanupVSBTypes, &volsyncv1alpha1.ReplicationSource{})
+	}
+
 	for _, obj := range cleanupVSBTypes {
 		err := r.DeleteAllOf(r.Context, obj, deleteOptions...)
 		if err != nil {
@@ -70,13 +81,6 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 			return false, err
 		}
 	}
-
-	// check resources have been deleted
-	// resourcesDeleted, err := r.areVSBResourcesDeleted(r.Log, &vsb)
-	// if err != nil || !resourcesDeleted {
-	// 	r.Log.Error(err, "not all VSB resources have been deleted")
-	// 	return false, err
-	// }
 
 	// Update VSB status as completed
 	if vsb.DeletionTimestamp.IsZero() {
@@ -88,6 +92,27 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	}
 
 	return true, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) isRetainPolicySet(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
+	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
+	if err != nil {
+		return false, err
+	}
+	retainPolicy := false
+	if cm != nil && cm.Data != nil {
+		for spec := range cm.Data {
+			if (spec == SnapshotRetainPolicyDaily ||
+				spec == SnapshotRetainPolicyHourly ||
+				spec == SnapshotRetainPolicyWeekly ||
+				spec == SnapshotRetainPolicyMonthly ||
+				spec == SnapshotRetainPolicyYearly ||
+				spec == SnapshotRetainPolicyWithin) && len(spec) > 0 {
+				retainPolicy = true
+			}
+		}
+	}
+	return retainPolicy, nil
 }
 
 func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
