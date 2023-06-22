@@ -14,20 +14,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var cleanupVSBTypes = []client.Object{
-	&corev1.PersistentVolumeClaim{},
-	&corev1.Pod{},
-	&snapv1.VolumeSnapshot{},
-	&snapv1.VolumeSnapshotContent{},
-	&corev1.Secret{},
-}
-
 var cleanupVSRTypes = []client.Object{
 	&corev1.Secret{},
 	&volsyncv1alpha1.ReplicationDestination{},
 }
 
 func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
+	cleanupVSBTypes := []client.Object{
+		&corev1.PersistentVolumeClaim{},
+		&corev1.Pod{},
+		&snapv1.VolumeSnapshot{},
+		&snapv1.VolumeSnapshotContent{},
+		&corev1.Secret{},
+	}
+
 	// get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
 	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
