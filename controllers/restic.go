@@ -24,6 +24,15 @@ const (
 	SnapMoverSourcePVCSize    = "datamover.io/source-pvc-size"
 )
 
+type RetainPolicy struct {
+	daily   string
+	weekly  string
+	hourly  string
+	monthly string
+	yearly  string
+	within  string
+}
+
 func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) (bool, error) {
 	// get volumesnapshotbackup from cluster
 	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
@@ -70,7 +79,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	}
 
 	var pruneInterval = ""
-
+	rpolicy := RetainPolicy{}
 	for key, val := range resticSecret.Data {
 		if key == ResticRepository {
 			// if trailing '/' in user-created Restic repo, remove it
@@ -81,6 +90,24 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 		}
 		if key == ResticPruneInterval {
 			pruneInterval = string(val)
+		}
+		if key == SnapshotRetainPolicyMonthly {
+			rpolicy.monthly = string(val)
+		}
+		if key == SnapshotRetainPolicyDaily {
+			rpolicy.daily = string(val)
+		}
+		if key == SnapshotRetainPolicyHourly {
+			rpolicy.hourly = string(val)
+		}
+		if key == SnapshotRetainPolicyWeekly {
+			rpolicy.weekly = string(val)
+		}
+		if key == SnapshotRetainPolicyYearly {
+			rpolicy.yearly = string(val)
+		}
+		if key == SnapshotRetainPolicyWithin {
+			rpolicy.within = string(val)
 		}
 	}
 
@@ -94,7 +121,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, rsecret, func() error {
 
-		return BuildResticSecret(&resticSecret, rsecret, resticrepo, pruneInterval)
+		return BuildResticSecret(&resticSecret, rsecret, resticrepo, pruneInterval, &rpolicy)
 	})
 	if err != nil {
 		return false, err
@@ -163,7 +190,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "")
+		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "", nil)
 	})
 	if err != nil {
 		return false, err

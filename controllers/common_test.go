@@ -135,7 +135,7 @@ func Test_BuildResticSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := BuildResticSecret(tt.givensecret, tt.secret, "repo", "14")
+			err := BuildResticSecret(tt.givensecret, tt.secret, "repo", "14", &RetainPolicy{})
 			if err != nil && tt.wantErr {
 				t.Logf("BuildResticSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return
