@@ -95,21 +95,22 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 }
 
 func (r *VolumeSnapshotBackupReconciler) isRetainPolicySet(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
-	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, vsb.Status.SourcePVCData.StorageClassName, r.Log, r.Client)
-	if err != nil {
+	// get restic secret created by controller
+	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
+	resticSecret := corev1.Secret{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: resticSecretName}, &resticSecret); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch restic secret %s/%s", vsb.Spec.ProtectedNamespace, resticSecretName))
 		return false, err
 	}
 	retainPolicy := false
-	if cm != nil && cm.Data != nil {
-		for spec := range cm.Data {
-			if (spec == SnapshotRetainPolicyDaily ||
-				spec == SnapshotRetainPolicyHourly ||
-				spec == SnapshotRetainPolicyWeekly ||
-				spec == SnapshotRetainPolicyMonthly ||
-				spec == SnapshotRetainPolicyYearly ||
-				spec == SnapshotRetainPolicyWithin) && len(spec) > 0 {
-				retainPolicy = true
-			}
+	if resticSecret.Data != nil {
+		if (len(resticSecret.Data[SnapshotRetainPolicyDaily]) > 0 ||
+			len(resticSecret.Data[SnapshotRetainPolicyHourly]) > 0 ||
+			len(resticSecret.Data[SnapshotRetainPolicyWeekly]) > 0 ||
+			len(resticSecret.Data[SnapshotRetainPolicyMonthly]) > 0 ||
+			len(resticSecret.Data[SnapshotRetainPolicyYearly]) > 0) &&
+			len(resticSecret.Data[SnapshotRetainPolicyWithin]) > 0 {
+			retainPolicy = true
 		}
 	}
 	return retainPolicy, nil

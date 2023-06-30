@@ -146,7 +146,7 @@ func PopulateResticSecret(name string, namespace string, label string) (*corev1.
 	return newResticSecret, nil
 }
 
-func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo, pruneInterval string) error {
+func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo, pruneInterval string, rpolicy *RetainPolicy) error {
 	if givensecret == nil {
 		return errors.New("nil givensecret in BuildResticSecret")
 	}
@@ -177,13 +177,19 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		// build new Restic secret
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
-				AWSAccessKey:        AWSAccessValue,
-				AWSSecretKey:        AWSSecretValue,
-				AWSDefaultRegion:    AWSDefaultRegionValue,
-				ResticCustomCA:      ResticCustomCAValue,
-				ResticPassword:      ResticPasswordValue,
-				ResticRepository:    []byte(resticrepo),
-				ResticPruneInterval: []byte(pruneInterval),
+				AWSAccessKey:                AWSAccessValue,
+				AWSSecretKey:                AWSSecretValue,
+				AWSDefaultRegion:            AWSDefaultRegionValue,
+				ResticCustomCA:              ResticCustomCAValue,
+				ResticPassword:              ResticPasswordValue,
+				ResticRepository:            []byte(resticrepo),
+				ResticPruneInterval:         []byte(pruneInterval),
+				SnapshotRetainPolicyDaily:   []byte(rpolicy.daily),
+				SnapshotRetainPolicyWeekly:  []byte(rpolicy.weekly),
+				SnapshotRetainPolicyHourly:  []byte(rpolicy.hourly),
+				SnapshotRetainPolicyMonthly: []byte(rpolicy.monthly),
+				SnapshotRetainPolicyYearly:  []byte(rpolicy.yearly),
+				SnapshotRetainPolicyWithin:  []byte(rpolicy.within),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -207,12 +213,18 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 		// build new Restic secret
 		resticSecretData := &corev1.Secret{
 			Data: map[string][]byte{
-				AzureAccountName:    AzureAccountNameValue,
-				AzureAccountKey:     AzureAccountKeyValue,
-				ResticCustomCA:      ResticCustomCAValue,
-				ResticPassword:      ResticPasswordValue,
-				ResticRepository:    []byte(resticrepo),
-				ResticPruneInterval: []byte(pruneInterval),
+				AzureAccountName:            AzureAccountNameValue,
+				AzureAccountKey:             AzureAccountKeyValue,
+				ResticCustomCA:              ResticCustomCAValue,
+				ResticPassword:              ResticPasswordValue,
+				ResticRepository:            []byte(resticrepo),
+				ResticPruneInterval:         []byte(pruneInterval),
+				SnapshotRetainPolicyDaily:   []byte(rpolicy.daily),
+				SnapshotRetainPolicyWeekly:  []byte(rpolicy.weekly),
+				SnapshotRetainPolicyHourly:  []byte(rpolicy.hourly),
+				SnapshotRetainPolicyMonthly: []byte(rpolicy.monthly),
+				SnapshotRetainPolicyYearly:  []byte(rpolicy.yearly),
+				SnapshotRetainPolicyWithin:  []byte(rpolicy.within),
 			},
 		}
 		secret.Data = resticSecretData.Data
@@ -239,6 +251,12 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				ResticPassword:               ResticPasswordValue,
 				ResticRepository:             []byte(resticrepo),
 				ResticPruneInterval:          []byte(pruneInterval),
+				SnapshotRetainPolicyDaily:    []byte(rpolicy.daily),
+				SnapshotRetainPolicyWeekly:   []byte(rpolicy.weekly),
+				SnapshotRetainPolicyHourly:   []byte(rpolicy.hourly),
+				SnapshotRetainPolicyMonthly:  []byte(rpolicy.monthly),
+				SnapshotRetainPolicyYearly:   []byte(rpolicy.yearly),
+				SnapshotRetainPolicyWithin:   []byte(rpolicy.within),
 			},
 		}
 		secret.Data = resticSecretData.Data
