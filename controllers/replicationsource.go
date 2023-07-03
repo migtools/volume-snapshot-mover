@@ -120,6 +120,12 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	var err error
 	pruneInterval := resticSecret.Data["restic-prune-interval"]
 
+	//fetch the schedule crop expression specified in the secret
+	scheduleCron := ""
+	if len(resticSecret.Data[SnapshotScheduleCron]) > 0 {
+		scheduleCron = string(resticSecret.Data[SnapshotScheduleCron])
+	}
+
 	if len(pruneInterval) > 0 {
 		pruneIntervalInt, err = strconv.ParseInt(string(pruneInterval), 10, 32)
 		if err != nil {
@@ -143,13 +149,7 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	}
 
 	// build ReplicationSource
-	replicationSourceSpec := volsyncv1alpha1.ReplicationSourceSpec{
-		SourcePVC: pvc.Name,
-		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
-			Manual: fmt.Sprintf("%s-trigger", vsb.Name),
-		},
-		Restic: resticVolOptions,
-	}
+	replicationSourceSpec := r.getReplicationSourceSpec(vsb.Name, pvc.Name, scheduleCron, resticVolOptions)
 
 	if pruneIntervalInt != 0 {
 		replicationSourceSpec.Restic.PruneIntervalDays = pointer.Int32(int32(pruneIntervalInt))
@@ -166,6 +166,26 @@ func (r *VolumeSnapshotBackupReconciler) buildReplicationSource(replicationSourc
 	}
 
 	return nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) getReplicationSourceSpec(vsbName, pvcName, scheduleCron string, volOpts *volsyncv1alpha1.ReplicationSourceResticSpec) volsyncv1alpha1.ReplicationSourceSpec {
+	if len(scheduleCron) > 0 {
+		return volsyncv1alpha1.ReplicationSourceSpec{
+			SourcePVC: pvcName,
+			Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
+				Schedule: &scheduleCron,
+			},
+			Restic: volOpts,
+		}
+	}
+
+	return volsyncv1alpha1.ReplicationSourceSpec{
+		SourcePVC: pvcName,
+		Trigger: &volsyncv1alpha1.ReplicationSourceTriggerSpec{
+			Manual: fmt.Sprintf("%s-trigger", vsbName),
+		},
+		Restic: volOpts,
+	}
 }
 
 func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, repSource *volsyncv1alpha1.ReplicationSource) (bool, error) {
@@ -201,7 +221,8 @@ func (r *VolumeSnapshotBackupReconciler) setStatusFromRepSource(vsb *volsnapmove
 		}
 	}
 
-	if repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing && vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted {
+	if (len(repSource.Spec.Trigger.Manual) > 0 && repSourceCompleted && reconConditionCompleted.Type == volsyncv1alpha1.ConditionSynchronizing && vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted) ||
+		(repSource.Spec.Trigger.Schedule != nil && repSourceCompleted && vsb.Status.Phase != volsnapmoverv1alpha1.SnapMoverBackupPhaseCompleted) {
 
 		r.Log.Info(fmt.Sprintf("marking volumesnapshotbackup %s batching status as completed", vsb.Name))
 		err = r.updateVSBBatchingStatus(volsnapmoverv1alpha1.SnapMoverBackupBatchingCompleted, r.Client)
@@ -272,6 +293,10 @@ func (r *VolumeSnapshotBackupReconciler) isRepSourceCompleted(vsb *volsnapmoverv
 			if sourceStatus == sourceSpec {
 				return true, nil
 			}
+		}
+		// for schedule trigger, LastSyncTime will be set at the end of every replication.
+		if repSource.Spec.Trigger.Schedule != nil && repSource.Status.NextSyncTime != nil && repSource.Status.LastSyncTime != nil {
+			return true, nil
 		}
 	}
 

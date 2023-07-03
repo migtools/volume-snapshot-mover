@@ -97,6 +97,9 @@ const (
 	SnapshotRetainPolicyMonthly = "SnapshotRetainPolicyMonthly"
 	SnapshotRetainPolicyYearly  = "SnapshotRetainPolicyYearly"
 	SnapshotRetainPolicyWithin  = "SnapshotRetainPolicyWithin"
+
+	// Snapshot retain schedule trigger value
+	SnapshotScheduleCron = "SnapshotScheduleCron"
 )
 
 // Restic secret vars to create new secrets
@@ -146,7 +149,7 @@ func PopulateResticSecret(name string, namespace string, label string) (*corev1.
 	return newResticSecret, nil
 }
 
-func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo, pruneInterval string, rpolicy *RetainPolicy) error {
+func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, resticrepo, pruneInterval string, rpolicy *RetainPolicy, scheduleCronExpr string) error {
 	if givensecret == nil {
 		return errors.New("nil givensecret in BuildResticSecret")
 	}
@@ -184,6 +187,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				ResticPassword:              ResticPasswordValue,
 				ResticRepository:            []byte(resticrepo),
 				ResticPruneInterval:         []byte(pruneInterval),
+				SnapshotScheduleCron:        []byte(scheduleCronExpr),
 				SnapshotRetainPolicyDaily:   []byte(rpolicy.daily),
 				SnapshotRetainPolicyWeekly:  []byte(rpolicy.weekly),
 				SnapshotRetainPolicyHourly:  []byte(rpolicy.hourly),
@@ -219,6 +223,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				ResticPassword:              ResticPasswordValue,
 				ResticRepository:            []byte(resticrepo),
 				ResticPruneInterval:         []byte(pruneInterval),
+				SnapshotScheduleCron:        []byte(scheduleCronExpr),
 				SnapshotRetainPolicyDaily:   []byte(rpolicy.daily),
 				SnapshotRetainPolicyWeekly:  []byte(rpolicy.weekly),
 				SnapshotRetainPolicyHourly:  []byte(rpolicy.hourly),
@@ -251,6 +256,7 @@ func BuildResticSecret(givensecret *corev1.Secret, secret *corev1.Secret, restic
 				ResticPassword:               ResticPasswordValue,
 				ResticRepository:             []byte(resticrepo),
 				ResticPruneInterval:          []byte(pruneInterval),
+				SnapshotScheduleCron:         []byte(scheduleCronExpr),
 				SnapshotRetainPolicyDaily:    []byte(rpolicy.daily),
 				SnapshotRetainPolicyWeekly:   []byte(rpolicy.weekly),
 				SnapshotRetainPolicyHourly:   []byte(rpolicy.hourly),
