@@ -191,10 +191,12 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 		return false, err
 	}
 	resticrepo := vsr.Spec.VolumeSnapshotMoverBackupref.ResticRepository
+
+	var rpolicy = RetainPolicy{}
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "", nil, "")
+		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "", &rpolicy, "")
 	})
 	if err != nil {
 		return false, err
