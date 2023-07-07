@@ -158,9 +158,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
 
 		// use the clonedPVCSize that is computed earlier
-		if clonedPVCSize != sourcePVCRequestSize {
-			pvcClone.Spec.Resources.Requests.Storage().Set(int64(clonedPVCSize))
-		}
+		pvcClone.Spec.Resources.Requests.Storage().Set(int64(clonedPVCSize))
 	}
 
 	return nil
