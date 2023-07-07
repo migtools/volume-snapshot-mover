@@ -69,8 +69,14 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 		return false, err
 	}
 
-	// If retainPolicy is not set then cleanup the ReplicationSource objects as well
-	if !retainPolicyPresent {
+	// Check if schedule cron trigger is set by the user for datamover backups
+	scheduleCronTriggerPresent, err := r.scheduleCronTriggerSet(&vsb)
+	if err != nil {
+		return false, err
+	}
+
+	// If retainPolicy or schedule cron trigger is not set then cleanup the ReplicationSource objects as well
+	if !retainPolicyPresent && !scheduleCronTriggerPresent {
 		cleanupVSBTypes = append(cleanupVSBTypes, &volsyncv1alpha1.ReplicationSource{})
 	}
 
@@ -114,6 +120,23 @@ func (r *VolumeSnapshotBackupReconciler) isRetainPolicySet(vsb *volsnapmoverv1al
 		}
 	}
 	return retainPolicy, nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) scheduleCronTriggerSet(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
+	// get restic secret created by controller
+	resticSecretName := fmt.Sprintf("%s-secret", vsb.Name)
+	resticSecret := corev1.Secret{}
+	if err := r.Get(r.Context, types.NamespacedName{Namespace: vsb.Spec.ProtectedNamespace, Name: resticSecretName}, &resticSecret); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch restic secret %s/%s", vsb.Spec.ProtectedNamespace, resticSecretName))
+		return false, err
+	}
+	scheduleTrigger := false
+	if resticSecret.Data != nil {
+		if len(resticSecret.Data[SnapshotScheduleCron]) > 0 {
+			scheduleTrigger = true
+		}
+	}
+	return scheduleTrigger, nil
 }
 
 func (r *VolumeSnapshotBackupReconciler) areVSBResourcesDeleted(log logr.Logger, vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup) (bool, error) {
