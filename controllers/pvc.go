@@ -106,6 +106,19 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		return err
 	}
 
+	// check the size of source pvc with that of the cloned volumesnapshot
+	// The cloned pvc provisioning will fail if the source pvc spec.resources.requests.sotrage value is less than the volumesnapshot.status.restorSize value
+	// In order to tackle this problem we compare both the values and use the one that is maximum so that provisioning of cloned pvc does not fail
+	// currently we are keeping this pvc resizing a default behavior but this can be put behind a datamover feature boolean flag
+
+	clonedVSRestoreSize := vsClone.Status.RestoreSize.Size()
+	sourcePVCRequestSize := sourcePVC.Spec.Resources.Size()
+
+	clonedPVCSize := sourcePVCRequestSize
+	if clonedVSRestoreSize > sourcePVCRequestSize {
+		clonedPVCSize = clonedVSRestoreSize
+	}
+
 	if pvcClone.CreationTimestamp.IsZero() {
 		apiGroup := "snapshot.storage.k8s.io"
 		pvcClone.Spec.DataSource = &corev1.TypedLocalObjectReference{
@@ -143,6 +156,11 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		}
 
 		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
+
+		// use the clonedPVCSize that is computed earlier
+		if clonedPVCSize != sourcePVCRequestSize {
+			pvcClone.Spec.Resources.Requests.Storage().Set(int64(clonedPVCSize))
+		}
 	}
 
 	return nil
