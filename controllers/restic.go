@@ -196,7 +196,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 	// Create Restic secret in OADP namespace
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, newResticSecret, func() error {
 
-		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "", &rpolicy)
+		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "", &rpolicy, "")
 	})
 	if err != nil {
 		return false, err
