@@ -546,14 +546,24 @@ func updateVSRFromRestore(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, clien
 	return nil
 }
 
-func updateVSRStatusPhase(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, phase volsnapmoverv1alpha1.VolumeSnapshotRestorePhase, client client.Client) error {
-	if vsr == nil {
-		return errors.New("nil vsr in updateVSRStatusPhase")
+func (r *VolumeSnapshotRestoreReconciler) updateVSRStatusPhase(repDest *volsyncv1alpha1.ReplicationDestination, phase volsnapmoverv1alpha1.VolumeSnapshotRestorePhase, client client.Client) error {
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
+		return err
 	}
 
 	vsr.Status.Phase = phase
 
-	err := client.Status().Update(context.Background(), vsr)
+	// recording completion timestamp for VSR as completed is a terminal state
+	now := metav1.Now()
+	vsr.Status.CompletionTimestamp = &now
+
+	if repDest != nil && repDest.Status.LastSyncTime != nil {
+		vsr.Status.ReplicationDestinationData.CompletionTimestamp = repDest.Status.LastSyncTime
+	}
+
+	err := client.Status().Update(context.Background(), &vsr)
 	if err != nil {
 		return err
 	}
@@ -561,10 +571,59 @@ func updateVSRStatusPhase(vsr *volsnapmoverv1alpha1.VolumeSnapshotRestore, phase
 	return nil
 }
 
-func updateVSBStatusPhase(vsb *volsnapmoverv1alpha1.VolumeSnapshotBackup, phase volsnapmoverv1alpha1.VolumeSnapshotBackupPhase, client client.Client) error {
+func (r *VolumeSnapshotRestoreReconciler) updateVSRBatchingStatus(batchStatus volsnapmoverv1alpha1.VolumeSnapshotRestoreBatchingStatus, client client.Client) error {
+	vsr := volsnapmoverv1alpha1.VolumeSnapshotRestore{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsr); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotrestore %s", r.req.NamespacedName))
+		return err
+	}
+
+	vsr.Status.BatchingStatus = batchStatus
+
+	err := client.Status().Update(context.Background(), &vsr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) updateVSBStatusPhase(repSource *volsyncv1alpha1.ReplicationSource, phase volsnapmoverv1alpha1.VolumeSnapshotBackupPhase, client client.Client) error {
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
+		return err
+	}
+
 	vsb.Status.Phase = phase
 
-	err := client.Status().Update(context.Background(), vsb)
+	// recording completion timestamp for VSB as completed is a terminal state
+	now := metav1.Now()
+	vsb.Status.CompletionTimestamp = &now
+
+	//recording replication source completion timestamp on VSB's status
+	if repSource != nil && repSource.Status.LastSyncTime != nil {
+		vsb.Status.ReplicationSourceData.CompletionTimestamp = repSource.Status.LastSyncTime
+	}
+
+	err := client.Status().Update(context.Background(), &vsb)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *VolumeSnapshotBackupReconciler) updateVSBBatchingStatus(batchStatus volsnapmoverv1alpha1.VolumeSnapshotBackupBatchingStatus, client client.Client) error {
+	vsb := volsnapmoverv1alpha1.VolumeSnapshotBackup{}
+	if err := r.Get(r.Context, r.req.NamespacedName, &vsb); err != nil {
+		r.Log.Error(err, fmt.Sprintf("unable to fetch volumesnapshotbackup %s", r.req.NamespacedName))
+		return err
+	}
+
+	vsb.Status.BatchingStatus = batchStatus
+
+	err := client.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return err
 	}
@@ -672,8 +731,7 @@ func (r *VolumeSnapshotBackupReconciler) setVSBQueue(vsb *volsnapmoverv1alpha1.V
 	if processingVSBs >= VSBBatchNumber && len(vsb.Status.BatchingStatus) == 0 {
 		log.Info(fmt.Sprintf("marking vsb %v batching status as queued", vsb.Name))
 
-		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued
-		err := r.Status().Update(context.Background(), vsb)
+		err := r.updateVSBBatchingStatus(volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued, r.Client)
 		if err != nil {
 			return false, err
 		}
@@ -686,14 +744,14 @@ func (r *VolumeSnapshotBackupReconciler) setVSBQueue(vsb *volsnapmoverv1alpha1.V
 	} else if processingVSBs < VSBBatchNumber && (vsb.Status.BatchingStatus == "" ||
 		vsb.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverBackupBatchingQueued) {
 
-		processingVSBs++
 		log.Info(fmt.Sprintf("marking vsb %v batching status as processing", vsb.Name))
 
-		vsb.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverBackupBatchingProcessing
-		err := r.Status().Update(context.Background(), vsb)
+		err := r.updateVSBBatchingStatus(volsnapmoverv1alpha1.SnapMoverBackupBatchingProcessing, r.Client)
 		if err != nil {
 			return false, err
 		}
+
+		processingVSBs++
 	}
 
 	return true, nil
@@ -705,8 +763,7 @@ func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.
 	if processingVSRs >= VSRBatchNumber && len(vsr.Status.BatchingStatus) == 0 {
 		log.Info(fmt.Sprintf("marking vsr %v batching status as queued", vsr.Name))
 
-		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued
-		err := r.Status().Update(context.Background(), vsr)
+		err := r.updateVSRBatchingStatus(volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued, r.Client)
 		if err != nil {
 			return false, err
 		}
@@ -719,14 +776,15 @@ func (r *VolumeSnapshotRestoreReconciler) setVSRQueue(vsr *volsnapmoverv1alpha1.
 	} else if processingVSRs < VSRBatchNumber && (vsr.Status.BatchingStatus == "" ||
 		vsr.Status.BatchingStatus == volsnapmoverv1alpha1.SnapMoverRestoreBatchingQueued) {
 
-		processingVSRs++
 		log.Info(fmt.Sprintf("marking vsr %v batching status as processing", vsr.Name))
 
 		vsr.Status.BatchingStatus = volsnapmoverv1alpha1.SnapMoverRestoreBatchingProcessing
-		err := r.Status().Update(context.Background(), vsr)
+		err := r.updateVSRBatchingStatus(volsnapmoverv1alpha1.SnapMoverRestoreBatchingProcessing, r.Client)
 		if err != nil {
 			return false, err
 		}
+
+		processingVSRs++
 	}
 
 	return true, nil

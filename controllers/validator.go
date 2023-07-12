@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -58,7 +59,7 @@ func (r *VolumeSnapshotBackupReconciler) ValidateVolumeSnapshotMoverBackup(log l
 	}
 
 	if VSBStatusUpdateNeeded {
-		err := updateVSBStatusPhase(&vsb, volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed, r.Client)
+		err := r.updateVSBStatusPhase(nil, volsnapmoverv1alpha1.SnapMoverBackupPhaseFailed, r.Client)
 		if err != nil {
 			return false, err
 		}
@@ -135,7 +136,7 @@ func (r *VolumeSnapshotRestoreReconciler) ValidateVolumeSnapshotMoverRestore(log
 	}
 
 	if VSRStatusUpdateNeeded {
-		err := updateVSRStatusPhase(&vsr, volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed, r.Client)
+		err := r.updateVSRStatusPhase(nil, volsnapmoverv1alpha1.SnapMoverRestorePhaseFailed, r.Client)
 		if err != nil {
 			return false, err
 		}
