@@ -114,7 +114,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	}
 
 	// TODO should check if label is present first? or it is always present?
-	resticrepo := fmt.Sprintf("%s/%s/%s/%s", ResticRepoValue, vsb.Labels["velero.io/backup-name"], pvc.Namespace, pvc.Name)
+	resticrepo := fmt.Sprintf("%s/%s/%s/%s", ResticRepoValue, pvc.Namespace, vsb.Labels["velero.io/backup-name"], pvc.Name)
 
 	rsecret, err := PopulateResticSecret(vsb.Name, vsb.Spec.ProtectedNamespace, VSBLabel)
 	if err != nil {
