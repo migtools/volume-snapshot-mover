@@ -82,40 +82,39 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 	var scheduleCronExpr = ""
 	rpolicy := RetainPolicy{}
 	for key, val := range resticSecret.Data {
+		stringVal := string(val)
 		if key == ResticRepository {
 			// if trailing '/' in user-created Restic repo, remove it
-			stringVal := string(val)
-			stringVal = strings.TrimRight(stringVal, "/")
-
-			ResticRepoValue = stringVal
+			ResticRepoValue = strings.TrimRight(stringVal, "/")
 		}
 		if key == ResticPruneInterval {
-			pruneInterval = string(val)
+			pruneInterval = stringVal
 		}
 		if key == SnapshotScheduleCron {
-			scheduleCronExpr = string(val)
+			scheduleCronExpr = stringVal
 		}
 		if key == SnapshotRetainPolicyMonthly {
-			rpolicy.monthly = string(val)
+			rpolicy.monthly = stringVal
 		}
 		if key == SnapshotRetainPolicyDaily {
-			rpolicy.daily = string(val)
+			rpolicy.daily = stringVal
 		}
 		if key == SnapshotRetainPolicyHourly {
-			rpolicy.hourly = string(val)
+			rpolicy.hourly = stringVal
 		}
 		if key == SnapshotRetainPolicyWeekly {
-			rpolicy.weekly = string(val)
+			rpolicy.weekly = stringVal
 		}
 		if key == SnapshotRetainPolicyYearly {
-			rpolicy.yearly = string(val)
+			rpolicy.yearly = stringVal
 		}
 		if key == SnapshotRetainPolicyWithin {
-			rpolicy.within = string(val)
+			rpolicy.within = stringVal
 		}
 	}
 
-	resticrepo := fmt.Sprintf("%s/%s/%s", ResticRepoValue, pvc.Namespace, pvc.Name)
+	// TODO should check if label is present first? or it is always present?
+	resticrepo := fmt.Sprintf("%s/%s/%s/%s", ResticRepoValue, vsb.Labels["velero.io/backup-name"], pvc.Namespace, pvc.Name)
 
 	rsecret, err := PopulateResticSecret(vsb.Name, vsb.Spec.ProtectedNamespace, VSBLabel)
 	if err != nil {
