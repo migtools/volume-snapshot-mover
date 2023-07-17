@@ -107,17 +107,23 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	}
 
 	// check the size of source pvc with that of the cloned volumesnapshot
-	// The cloned pvc provisioning will fail if the source pvc spec.resources.requests.sotrage value is less than the volumesnapshot.status.restorSize value
+	// The cloned pvc provisioning will fail if the source pvc spec.resources.requests.storage value is less than the volumesnapshot.status.restorSize value
 	// In order to tackle this problem we compare both the values and use the one that is maximum so that provisioning of cloned pvc does not fail
 	// currently we are keeping this pvc resizing a default behavior but this can be put behind a datamover feature boolean flag
 
-	clonedVSRestoreSize := vsClone.Status.RestoreSize.Size()
-	sourcePVCRequestSize := sourcePVC.Spec.Resources.Size()
+	clonedVSRestoreSize := vsClone.Status.RestoreSize
+	r.Log.Info(fmt.Sprintf("buildPVCClone: clonedVSRestoreSize: %v", clonedVSRestoreSize))
+	sourcePVCRequestSize := sourcePVC.Spec.Resources.Requests.Storage()
+	r.Log.Info(fmt.Sprintf("buildPVCClone: sourcePVCRequestSize: %v", sourcePVCRequestSize))
 
 	clonedPVCSize := sourcePVCRequestSize
-	if clonedVSRestoreSize > sourcePVCRequestSize {
+
+	cmpResult := clonedVSRestoreSize.Cmp(*sourcePVCRequestSize)
+	if cmpResult == 1 || cmpResult == 0 {
+		r.Log.Info(fmt.Sprintf("buildPVCClone: updating clonedPVCSize because clonedVSRestoreSize is greater than or equal to sourcePVCRequestSize"))
 		clonedPVCSize = clonedVSRestoreSize
 	}
+	r.Log.Info(fmt.Sprintf("buildPVCClone: updated clonedPVCSize: %s", clonedPVCSize))
 
 	if pvcClone.CreationTimestamp.IsZero() {
 		apiGroup := "snapshot.storage.k8s.io"
@@ -154,11 +160,12 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		if pvcClone.Spec.StorageClassName == nil {
 			pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 		}
-
 		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
 
 		// use the clonedPVCSize that is computed earlier
-		pvcClone.Spec.Resources.Requests.Storage().Set(int64(clonedPVCSize))
+		r.Log.Info(fmt.Sprintf("buildPVCClone: use the clonedPVCSize that is computed earlier"))
+		pvcClone.Spec.Resources.Requests.Storage().Set(clonedPVCSize.Value())
+		r.Log.Info(fmt.Sprintf("buildPVCClone: updated size for pvcClone: %v", pvcClone.Spec.Resources.Requests.Storage().Value()))
 	}
 
 	return nil
