@@ -21,6 +21,7 @@ var cleanupVSRTypes = []client.Object{
 
 func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (bool, error) {
 	cleanupVSBTypes := []client.Object{
+		&volsyncv1alpha1.ReplicationSource{},
 		&corev1.PersistentVolumeClaim{},
 		&corev1.Pod{},
 		&snapv1.VolumeSnapshot{},
@@ -61,23 +62,6 @@ func (r *VolumeSnapshotBackupReconciler) CleanBackupResources(log logr.Logger) (
 	err := r.Status().Update(context.Background(), &vsb)
 	if err != nil {
 		return false, err
-	}
-
-	// Check if retain policy is set by the user for datamover backups
-	retainPolicyPresent, err := r.isRetainPolicySet(&vsb)
-	if err != nil {
-		return false, err
-	}
-
-	// Check if schedule cron trigger is set by the user for datamover backups
-	scheduleCronTriggerPresent, err := r.scheduleCronTriggerSet(&vsb)
-	if err != nil {
-		return false, err
-	}
-
-	// If retainPolicy or schedule cron trigger is not set then cleanup the ReplicationSource objects as well
-	if !retainPolicyPresent && !scheduleCronTriggerPresent {
-		cleanupVSBTypes = append(cleanupVSBTypes, &volsyncv1alpha1.ReplicationSource{})
 	}
 
 	for _, obj := range cleanupVSBTypes {
