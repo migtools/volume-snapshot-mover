@@ -27,13 +27,13 @@ type VolumeSnapshotBackupSpec struct {
 	// Namespace where the Velero deployment is present
 	ProtectedNamespace string `json:"protectedNamespace,omitempty"`
 	// Restic Secret reference for given BSL
-	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"`
+	ResticSecretRef corev1.LocalObjectReference `json:"resticSecretRef,omitempty"` // override description to avoid showing TODO? https://pkg.go.dev/k8s.io/api/core/v1#LocalObjectReference
 }
 
 // VolumeSnapshotBackupStatus defines the observed state of VolumeSnapshotBackup
 type VolumeSnapshotBackupStatus struct {
 	Completed bool `json:"completed,omitempty"`
-	// Include references to the volsync CRs and their state as they are
+	// Include references to the VolSync CRs and their states as they are
 	// running
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// Includes source PVC name and size
@@ -41,8 +41,10 @@ type VolumeSnapshotBackupStatus struct {
 	// Includes restic repository path
 	ResticRepository string `json:"resticrepository,omitempty"`
 	// volumesnapshot backup phase status
+	// +kubebuilder:validation:Enum=SnapshotBackupDone;Completed;InProgress;Failed;PartiallyFailed;Cleanup
 	Phase VolumeSnapshotBackupPhase `json:"phase,omitempty"`
 	// volumesnapshotbackup batching status
+	// +kubebuilder:validation:Enum=Completed;Queued;Processing
 	BatchingStatus VolumeSnapshotBackupBatchingStatus `json:"batchingStatus,omitempty"`
 	// name of the VolumeSnapshotClass
 	VolumeSnapshotClassName string `json:"volumeSnapshotClassName,omitempty"`
@@ -52,7 +54,7 @@ type VolumeSnapshotBackupStatus struct {
 	// CompletionTimestamp records the time a volumesnapshotbackup reached a terminal state.
 	// +optional
 	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
-	// Includes information pertaining to Volsync ReplicationSource CR
+	// Includes information pertaining to VolSync ReplicationSource CR
 	ReplicationSourceData ReplicationSourceData `json:"replicationSourceData,omitempty"`
 }
 
@@ -102,16 +104,15 @@ const (
 	SnapMoverBackupBatchingProcessing VolumeSnapshotBackupBatchingStatus = "Processing"
 )
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:path=volumesnapshotbackups,shortName=vsb
+// VolumeSnapshotBackup is the Schema for the volumesnapshotbackups API
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=volumesnapshotbackups,shortName=vsb
 // +kubebuilder:printcolumn:name="PVC Name",type=string,JSONPath=".status.sourcePVCData.name"
 // +kubebuilder:printcolumn:name="VolumeSnapshotContent",type=string,JSONPath=".spec.volumeSnapshotContent.name"
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="BatchingStatus",type=string,JSONPath=".status.batchingStatus"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
-
-// VolumeSnapshotBackup is the Schema for the volumesnapshotbackups API
 type VolumeSnapshotBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -120,9 +121,8 @@ type VolumeSnapshotBackup struct {
 	Status VolumeSnapshotBackupStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // VolumeSnapshotBackupList contains a list of VolumeSnapshotBackup
+// +kubebuilder:object:root=true
 type VolumeSnapshotBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

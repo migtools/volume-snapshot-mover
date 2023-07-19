@@ -131,6 +131,10 @@ spec:
             properties:
               batchingStatus:
                 description: volumesnapshotbackup batching status
+                enum:
+                - Completed
+                - Queued
+                - Processing
                 type: string
               completed:
                 type: boolean
@@ -140,7 +144,7 @@ spec:
                 format: date-time
                 type: string
               conditions:
-                description: Include references to the volsync CRs and their state
+                description: Include references to the VolSync CRs and their states
                   as they are running
                 items:
                   description: "Condition contains details for one aspect of the current
@@ -211,9 +215,16 @@ spec:
                 type: array
               phase:
                 description: volumesnapshot backup phase status
+                enum:
+                - SnapshotBackupDone
+                - Completed
+                - InProgress
+                - Failed
+                - PartiallyFailed
+                - Cleanup
                 type: string
               replicationSourceData:
-                description: Includes information pertaining to Volsync ReplicationSource
+                description: Includes information pertaining to VolSync ReplicationSource
                   CR
                 properties:
                   completionTimestamp:
