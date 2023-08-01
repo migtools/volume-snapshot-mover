@@ -120,7 +120,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	if *clonedVSCRestoreSize > sourcePVCRequestSizeInt {
 		clonedPVCSize = *clonedVSCRestoreSize
 	}
-	r.Log.Info(fmt.Sprintf("buildPVCClone: updated clonedPVCSize: %s", clonedPVCSize))
+	r.Log.Info(fmt.Sprintf("buildPVCClone: updated clonedPVCSize: %v", clonedPVCSize))
 
 	if pvcClone.CreationTimestamp.IsZero() {
 		apiGroup := "snapshot.storage.k8s.io"
