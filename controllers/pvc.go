@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -111,7 +112,7 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	// currently we are keeping this pvc resizing a default behavior but this can be put behind a datamover feature boolean flag
 
 	clonedVSCRestoreSize := vscClone.Status.RestoreSize
-	r.Log.Info(fmt.Sprintf("buildPVCClone: clonedVSRestoreSize: %v", clonedVSCRestoreSize))
+	r.Log.Info(fmt.Sprintf("buildPVCClone: clonedVSRestoreSize: %d", *clonedVSCRestoreSize))
 	sourcePVCRequestSize := sourcePVC.Spec.Resources.Requests.Storage()
 	r.Log.Info(fmt.Sprintf("buildPVCClone: sourcePVCRequestSize: %v", sourcePVCRequestSize))
 
@@ -157,11 +158,17 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		if pvcClone.Spec.StorageClassName == nil {
 			pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 		}
-		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
+		//pvcClone.Spec.Resources = sourcePVC.Spec.Resources
 
 		// use the clonedPVCSize that is computed earlier
 		r.Log.Info(fmt.Sprintf("buildPVCClone: use the clonedPVCSize that is computed earlier"))
-		pvcClone.Spec.Resources.Requests.Storage().Set(clonedPVCSize)
+		//pvcClone.Spec.Resources.Requests.Storage().Set(clonedPVCSize)
+		storageRequestValue := resource.NewQuantity(clonedPVCSize, resource.BinarySI)
+		pvcClone.Spec.Resources = corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: *storageRequestValue,
+			},
+		}
 		r.Log.Info(fmt.Sprintf("buildPVCClone: updated size for pvcClone: %v", pvcClone.Spec.Resources.Requests.Storage().Value()))
 	}
 
@@ -194,6 +201,8 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		r.Log.Error(err, fmt.Sprintf("unable to fetch cloned PVC %s/%s", vsb.Spec.ProtectedNamespace, fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)))
 		return false, err
 	}
+
+	r.Log.Info(fmt.Sprintf("BindPVCToDummyPod: cloned PVC after building storage value:%v ", clonedPVC.Spec.Resources.Requests.Storage().Value()))
 
 	// Bind the above cloned PVC to a dummy pod
 	dp := &corev1.Pod{
