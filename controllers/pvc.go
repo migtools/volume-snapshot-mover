@@ -112,16 +112,13 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	// currently we are keeping this pvc resizing a default behavior but this can be put behind a datamover feature boolean flag
 
 	clonedVSCRestoreSize := vscClone.Status.RestoreSize
-	r.Log.Info(fmt.Sprintf("buildPVCClone: clonedVSRestoreSize: %d", *clonedVSCRestoreSize))
 	sourcePVCRequestSize := sourcePVC.Spec.Resources.Requests.Storage()
-	r.Log.Info(fmt.Sprintf("buildPVCClone: sourcePVCRequestSize: %v", sourcePVCRequestSize))
 
 	clonedPVCSize, _ := sourcePVCRequestSize.AsInt64()
 	sourcePVCRequestSizeInt, _ := sourcePVCRequestSize.AsInt64()
 	if *clonedVSCRestoreSize > sourcePVCRequestSizeInt {
 		clonedPVCSize = *clonedVSCRestoreSize
 	}
-	r.Log.Info(fmt.Sprintf("buildPVCClone: updated clonedPVCSize: %v", clonedPVCSize))
 
 	if pvcClone.CreationTimestamp.IsZero() {
 		apiGroup := "snapshot.storage.k8s.io"
@@ -158,11 +155,8 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 		if pvcClone.Spec.StorageClassName == nil {
 			pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 		}
-		//pvcClone.Spec.Resources = sourcePVC.Spec.Resources
 
 		// use the clonedPVCSize that is computed earlier
-		r.Log.Info(fmt.Sprintf("buildPVCClone: use the clonedPVCSize that is computed earlier"))
-		//pvcClone.Spec.Resources.Requests.Storage().Set(clonedPVCSize)
 		storageRequestValue := resource.NewQuantity(clonedPVCSize, resource.BinarySI)
 		pvcClone.Spec.Resources = corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
