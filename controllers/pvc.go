@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"os"
 
 	"github.com/go-logr/logr"
 	volsnapmoverv1alpha1 "github.com/konveyor/volume-snapshot-mover/api/v1alpha1"
@@ -71,7 +71,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 
 	op, err := controllerutil.CreateOrUpdate(r.Context, r.Client, pvcClone, func() error {
 
-		return r.buildPVCClone(pvcClone, &vsClone)
+		return r.buildPVCClone(pvcClone, &vsClone, &vscClone)
 	})
 	if err != nil {
 		r.Log.Info(fmt.Sprintf("err building pvc clone: %v", err))
@@ -89,7 +89,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorPVC(log logr.Logger) (bool, error
 	return true, nil
 }
 
-func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot) error {
+func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.PersistentVolumeClaim, vsClone *snapv1.VolumeSnapshot, vscClone *snapv1.VolumeSnapshotContent) error {
 	sourcePVC, err := r.getSourcePVC()
 	if err != nil {
 		return err
@@ -104,6 +104,20 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 	cm, err := GetDataMoverConfigMap(vsb.Spec.ProtectedNamespace, *sourcePVC.Spec.StorageClassName, r.Log, r.Client)
 	if err != nil {
 		return err
+	}
+
+	// check the size of source pvc with that of the cloned volumesnapshotcontent
+	// The cloned pvc provisioning will fail if the source pvc spec.resources.requests.storage value is less than the volumesnapshotcontent.status.restorSize value
+	// In order to tackle this problem we compare both the values and use the one that is maximum so that provisioning of cloned pvc does not fail
+	// currently we are keeping this pvc resizing a default behavior but this can be put behind a datamover feature boolean flag
+
+	clonedVSCRestoreSize := vscClone.Status.RestoreSize
+	sourcePVCRequestSize := sourcePVC.Spec.Resources.Requests.Storage()
+
+	clonedPVCSize, _ := sourcePVCRequestSize.AsInt64()
+	sourcePVCRequestSizeInt, _ := sourcePVCRequestSize.AsInt64()
+	if *clonedVSCRestoreSize > sourcePVCRequestSizeInt {
+		clonedPVCSize = *clonedVSCRestoreSize
 	}
 
 	if pvcClone.CreationTimestamp.IsZero() {
@@ -142,7 +156,14 @@ func (r *VolumeSnapshotBackupReconciler) buildPVCClone(pvcClone *corev1.Persiste
 			pvcClone.Spec.StorageClassName = sourcePVC.Spec.StorageClassName
 		}
 
-		pvcClone.Spec.Resources = sourcePVC.Spec.Resources
+		// use the clonedPVCSize that is computed earlier
+		storageRequestValue := resource.NewQuantity(clonedPVCSize, resource.BinarySI)
+		pvcClone.Spec.Resources = corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: *storageRequestValue,
+			},
+		}
+		r.Log.Info(fmt.Sprintf("buildPVCClone: updated size for pvcClone: %v", pvcClone.Spec.Resources.Requests.Storage().Value()))
 	}
 
 	return nil
@@ -174,6 +195,8 @@ func (r *VolumeSnapshotBackupReconciler) BindPVCToDummyPod(log logr.Logger) (boo
 		r.Log.Error(err, fmt.Sprintf("unable to fetch cloned PVC %s/%s", vsb.Spec.ProtectedNamespace, fmt.Sprintf("%s-pvc", vsb.Spec.VolumeSnapshotContent.Name)))
 		return false, err
 	}
+
+	r.Log.Info(fmt.Sprintf("BindPVCToDummyPod: cloned PVC after building storage value:%v ", clonedPVC.Spec.Resources.Requests.Storage().Value()))
 
 	// Bind the above cloned PVC to a dummy pod
 	dp := &corev1.Pod{
