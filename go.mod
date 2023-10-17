@@ -1,6 +1,6 @@
 module github.com/konveyor/volume-snapshot-mover
 
-go 1.17
+go 1.19
 
 require (
 	k8s.io/apimachinery v0.25.0
