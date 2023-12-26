@@ -96,6 +96,10 @@ spec:
             properties:
               batchingStatus:
                 description: volumesnapshotrestore batching status
+                enum:
+                - Completed
+                - Queued
+                - Processing
                 type: string
               completionTimestamp:
                 description: CompletionTimestamp records the time a volumesnapshotrestore
@@ -172,9 +176,16 @@ spec:
                 type: array
               phase:
                 description: volumesnapshot restore phase status
+                enum:
+                - SnapshotRestoreDone
+                - Completed
+                - InProgress
+                - Failed
+                - PartiallyFailed
+                - Cleanup
                 type: string
               replicationDestinationData:
-                description: Includes information pertaining to Volsync ReplicationDestination
+                description: Includes information pertaining to VolSync ReplicationDestination
                   CR
                 properties:
                   completionTimestamp:
