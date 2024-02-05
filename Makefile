@@ -70,8 +70,9 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 .PHONY: docker-build
+DOCKER_BUILD_ARGS ?= --platform=linux/amd64
 docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	docker build -t $(IMG) . $(DOCKER_BUILD_ARGS)
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
