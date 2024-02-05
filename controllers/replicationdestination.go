@@ -68,7 +68,8 @@ func (r *VolumeSnapshotRestoreReconciler) CreateReplicationDestination(log logr.
 
 		return r.buildReplicationDestination(repDestination, &vsr, &resticSecret, cm, veleroSA)
 	})
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
+		// don't error out if create errors due to replicationDestination already exists
 		return false, err
 	}
 

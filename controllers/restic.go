@@ -125,7 +125,7 @@ func (r *VolumeSnapshotBackupReconciler) CreateVSBResticSecret(log logr.Logger) 
 
 		return BuildResticSecret(&resticSecret, rsecret, resticrepo, pruneInterval, &rpolicy, scheduleCronExpr)
 	})
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
 		return false, err
 	}
 
@@ -196,7 +196,7 @@ func (r *VolumeSnapshotRestoreReconciler) CreateVSRResticSecret(log logr.Logger)
 
 		return BuildResticSecret(&resticSecret, newResticSecret, resticrepo, "", &rpolicy, "")
 	})
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
 		return false, err
 	}
 

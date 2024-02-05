@@ -69,7 +69,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshotContent(log logr.Lo
 		return r.buildVolumeSnapshotContentClone(vscClone, &vsb)
 	})
 
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
 		return false, err
 	}
 
@@ -135,7 +135,7 @@ func (r *VolumeSnapshotBackupReconciler) MirrorVolumeSnapshot(log logr.Logger) (
 
 		return r.buildVolumeSnapshotClone(vsClone, &vscClone)
 	})
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err){
 		return false, err
 	}
 	if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
